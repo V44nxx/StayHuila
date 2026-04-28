@@ -1,21 +1,179 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turismo Huila</title>
+    <title>HuilaNativa | Hospedajes Auténticos</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Phosphor Icons for modern minimalist icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
+
 <body>
-    <header>
-        <nav>
-            <h1>Mi Proyecto Huila</h1>
+    <!-- Navbar -->
+    <header class="navbar" id="navbar">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SpayHuila Logo" class="logo-img">
+            <span>SpayHuila</span>
+        </div>
+        <nav class="nav-links">
+            <a href="#">Hospedajes</a>
+            <a href="#">Experiencias</a>
+            <a href="#">Comunidad</a>
         </nav>
+        <div class="user-menu">
+            <button class="host-btn">Hazte Anfitrión</button>
+            <div class="profile-btn">
+                <i class="ph ph-list"></i>
+                <i class="ph-fill ph-user-circle"></i>
+            </div>
+        </div>
     </header>
-    <main>
-        <section>
-            <h2>Bienvenido a la mejor plataforma de hospedajes en el Huila</h2>
-        </section>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">Descubre la esencia del Huila</h1>
+            <p class="hero-subtitle">Hospedajes rurales, fincas y cabañas mágicas</p>
+
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <div class="search-field">
+                    <label>Ubicación</label>
+                    <input type="text" placeholder="Ej. San Agustín, Tatacoa...">
+                </div>
+                <div class="search-divider"></div>
+                <div class="search-field">
+                    <label>Llegada</label>
+                    <input type="text" placeholder="Agrega fechas">
+                </div>
+                <div class="search-divider"></div>
+                <div class="search-field">
+                    <label>Salida</label>
+                    <input type="text" placeholder="Agrega fechas">
+                </div>
+                <div class="search-divider"></div>
+                <div class="search-field">
+                    <label>Huéspedes</label>
+                    <input type="text" placeholder="¿Cuántos?">
+                </div>
+                <button class="search-btn">
+                    <i class="ph-bold ph-magnifying-glass"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="categories">
+        <div class="category-item active">
+            <i class="ph ph-coffee"></i>
+            <span>Fincas Cafeteras</span>
+        </div>
+        <div class="category-item">
+            <i class="ph ph-cactus"></i>
+            <span>Desierto</span>
+        </div>
+        <div class="category-item">
+            <i class="ph ph-tree-palm"></i>
+            <span>Eco-Cabañas</span>
+        </div>
+        <div class="category-item">
+            <i class="ph ph-swimming-pool"></i>
+            <span>Con Piscina</span>
+        </div>
+        <div class="category-item">
+            <i class="ph ph-mountains"></i>
+            <span>Vistas Increíbles</span>
+        </div>
+        <div class="category-item">
+            <i class="ph ph-campfire"></i>
+            <span>Experiencias</span>
+        </div>
+    </section>
+
+    <!-- Listings Grid -->
+    <main class="listings-container">
+        <!-- Card 1 -->
+        <article class="listing-card">
+            <div class="image-wrapper">
+                <img src="https://images.unsplash.com/photo-1518136247453-74e7b5265980?auto=format&fit=crop&q=80&w=800"
+                    alt="Cabaña">
+                <div class="badge">SuperAnfitrión</div>
+                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
+            </div>
+            <div class="listing-info">
+                <div class="listing-header">
+                    <h3>Cabaña en las nubes</h3>
+                    <span class="rating"><i class="ph-fill ph-star"></i> 4.98</span>
+                </div>
+                <p class="location">San Agustín, Huila</p>
+                <p class="details">Vista a la montaña • A 2km del parque</p>
+                <p class="price"><strong>$180.000 COP</strong> noche</p>
+            </div>
+        </article>
+
+        <!-- Card 2 -->
+        <article class="listing-card">
+            <div class="image-wrapper">
+                <img src="https://images.unsplash.com/photo-1542315132-ce2bf3e5302f?auto=format&fit=crop&q=80&w=800"
+                    alt="Glamping">
+                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
+            </div>
+            <div class="listing-info">
+                <div class="listing-header">
+                    <h3>Glamping bajo las estrellas</h3>
+                    <span class="rating"><i class="ph-fill ph-star"></i> 4.95</span>
+                </div>
+                <p class="location">Villavieja (Desierto de la Tatacoa)</p>
+                <p class="details">Aire acondicionado • Telescopio</p>
+                <p class="price"><strong>$220.000 COP</strong> noche</p>
+            </div>
+        </article>
+
+        <!-- Card 3 -->
+        <article class="listing-card">
+            <div class="image-wrapper">
+                <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800"
+                    alt="Finca">
+                <div class="badge">Auténtico</div>
+                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
+            </div>
+            <div class="listing-info">
+                <div class="listing-header">
+                    <h3>Finca Cafetera Tradicional</h3>
+                    <span class="rating"><i class="ph-fill ph-star"></i> 4.89</span>
+                </div>
+                <p class="location">Pitalito, Huila</p>
+                <p class="details">Incluye tour de café • Desayuno típico</p>
+                <p class="price"><strong>$150.000 COP</strong> noche</p>
+            </div>
+        </article>
+
+        <!-- Card 4 -->
+        <article class="listing-card">
+            <div class="image-wrapper">
+                <img src="https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&q=80&w=800"
+                    alt="Cabaña de madera">
+                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
+            </div>
+            <div class="listing-info">
+                <div class="listing-header">
+                    <h3>Refugio frente al río</h3>
+                    <span class="rating"><i class="ph-fill ph-star"></i> 5.0</span>
+                </div>
+                <p class="location">Yaguará, Huila</p>
+                <p class="details">Acceso al embalse • Kayak incluido</p>
+                <p class="price"><strong>$250.000 COP</strong> noche</p>
+            </div>
+        </article>
     </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
+
 </html>
