@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HuilaNativa | Hospedajes Auténticos</title>
+    <title>StayHuila | Hospedajes Auténticos</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -16,17 +16,26 @@
     <!-- Navbar -->
     <header class="navbar" id="navbar">
         <div class="logo">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SpayHuila Logo" class="logo-img">
-            <span>SpayHuila</span>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <span>StayHuila</span>
         </div>
         <nav class="nav-links">
-            <a href="#">Hospedajes</a>
+            <a href="/hospedajes">Hospedajes</a>
             <a href="#">Experiencias</a>
+            <a href="#">Planificador de Viajes <span class="nav-badge">IA</span></a>
             <a href="#">Comunidad</a>
         </nav>
         <div class="user-menu">
-            <button class="host-btn">Hazte Anfitrión</button>
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            <div class="notifications">
+                <i class="ph ph-bell"></i>
+                <span class="notification-dot"></span>
+            </div>
+            <button class="host-btn">Panel Anfitrión</button>
             <div class="profile-btn">
+                <div class="gamification-points"><i class="ph-fill ph-coin"></i> 450 pts</div>
                 <i class="ph ph-list"></i>
                 <i class="ph-fill ph-user-circle"></i>
             </div>
@@ -37,30 +46,34 @@
     <section class="hero">
         <div class="hero-overlay"></div>
         <div class="hero-content">
+            <div class="offline-badge"><i class="ph ph-wifi-slash"></i> Disponible Offline</div>
             <h1 class="hero-title">Descubre la esencia del Huila</h1>
-            <p class="hero-subtitle">Hospedajes rurales, fincas y cabañas mágicas</p>
+            <p class="hero-subtitle">Hospedajes rurales, fincas y cabañas mágicas recomendadas para ti</p>
 
             <!-- Search Bar -->
             <div class="search-bar">
                 <div class="search-field">
-                    <label>Ubicación</label>
-                    <input type="text" placeholder="Ej. San Agustín, Tatacoa...">
+                    <label>Ubicación / Experiencia</label>
+                    <input type="text" placeholder="Ej. Aventura en Tatacoa...">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
                     <label>Llegada</label>
-                    <input type="text" placeholder="Agrega fechas">
+                    <input type="date" placeholder="Agrega fechas">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
                     <label>Salida</label>
-                    <input type="text" placeholder="Agrega fechas">
+                    <input type="date" placeholder="Agrega fechas">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
                     <label>Huéspedes</label>
-                    <input type="text" placeholder="¿Cuántos?">
+                    <input type="number" placeholder="¿Cuántos?" min="1">
                 </div>
+                <button class="voice-search-btn" title="Búsqueda por voz">
+                    <i class="ph-fill ph-microphone"></i>
+                </button>
                 <button class="search-btn">
                     <i class="ph-bold ph-magnifying-glass"></i>
                 </button>
@@ -75,103 +88,93 @@
             <span>Fincas Cafeteras</span>
         </div>
         <div class="category-item">
+            <i class="ph ph-leaf"></i>
+            <span>Sostenible & Eco</span>
+        </div>
+        <div class="category-item">
             <i class="ph ph-cactus"></i>
             <span>Desierto</span>
         </div>
         <div class="category-item">
-            <i class="ph ph-tree-palm"></i>
-            <span>Eco-Cabañas</span>
+            <i class="ph ph-heart"></i>
+            <span>Romántico</span>
         </div>
         <div class="category-item">
-            <i class="ph ph-swimming-pool"></i>
-            <span>Con Piscina</span>
+            <i class="ph ph-person-simple-walk"></i>
+            <span>Aventura</span>
         </div>
         <div class="category-item">
-            <i class="ph ph-mountains"></i>
-            <span>Vistas Increíbles</span>
+            <i class="ph ph-bed"></i>
+            <span>Descanso Profundo</span>
         </div>
         <div class="category-item">
-            <i class="ph ph-campfire"></i>
-            <span>Experiencias</span>
+            <i class="ph ph-map-pin"></i>
+            <span>Cerca de ti</span>
         </div>
     </section>
 
-    <!-- Listings Grid -->
-    <main class="listings-container">
-        <!-- Card 1 -->
+    <!-- Recomendaciones -->
+    <div style="text-align: center; padding: 2rem 4rem 0;">
+        <h2 style="font-size: 2rem; color: var(--primary);">Recomendaciones para ti</h2>
+        <p style="color: var(--text-muted);">Seleccionados especialmente según tus gustos</p>
+    </div>
+    <main class="listings-container" id="hospedajes">
+        {% for hospedaje in hospedajes %}
+        <!-- Card {{ hospedaje.id }} -->
         <article class="listing-card">
             <div class="image-wrapper">
-                <img src="https://images.unsplash.com/photo-1518136247453-74e7b5265980?auto=format&fit=crop&q=80&w=800"
-                    alt="Cabaña">
-                <div class="badge">SuperAnfitrión</div>
+                <img src="{{ hospedaje.image }}" alt="{{ hospedaje.type }}">
+                {% if hospedaje.is_eco %}
+                <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>
+                {% elif hospedaje.badge %}
+                <div class="badge">{{ hospedaje.badge }}</div>
+                {% endif %}
+                
+                {% if hospedaje.discount %}
+                <div class="discount-badge">{{ hospedaje.discount }}</div>
+                {% endif %}
                 <button class="favorite-btn"><i class="ph ph-heart"></i></button>
             </div>
             <div class="listing-info">
                 <div class="listing-header">
-                    <h3>Cabaña en las nubes</h3>
-                    <span class="rating"><i class="ph-fill ph-star"></i> 4.98</span>
+                    <h3>{{ hospedaje.name }}</h3>
+                    <span class="rating"><i class="ph-fill ph-star"></i> {{ hospedaje.rating }} ({{ hospedaje.reviews }})</span>
                 </div>
-                <p class="location">San Agustín, Huila</p>
-                <p class="details">Vista a la montaña • A 2km del parque</p>
-                <p class="price"><strong>$180.000 COP</strong> noche</p>
+                <p class="location">{{ hospedaje.location }}</p>
+                <p class="details">{{ hospedaje.details }}</p>
+                <p class="price"><strong>${{ "{:,.0f}".format(hospedaje.price).replace(',', '.') }} COP</strong> noche</p>
+                <button class="book-now-btn" data-id="{{ hospedaje.id }}">Reservar con Anticipo</button>
             </div>
         </article>
-
-        <!-- Card 2 -->
-        <article class="listing-card">
-            <div class="image-wrapper">
-                <img src="https://images.unsplash.com/photo-1542315132-ce2bf3e5302f?auto=format&fit=crop&q=80&w=800"
-                    alt="Glamping">
-                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
-            </div>
-            <div class="listing-info">
-                <div class="listing-header">
-                    <h3>Glamping bajo las estrellas</h3>
-                    <span class="rating"><i class="ph-fill ph-star"></i> 4.95</span>
-                </div>
-                <p class="location">Villavieja (Desierto de la Tatacoa)</p>
-                <p class="details">Aire acondicionado • Telescopio</p>
-                <p class="price"><strong>$220.000 COP</strong> noche</p>
-            </div>
-        </article>
-
-        <!-- Card 3 -->
-        <article class="listing-card">
-            <div class="image-wrapper">
-                <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800"
-                    alt="Finca">
-                <div class="badge">Auténtico</div>
-                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
-            </div>
-            <div class="listing-info">
-                <div class="listing-header">
-                    <h3>Finca Cafetera Tradicional</h3>
-                    <span class="rating"><i class="ph-fill ph-star"></i> 4.89</span>
-                </div>
-                <p class="location">Pitalito, Huila</p>
-                <p class="details">Incluye tour de café • Desayuno típico</p>
-                <p class="price"><strong>$150.000 COP</strong> noche</p>
-            </div>
-        </article>
-
-        <!-- Card 4 -->
-        <article class="listing-card">
-            <div class="image-wrapper">
-                <img src="https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&q=80&w=800"
-                    alt="Cabaña de madera">
-                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
-            </div>
-            <div class="listing-info">
-                <div class="listing-header">
-                    <h3>Refugio frente al río</h3>
-                    <span class="rating"><i class="ph-fill ph-star"></i> 5.0</span>
-                </div>
-                <p class="location">Yaguará, Huila</p>
-                <p class="details">Acceso al embalse • Kayak incluido</p>
-                <p class="price"><strong>$250.000 COP</strong> noche</p>
-            </div>
-        </article>
+        {% endfor %}
     </main>
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <a href="/hospedajes" class="book-now-btn" style="text-decoration: none; display: inline-block; width: auto; padding: 1rem 2rem;">Ver Todos los Hospedajes</a>
+    </div>
+
+    <!-- Floating Map Button -->
+    <button class="floating-map-btn">
+        <span>Mostrar Mapa</span>
+        <i class="ph-fill ph-map-trifold"></i>
+    </button>
+
+    <!-- AI Assistant Chatbot -->
+    <div class="chatbot-widget">
+        <div class="chatbot-header">
+            <div class="chatbot-title">
+                <i class="ph-fill ph-robot"></i> Asistente de Viaje IA
+            </div>
+            <i class="ph ph-x close-chat"></i>
+        </div>
+        <div class="chatbot-body">
+            <div class="chat-message bot">¡Hola! Soy tu asistente inteligente. ¿Buscas un plan de aventura, descanso o romance en el Huila?</div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" placeholder="Escribe o usa tu voz...">
+            <button class="chat-voice-btn"><i class="ph-fill ph-microphone"></i></button>
+            <button class="chat-send-btn"><i class="ph-fill ph-paper-plane-right"></i></button>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>

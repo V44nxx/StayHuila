@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayHuila | Todos los Hospedajes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/hospedajes.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Leaflet CSS para el Mapa Interactivo -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+
+<body>
+    <!-- Navbar (Solid) -->
+    <header class="navbar navbar-hospedajes" id="navbar">
+        <div class="logo" onclick="window.location.href='/'" style="cursor: pointer;">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <span>StayHuila</span>
+        </div>
+        <nav class="nav-links">
+            <a href="/hospedajes" class="active" style="color: var(--primary);">Hospedajes</a>
+            <a href="#">Experiencias</a>
+            <a href="#">Planificador de Viajes <span class="nav-badge">IA</span></a>
+            <a href="#">Comunidad</a>
+        </nav>
+        <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            <div class="notifications">
+                <i class="ph ph-bell"></i>
+                <span class="notification-dot"></span>
+            </div>
+            <div class="profile-btn">
+                <div class="gamification-points"><i class="ph-fill ph-coin"></i> 450 pts</div>
+                <i class="ph ph-list"></i>
+                <i class="ph-fill ph-user-circle"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Split Screen Layout -->
+    <div class="hospedajes-layout">
+        
+        <!-- Mitad Izquierda: Mapa -->
+        <section class="hospedajes-map">
+            <div id="interactive-map"></div>
+        </section>
+
+        <!-- Mitad Derecha: Listado -->
+        <section class="hospedajes-list">
+            <div class="hospedajes-header">
+                <h1>Hospedajes en el Huila</h1>
+                <p style="color: var(--text-muted); font-size: 1.05rem;">
+                    Más de {{ hospedajes|length }} alojamientos mágicos esperando por ti. Explora el mapa interactivo para ver detalles.
+                </p>
+            </div>
+
+            <main class="grid-half" id="hospedajes-grid">
+                {% for hospedaje in hospedajes %}
+                <article class="listing-card" id="card-{{ hospedaje.id }}" style="margin: 0;">
+                    <div class="image-wrapper">
+                        <img src="{{ hospedaje.image }}" alt="{{ hospedaje.type }}">
+                        {% if hospedaje.is_eco %}
+                        <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> Sostenible</div>
+                        {% elif hospedaje.badge %}
+                        <div class="badge">{{ hospedaje.badge }}</div>
+                        {% endif %}
+                        
+                        <button class="favorite-btn"><i class="ph ph-heart"></i></button>
+                    </div>
+                    <div class="listing-info" style="padding-top: 0;">
+                        <div class="listing-header">
+                            <h3 style="font-size: 1rem;">{{ hospedaje.name }}</h3>
+                            <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ hospedaje.rating }}</span>
+                        </div>
+                        <p class="location" style="font-size: 0.85rem;">{{ hospedaje.location }}</p>
+                        <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(hospedaje.price).replace(',', '.') }} COP</strong> noche</p>
+                    </div>
+                </article>
+                {% endfor %}
+            </main>
+        </section>
+
+    </div>
+
+    <!-- Pasamos los datos de Python a Javascript usando un script con JSON -->
+    <script id="hospedajes-data" type="application/json">
+        {{ hospedajes | tojson | safe }}
+    </script>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Leer los datos del script JSON
+            const dataScript = document.getElementById('hospedajes-data');
+            let hospedajes = [];
+            if (dataScript) {
+                hospedajes = JSON.parse(dataScript.textContent);
+            }
+
+            // Inicializar el mapa en el Huila
+            const map = L.map('interactive-map').setView([2.5, -75.5], 8);
+
+            // Capa de mapa (CartoDB Positron es más elegante y limpio)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            let markers = [];
+
+            // Crear marcadores personalizados con la imagen
+            hospedajes.forEach(hospedaje => {
+                if (hospedaje.lat && hospedaje.lng) {
+                    // HTML del Custom Marker (Círculo con foto)
+                    const customIcon = L.divIcon({
+                        className: 'custom-map-marker-container',
+                        html: `<div class="custom-map-marker"><img src="${hospedaje.image}" alt="${hospedaje.name}"></div>`,
+                        iconSize: [50, 50],
+                        iconAnchor: [25, 25],
+                        popupAnchor: [0, -25]
+                    });
+
+                    // HTML del Popup Elegante
+                    const popupHTML = `
+                        <div class="popup-card">
+                            <img src="${hospedaje.image}" class="popup-img" alt="${hospedaje.name}">
+                            <div class="popup-info">
+                                <h4 class="popup-title">${hospedaje.name}</h4>
+                                <div class="popup-rating"><i class="ph-fill ph-star" style="color: #F59E0B;"></i> ${hospedaje.rating} (${hospedaje.reviews} reseñas)</div>
+                                <div class="popup-price">$${hospedaje.price.toLocaleString('es-CO')} COP / noche</div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Añadir marcador
+                    const marker = L.marker([hospedaje.lat, hospedaje.lng], { icon: customIcon })
+                        .addTo(map)
+                        .bindPopup(popupHTML);
+                    
+                    markers.push({ id: hospedaje.id, marker: marker });
+
+                    // Resaltar la tarjeta correspondiente al hacer hover en el mapa
+                    marker.on('mouseover', function() {
+                        const card = document.getElementById(`card-${hospedaje.id}`);
+                        if(card) {
+                            card.style.transform = 'scale(1.02)';
+                            card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+                            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    });
+
+                    marker.on('mouseout', function() {
+                        const card = document.getElementById(`card-${hospedaje.id}`);
+                        if(card) {
+                            card.style.transform = 'scale(1)';
+                            card.style.boxShadow = 'none';
+                        }
+                    });
+                }
+            });
+
+            // Si hay marcadores, ajustar la vista del mapa para que quepan todos
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers.map(m => m.marker));
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+        });
+    </script>
+</body>
+</html>

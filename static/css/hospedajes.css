@@ -1,0 +1,160 @@
+/* Estilos específicos para la página de Hospedajes */
+
+/* Para que el nav se vea sólido siempre en esta página */
+.navbar-hospedajes {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.navbar-hospedajes .nav-links a::after { 
+    background-color: var(--primary); 
+}
+
+/* Diseño de Split Screen (Mitad listado, mitad mapa) */
+.hospedajes-layout {
+    display: flex;
+    margin-top: 90px; /* Espacio para el navbar */
+    height: calc(100vh - 90px);
+    overflow: hidden;
+}
+
+/* Columna Izquierda: Listado */
+.hospedajes-list {
+    flex: 0 0 60%;
+    padding: 2rem;
+    overflow-y: auto;
+    background-color: var(--bg-color);
+}
+
+.hospedajes-header {
+    margin-bottom: 2rem;
+}
+
+.hospedajes-header h1 {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+/* Ajustamos el grid para la mitad de la pantalla */
+.grid-half {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Columna Derecha: Mapa */
+.hospedajes-map {
+    flex: 0 0 40%;
+    position: relative;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.05);
+    z-index: 10; /* Para que esté por encima del scroll si se superponen en mobile */
+}
+
+#interactive-map {
+    width: 100%;
+    height: 100%;
+}
+
+/* Marcadores personalizados del mapa */
+.custom-map-marker {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.custom-map-marker:hover {
+    transform: scale(1.15);
+    border-color: var(--secondary);
+    z-index: 1000 !important;
+}
+
+.custom-map-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Diseño del Popup de Leaflet elegante */
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    width: 200px !important;
+}
+
+.popup-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.popup-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.popup-info {
+    padding: 10px;
+}
+
+.popup-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 4px;
+    font-family: 'Outfit', sans-serif;
+}
+
+.popup-price {
+    font-size: 0.9rem;
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+.popup-rating {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.leaflet-popup-close-button {
+    color: white !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    font-size: 16px !important;
+    padding: 4px !important;
+}
+
+/* Responsive para tablet y móviles */
+@media (max-width: 1024px) {
+    .hospedajes-layout {
+        flex-direction: column;
+        overflow: visible;
+        height: auto;
+    }
+    
+    .hospedajes-map {
+        height: 300px;
+        position: sticky;
+        top: 90px;
+        order: 1; /* Mapa arriba en móviles */
+    }
+    
+    .hospedajes-list {
+        order: 2; /* Listado abajo en móviles */
+        overflow-y: visible;
+    }
+}
