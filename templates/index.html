@@ -10,39 +10,63 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Phosphor Icons for modern minimalist icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </head>
 
 <body>
     <!-- Navbar -->
     <header class="navbar" id="navbar">
         <div class="logo">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img"
+                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
             <a href="/hospedajes">Hospedajes</a>
-            <a href="#">Experiencias</a>
-            <a href="#">Planificador de Viajes <span class="nav-badge">IA</span></a>
-            <a href="#">Comunidad</a>
+            <a href="/experiencias">Experiencias</a>
+
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;">Panel Anfitrion</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
                 <i class="ph ph-globe"></i> ES
             </div>
-            <div class="notifications">
-                <i class="ph ph-bell"></i>
-                <span class="notification-dot"></span>
+            {% if current_user.is_authenticated %}
+            <div class="profile-btn" style="position:relative;"
+                onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <i class="ph ph-list"></i>
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
+                    alt="Avatar"
+                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+
+                <!-- Dropdown -->
+                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                    <div class="dropdown-header">
+                        <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                        <span>{{ current_user.email }}</span>
+                    </div>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel
+                        Anfitrión</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                </div>
             </div>
-            <button class="host-btn">Panel Anfitrión</button>
-            <div class="profile-btn">
-                <div class="gamification-points"><i class="ph-fill ph-coin"></i> 450 pts</div>
+            {% else %}
+            <div class="profile-btn" onclick="window.location.href='/login'">
                 <i class="ph ph-list"></i>
                 <i class="ph-fill ph-user-circle"></i>
             </div>
+            {% endif %}
         </div>
     </header>
 
-    <!-- Hero Section -->
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script><!-- Hero Section -->
     <section class="hero">
         <div class="hero-overlay"></div>
         <div class="hero-content">
@@ -119,37 +143,40 @@
         <p style="color: var(--text-muted);">Seleccionados especialmente según tus gustos</p>
     </div>
     <main class="listings-container" id="hospedajes">
-        {% for hospedaje in hospedajes %}
-        <!-- Card {{ hospedaje.id }} -->
-        <article class="listing-card">
+        {% for h in hospedajes %}
+        <!-- Card {{ h.id }} -->
+        <article class="listing-card" onclick="window.location.href='/hospedaje/{{ h.id }}'" style="cursor:pointer;">
             <div class="image-wrapper">
-                <img src="{{ hospedaje.image }}" alt="{{ hospedaje.type }}">
-                {% if hospedaje.is_eco %}
+                <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
+                    alt="{{ h.tipo }}">
+                {% if h.es_eco %}
                 <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>
-                {% elif hospedaje.badge %}
-                <div class="badge">{{ hospedaje.badge }}</div>
                 {% endif %}
-                
-                {% if hospedaje.discount %}
-                <div class="discount-badge">{{ hospedaje.discount }}</div>
+                {% if h.descuento_porcentaje %}
+                <div class="discount-badge">-{{ h.descuento_porcentaje }}% Hoy</div>
                 {% endif %}
-                <button class="favorite-btn"><i class="ph ph-heart"></i></button>
+                <button class="favorite-btn" onclick="event.stopPropagation()"><i class="ph ph-heart"></i></button>
             </div>
             <div class="listing-info">
                 <div class="listing-header">
-                    <h3>{{ hospedaje.name }}</h3>
-                    <span class="rating"><i class="ph-fill ph-star"></i> {{ hospedaje.rating }} ({{ hospedaje.reviews }})</span>
+                    <h3>{{ h.nombre }}</h3>
+                    <span class="rating"><i class="ph-fill ph-star"></i> {{ h.calificacion }} ({{ h.total_resenas
+                        }})</span>
                 </div>
-                <p class="location">{{ hospedaje.location }}</p>
-                <p class="details">{{ hospedaje.details }}</p>
-                <p class="price"><strong>${{ "{:,.0f}".format(hospedaje.price).replace(',', '.') }} COP</strong> noche</p>
-                <button class="book-now-btn" data-id="{{ hospedaje.id }}">Reservar con Anticipo</button>
+                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ h.municipio }}, Huila</p>
+                <p class="details">{{ h.descripcion_corta or h.tipo }}</p>
+                <p class="price"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche
+                </p>
+                <a href="/hospedaje/{{ h.id }}" class="book-now-btn"
+                    style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
             </div>
         </article>
         {% endfor %}
     </main>
     <div style="text-align: center; margin-bottom: 3rem;">
-        <a href="/hospedajes" class="book-now-btn" style="text-decoration: none; display: inline-block; width: auto; padding: 1rem 2rem;">Ver Todos los Hospedajes</a>
+        <a href="/hospedajes" class="book-now-btn"
+            style="text-decoration: none; display: inline-block; width: auto; padding: 1rem 2rem;">Ver Todos los
+            Hospedajes</a>
     </div>
 
     <!-- Floating Map Button -->
@@ -158,23 +185,7 @@
         <i class="ph-fill ph-map-trifold"></i>
     </button>
 
-    <!-- AI Assistant Chatbot -->
-    <div class="chatbot-widget">
-        <div class="chatbot-header">
-            <div class="chatbot-title">
-                <i class="ph-fill ph-robot"></i> Asistente de Viaje IA
-            </div>
-            <i class="ph ph-x close-chat"></i>
-        </div>
-        <div class="chatbot-body">
-            <div class="chat-message bot">¡Hola! Soy tu asistente inteligente. ¿Buscas un plan de aventura, descanso o romance en el Huila?</div>
-        </div>
-        <div class="chatbot-input">
-            <input type="text" placeholder="Escribe o usa tu voz...">
-            <button class="chat-voice-btn"><i class="ph-fill ph-microphone"></i></button>
-            <button class="chat-send-btn"><i class="ph-fill ph-paper-plane-right"></i></button>
-        </div>
-    </div>
+
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>

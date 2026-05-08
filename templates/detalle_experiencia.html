@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ experiencia.nombre }} | StayHuila</title>
+    <meta name="description" content="{{ experiencia.details }} - {{ experiencia.municipio ~ " , Huila" }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/detalle_experiencia.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar navbar-solid" id="navbar">
+        <div class="logo" onclick="window.location.href='/'">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img"
+                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <span>StayHuila</span>
+        </div>
+        <nav class="nav-links">
+            <a href="/experiencias">Experiencias</a>
+            <a href="#">Experiencias</a>
+
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; ">Panel Anfitrion</a>
+        </nav>
+        <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            {% if current_user.is_authenticated %}
+            <div class="profile-btn" style="position:relative;"
+                onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <i class="ph ph-list"></i>
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
+                    alt="Avatar"
+                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+
+                <!-- Dropdown -->
+                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                    <div class="dropdown-header">
+                        <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                        <span>{{ current_user.email }}</span>
+                    </div>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel
+                        Anfitrión</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="profile-btn" onclick="window.location.href='/login'">
+                <i class="ph ph-list"></i>
+                <i class="ph-fill ph-user-circle"></i>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+<!-- TÍTULO PRINCIPAL -->
+    <section class="detalle-hero">
+        <div class="detalle-title-row">
+            <div>
+                <h1 class="detalle-titulo">{{ experiencia.nombre }}</h1>
+                <div class="detalle-meta">
+                    <span class="meta-rating"><i class="ph-fill ph-star"></i> {{ experiencia.calificacion }}</span>
+                    <span class="meta-sep">·</span>
+                    <span class="meta-reviews"><u>{{ experiencia.total_resenas }} reseñas</u></span>
+                    <span class="meta-sep">·</span>
+                    {% if experiencia.super_anfitrion %}<span class="meta-super"><i class="ph-fill ph-medal"></i>
+                        SuperAnfitrión</span><span class="meta-sep">·</span>{% endif %}
+                    <span class="meta-location"><i class="ph ph-map-pin"></i> {{ experiencia.municipio ~ ", Huila"
+                        }}</span>
+                </div>
+            </div>
+            <div class="detalle-actions">
+                <button class="action-btn" id="btn-compartir"><i class="ph ph-share-network"></i> Compartir</button>
+                <button class="action-btn" id="btn-favorito"><i class="ph ph-heart"></i> Guardar</button>
+            </div>
+        </div>
+
+        <!-- GALERÍA DE FOTOS -->
+        <div class="galeria-grid" id="galeria">
+            <div class="galeria-main" onclick="openLightbox(0)">
+                <img src="{{ imagenes[0].url if imagenes else "" }}" alt="{{ experiencia.nombre }}" id="main-img">
+                <div class="galeria-overlay"><i class="ph ph-arrows-out"></i></div>
+            </div>
+            <div class="galeria-side">
+                {% for img_obj in imagenes[1:5] %}
+                <div class="galeria-thumb {% if loop.last and imagenes|length > 5 %}galeria-more{% endif %}"
+                    onclick="openLightbox({{ loop.index }})">
+                    <img src="{{ img_obj.url }}" alt="Foto {{ loop.index + 1 }}">
+                    {% if loop.last and imagenes|length > 4 %}
+                    <div class="galeria-more-overlay"><i class="ph ph-images"></i> Ver todas las fotos</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- LIGHTBOX -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <button class="lb-close" onclick="closeLightbox()"><i class="ph ph-x"></i></button>
+        <button class="lb-prev" onclick="event.stopPropagation();changeLbImg(-1)"><i
+                class="ph ph-caret-left"></i></button>
+        <img id="lb-img" src="" alt="">
+        <button class="lb-next" onclick="event.stopPropagation();changeLbImg(1)"><i
+                class="ph ph-caret-right"></i></button>
+        <div class="lb-counter" id="lb-counter"></div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="detalle-layout">
+
+        <!-- COLUMNA IZQUIERDA -->
+        <div class="detalle-left">
+
+            <!-- INFO BÁSICA -->
+            <div class="detalle-card info-card">
+                <div class="host-row">
+                    <div>
+                        <h2 class="hosted-by">{{ experiencia.tipo }} en {{ experiencia.municipio }} — Anfitrión: {{
+                            experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</h2>
+                        <div class="capacidad-row">
+                            <span><i class="ph ph-users"></i> Máx. {{ experiencia.capacidad_max }} personas</span>
+                            <span>·</span>
+                            <span><i class="ph ph-clock"></i> {{ experiencia.duracion_horas }} horas de duración</span>
+                            <span>·</span>
+                            <span><i class="ph ph-users-three"></i> Min. {{ experiencia.capacidad_min }} personas</span>
+                        </div>
+                    </div>
+                    <div class="host-avatar-wrap">
+                        <img src="{{ experiencia.anf_foto or "
+                            https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }}"
+                            alt="{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}" class="host-avatar">
+                        {% if experiencia.super_anfitrion %}<div class="super-badge-avatar"><i
+                                class="ph-fill ph-medal"></i></div>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- HIGHLIGHTS -->
+            <div class="detalle-card highlights-card">
+                {% if experiencia.super_anfitrion %}
+                <div class="highlight-item">
+                    <i class="ph-fill ph-medal"></i>
+                    <div>
+                        <strong>{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }} es SuperAnfitrión</strong>
+                        <p>Los SuperAnfitriones tienen experiencia y valoraciones excelentes.</p>
+                    </div>
+                </div>
+                {% endif %}
+                {% if experiencia.es_eco %}
+                <div class="highlight-item">
+                    <i class="ph-fill ph-leaf" style="color:var(--success)"></i>
+                    <div>
+                        <strong>100% Sostenible</strong>
+                        <p>Este alojamiento opera con energías renovables y prácticas eco-amigables.</p>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="highlight-item">
+                    <i class="ph-fill ph-calendar-check"></i>
+                    <div>
+                        <strong>Cancelación {{ experiencia.politica_cancelacion }}</strong>
+                        <p>{% if experiencia.politica_cancelacion == 'flexible' %}Cancela gratis hasta 24h antes de tu
+                            llegada.{% elif experiencia.politica_cancelacion == 'moderada' %}Cancela gratis hasta 5 días
+                            antes de tu llegada.{% else %}Cancela gratis hasta 14 días antes de tu llegada.{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="highlight-item">
+                    <i class="ph-fill ph-clock"></i>
+                    <div>
+                        <strong>Check-in a las {{ experiencia.hora_checkin }} h</strong>
+                        <p>Checkout a las {{ experiencia.hora_checkout }} h. Auto check-in con caja de llaves.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESCRIPCIÓN -->
+            <div class="detalle-card desc-card">
+                <p class="desc-text" id="desc-text">{{ experiencia.descripcion }}</p>
+                <button class="read-more-btn" id="read-more-btn" onclick="toggleDesc()">Mostrar más <i
+                        class="ph ph-caret-down"></i></button>
+            </div>
+
+            <!-- QUÉ INCLUYE -->
+            <div class="detalle-card amenidades-card">
+                <h2 class="section-title">Qué incluye esta experiencia</h2>
+                <div style="margin-top:1rem; line-height:1.6; color:var(--text-main);">
+                    {{ experiencia.que_incluye or "El anfitrión no ha detallado qué incluye." }}
+                </div>
+                
+                <h2 class="section-title" style="margin-top:2rem;">Qué debes traer</h2>
+                <div style="margin-top:1rem; line-height:1.6; color:var(--text-main);">
+                    {{ experiencia.que_traer or "Ropa cómoda e hidratación recomendada." }}
+                </div>
+                
+                <h2 class="section-title" style="margin-top:2rem;">Nivel de dificultad</h2>
+                <div style="margin-top:1rem; font-weight:600; text-transform:capitalize; color:var(--primary);">
+                    <i class="ph-fill ph-person-simple-walk"></i> {{ experiencia.nivel_dificultad or 'Moderado' }}
+                </div>
+            </div>
+
+            <!-- CALENDARIO INTERACTIVO -->
+            <div class="detalle-card calendar-card">
+                <h2 class="section-title">Selecciona tus fechas</h2>
+                <p class="calendar-subtitle">Añade fechas para ver el precio exacto</p>
+                <div class="calendar-container" id="calendar-container">
+                    <!-- Calendario JS -->
+                </div>
+                <div class="calendar-legend">
+                    <span class="leg-item"><span class="leg-dot blocked"></span> No disponible</span>
+                    <span class="leg-item"><span class="leg-dot selected"></span> Seleccionado</span>
+                    <span class="leg-item"><span class="leg-dot today"></span> Hoy</span>
+                </div>
+            </div>
+
+            <!-- MAPA -->
+            <div class="detalle-card mapa-card">
+                <h2 class="section-title">¿Dónde está?</h2>
+                <p class="mapa-subtitle"><i class="ph ph-map-pin"></i> {{ experiencia.municipio ~ ", Huila" }} — La
+                    dirección exacta se comparte tras la reserva.</p>
+                <div id="detalle-map"></div>
+            </div>
+
+            <!-- RESEÑAS -->
+            <div class="detalle-card resenas-card">
+                <div class="resenas-header">
+                    <h2 class="section-title"><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{
+                        experiencia.calificacion }} · {{ experiencia.total_resenas }} reseñas</h2>
+                </div>
+                <!-- Rating breakdown -->
+                <div class="rating-breakdown">
+                    {% for cat, val in [('Limpieza', 4.9), ('Comunicación', 5.0), ('Ubicación', 4.8), ('Relación
+                    calidad-precio', 4.7)] %}
+                    <div class="rb-item">
+                        <span>{{ cat }}</span>
+                        <div class="rb-bar">
+                            <div class="rb-fill" style="width:{{ (val/5*100)|int }}%"></div>
+                        </div>
+                        <span class="rb-val">{{ val }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="resenas-grid">
+                    {% for r in resenas %}
+                    <div class="resena-card">
+                        <div class="resena-header">
+                            <img src="{{ r.foto_perfil or 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60' }}"
+                                alt="{{ r.nombre }}" class="resena-avatar">
+                            <div>
+                                <strong>{{ r.nombre }} {{ r.apellido }}</strong>
+                                <p class="resena-fecha">{{ r.fecha_resena.strftime('%B %Y') if r.fecha_resena else '' }}
+                                </p>
+                            </div>
+                            <div class="resena-stars">
+                                {% for i in range(r.calificacion_general | int) %}<i class="ph-fill ph-star"
+                                    style="color:#F59E0B;font-size:.8rem"></i>{% endfor %}
+                            </div>
+                        </div>
+                        <p class="resena-texto">{{ r.comentario or '' }}</p>
+                    </div>
+                    {% endfor %}
+                    {% if not resenas %}
+                    <p style="color:var(--text-muted)">Sé el primero en dejar una reseña.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div><!-- end left -->
+
+        <!-- COLUMNA DERECHA: WIDGET RESERVA -->
+        <div class="detalle-right">
+            <div class="booking-widget" id="booking-widget">
+                <!-- Precio -->
+                <div class="bw-price-row">
+                    <div>
+                        <span class="bw-price">${{ "{:,.0f}".format(experiencia.precio_persona).replace(',', '.') }}
+                            COP</span>
+                        <span class="bw-per"> / persona</span>
+                        {% if experiencia.descuento_porcentaje %}
+                        <div class="bw-discount">-{{ experiencia.descuento_porcentaje }}% Descuento activo</div>
+                        {% endif %}
+                    </div>
+                    <div class="bw-rating">
+                        <i class="ph-fill ph-star" style="color:#F59E0B"></i>
+                        <strong>{{ experiencia.calificacion }}</strong>
+                        <span style="color:var(--text-muted)">·</span>
+                        <u style="color:var(--text-muted);font-size:.85rem;cursor:pointer">{{ experiencia.total_resenas }}
+                            reseñas</u>
+                    </div>
+                </div>
+
+                <!-- Formulario fechas + huéspedes -->
+                <form class="bw-form" id="bw-form" action="#" method="get">
+                    <div class="bw-dates">
+                        <div class="bw-field bw-checkin">
+                            <label>LLEGADA</label>
+                            <input type="date" id="bw-checkin" name="checkin" required>
+                        </div>
+                        <div class="bw-divider-v"></div>
+                        <div class="bw-field bw-checkout">
+                            <label>SALIDA</label>
+                            <input type="date" id="bw-checkout" name="checkout" required>
+                        </div>
+                    </div>
+                    <div class="bw-guests-row">
+                        <div class="bw-field">
+                            <label>HUÉSPEDES</label>
+                            <div class="bw-guests-control">
+                                <button type="button" onclick="changeGuests(-1)"><i class="ph ph-minus"></i></button>
+                                <span id="guest-count">1</span>
+                                <button type="button" onclick="changeGuests(1)"><i class="ph ph-plus"></i></button>
+                            </div>
+                        </div>
+                        <p class="bw-max">Máx. {{ experiencia.capacidad_max }} huéspedes</p>
+                    </div>
+
+                    <!-- Resumen de precios -->
+                    <div class="bw-price-summary" id="price-summary" style="display:none">
+                        <div class="bw-line">
+                            <span id="ps-nights-label">${{ "{:,.0f}".format(experiencia.precio_persona).replace(',', '.') }}
+                                COP × <span id="ps-nights">0</span> personas</span>
+                            <span id="ps-base">$0</span>
+                        </div>
+                        {% if experiencia.descuento_porcentaje %}
+                        <div class="bw-line" style="color:#16a34a">
+                            <span>Descuento {{ experiencia.descuento_porcentaje }}%</span>
+                            <span id="ps-disc">-$0</span>
+                        </div>
+                        {% endif %}
+                        <div class="bw-line">
+                            <span>Tarifa de servicio</span>
+                            <span id="ps-fee">$0</span>
+                        </div>
+                        <div class="bw-line bw-total">
+                            <strong>Total</strong>
+                            <strong id="ps-total">$0</strong>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="bw-reserve-btn" id="bw-reserve-btn">Reservar</button>
+                    <p class="bw-note">No se te cobrará nada aún</p>
+                </form>
+
+                <!-- Método de pago preview -->
+                <div class="bw-payment-icons">
+                    <i class="ph ph-credit-card"></i>
+                    <span>Nequi</span>
+                    <span>Daviplata</span>
+                    <span>Efectivo</span>
+                </div>
+            </div>
+
+            <!-- Card anfitrión -->
+            <div class="host-card">
+                <img src="{{ experiencia.anf_foto or " https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
+                    }}" alt="{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}" class="hc-avatar">
+                <div class="hc-info">
+                    <strong>{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</strong>
+                    <p>Anfitrión desde {{ "2021" }}</p>
+                    <div class="hc-stats">
+                        <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ experiencia.anf_cal or
+                            experiencia.calificacion }}</span>
+                        <span>·</span>
+                        <span>{{ experiencia.anf_res or experiencia.total_resenas }} reseñas</span>
+                    </div>
+                </div>
+                <button class="contact-host-btn"><i class="ph ph-chat-circle"></i> Contactar</button>
+            </div>
+        </div>
+
+    </div><!-- end layout -->
+
+    <!-- SUGERENCIAS -->
+    <section class="sugerencias-section">
+        <div class="sugerencias-header">
+            <h2>También te puede interesar</h2>
+            <p>Otros experiencias disponibles en el Huila</p>
+        </div>
+        <div class="sugerencias-grid">
+            {% for s in sugerencias %}
+            <article class="listing-card" onclick="window.location.href='/experiencia/{{ s.id }}'"
+                style="cursor:pointer;">
+                <div class="image-wrapper">
+                    <img src="{{ s.image or "" }}" alt="{{ s.nombre }}">
+                    {% if s.es_eco %}<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> Sostenible</div>{%
+                    elif "" %}<div class="badge">{{ "" }}</div>{% endif %}
+                    <button class="favorite-btn" onclick="event.stopPropagation()"><i class="ph ph-heart"></i></button>
+                </div>
+                <div class="listing-info">
+                    <div class="listing-header">
+                        <h3>{{ s.nombre }}</h3>
+                        <span class="rating"><i class="ph-fill ph-star"></i> {{ s.calificacion }}</span>
+                    </div>
+                    <p class="location">{{ s.municipio ~ ", Huila" }}</p>
+                    <p class="details">{{ s.descripcion_corta or s.tipo }}</p>
+                    <p class="price"><strong>${{ "{:,.0f}".format(s.precio_persona).replace(',', '.') }} COP</strong>
+                        persona</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- DATA para JS -->
+    <script id="experiencia-data" type="application/json">
+{
+    "id": {{ experiencia.id }},
+    "lat": {{ experiencia.latitud or 2.5 }},
+    "lng": {{ experiencia.longitud or -75.5 }},
+    "price": {{ experiencia.precio_persona }},
+    "price_weekend": {{ experiencia.precio_persona }},
+    "discount": {{ experiencia.descuento_porcentaje or 0 }},
+    "images": {{ imagenes | map(attribute="url") | list | tojson | safe }},
+    "name": {{ experiencia.nombre | tojson | safe }},
+    "max_guests": {{ experiencia.capacidad_max }}
+}
+</script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/detalle_experiencia.js') }}"></script>
+</body>
+
+</html>

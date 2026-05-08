@@ -1,0 +1,58 @@
+        .navbar-solid{background:white;color:var(--text-main);box-shadow:0 2px 20px rgba(0,0,0,.08);}
+        .page-wrap{max-width:1100px;margin:0 auto;padding:6rem 2rem 3rem;}
+        .page-title{font-size:1.8rem;font-weight:700;margin-bottom:.3rem;}
+        .page-sub{color:var(--text-muted);margin-bottom:2rem;}
+        .reserva-layout{display:grid;grid-template-columns:1fr 380px;gap:3rem;align-items:start;}
+        /* LEFT */
+        .reserva-left{display:flex;flex-direction:column;gap:1.5rem;}
+        .r-section{background:white;border:1px solid var(--border);border-radius:16px;padding:1.8rem;}
+        .r-section h2{font-size:1.15rem;font-weight:700;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem;}
+        .r-section h2 i{color:var(--secondary);}
+        .trip-info{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.2rem;}
+        .trip-box{border:1.5px solid var(--border);border-radius:10px;padding:.9rem 1rem;}
+        .trip-box label{display:block;font-size:.72rem;font-weight:700;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.3rem;}
+        .trip-box input[type=date]{border:none;outline:none;font-family:inherit;font-size:.95rem;width:100%;cursor:pointer;}
+        .trip-box-guests{grid-column:span 2;border:1.5px solid var(--border);border-radius:10px;padding:.9rem 1rem;display:flex;justify-content:space-between;align-items:center;}
+        .guests-ctrl{display:flex;align-items:center;gap:1rem;}
+        .guests-ctrl button{width:32px;height:32px;border:1.5px solid var(--border);border-radius:50%;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:border-color .2s;}
+        .guests-ctrl button:hover{border-color:var(--text-main);}
+        .guests-ctrl span{font-weight:700;font-size:1.05rem;min-width:20px;text-align:center;}
+        /* Metodos pago */
+        .metodos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;}
+        .metodo-card{border:2px solid var(--border);border-radius:12px;padding:1rem;cursor:pointer;display:flex;align-items:center;gap:.8rem;transition:all .2s;}
+        .metodo-card input{display:none;}
+        .metodo-card.selected{border-color:var(--primary);background:rgba(44,74,59,.04);}
+        .metodo-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:var(--bg-color);}
+        .metodo-card.selected .metodo-icon{background:var(--primary);color:white;}
+        .metodo-label{font-weight:600;font-size:.9rem;}
+        /* Tarjeta campos */
+        .card-fields{background:var(--bg-color);border-radius:12px;padding:1.2rem;margin-top:1rem;display:none;flex-direction:column;gap:.8rem;}
+        .card-fields.visible{display:flex;}
+        .cf-group label{font-size:.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem;}
+        .cf-group input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-family:inherit;font-size:.9rem;outline:none;transition:border-color .2s;}
+        .cf-group input:focus{border-color:var(--primary);}
+        .cf-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;}
+        /* Notas */
+        .notes-area{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.9rem;font-family:inherit;font-size:.9rem;resize:vertical;min-height:90px;outline:none;transition:border-color .2s;}
+        .notes-area:focus{border-color:var(--primary);}
+        /* Botón */
+        .btn-confirm{width:100%;background:linear-gradient(135deg,var(--secondary),#c0520e);color:white;border:none;padding:1.1rem;border-radius:14px;font-family:inherit;font-weight:700;font-size:1.05rem;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 15px rgba(227,100,20,.3);margin-top:.5rem;}
+        .btn-confirm:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(227,100,20,.4);}
+        .secure-note{text-align:center;font-size:.82rem;color:var(--text-muted);margin-top:.5rem;display:flex;align-items:center;justify-content:center;gap:.3rem;}
+        /* RIGHT: resumen */
+        .r-summary{position:sticky;top:90px;background:white;border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.08);}
+        .summary-img{width:100%;height:180px;object-fit:cover;}
+        .summary-body{padding:1.5rem;}
+        .summary-hosp{font-weight:700;font-size:1.05rem;margin-bottom:.2rem;}
+        .summary-loc{color:var(--text-muted);font-size:.88rem;display:flex;align-items:center;gap:.3rem;margin-bottom:1rem;}
+        .summary-dates{background:var(--bg-color);border-radius:10px;padding:.9rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem;font-size:.9rem;}
+        .sd-item label{font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--text-muted);}
+        .sd-item span{font-weight:600;}
+        .price-lines{display:flex;flex-direction:column;gap:.6rem;padding-top:.8rem;border-top:1px solid var(--border);}
+        .pl-row{display:flex;justify-content:space-between;font-size:.92rem;color:var(--text-muted);}
+        .pl-row.total{color:var(--text-main);font-weight:700;font-size:1.05rem;border-top:1px solid var(--border);padding-top:.6rem;}
+        .discount-line{color:#16a34a!important;}
+        .rating-row{display:flex;align-items:center;gap:.4rem;font-size:.88rem;color:var(--text-muted);margin-bottom:1rem;}
+        .rating-row i{color:#F59E0B;}
+        @media(max-width:900px){.reserva-layout{grid-template-columns:1fr;}.r-summary{position:static;}}
+        @media(max-width:600px){.metodos-grid{grid-template-columns:1fr;}.trip-info{grid-template-columns:1fr;}.trip-box-guests{grid-column:span 1;}}

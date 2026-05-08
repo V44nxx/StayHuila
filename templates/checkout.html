@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-out | StayHuila</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/checkout.css') }}">
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+<body>
+<header class="navbar navbar-solid">
+    <div class="logo" onclick="window.location.href='/'">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+        <span>StayHuila</span>
+    </div>
+                    <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            {% if current_user.is_authenticated %}
+                {% if current_user.tipo in ['anfitrion','admin'] %}
+                <a href="/panel-anfitrion" class="host-btn" style="text-decoration:none;">Panel Anfitrión</a>
+                {% endif %}
+                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <i class="ph ph-list"></i>
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                    
+                    <!-- Dropdown -->
+                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                        <div class="dropdown-header">
+                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                            <span>{{ current_user.email }}</span>
+                        </div>
+                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    </div>
+                </div>
+            {% else %}
+                <button class="host-btn" onclick="window.location.href='/login?tab=register'">Pon tu espacio en StayHuila</button>
+                <div class="profile-btn" onclick="window.location.href='/login'">
+                    <i class="ph ph-list"></i>
+                    <i class="ph-fill ph-user-circle"></i>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+    
+<div class="co-page">
+    <!-- Hero -->
+    <div class="co-hero">
+        <div class="co-hero-icon"><i class="ph-fill ph-sign-out"></i></div>
+        <div>
+            <h1>Check-out de {{ reserva.hosp_nombre }}</h1>
+            <p>Esperamos que hayas tenido una estadía increíble en el Huila</p>
+            <div class="co-code">Reserva: {{ reserva.codigo_reserva }}</div>
+        </div>
+    </div>
+
+    <!-- Gracias -->
+    <div class="thanks-card">
+        <div class="thanks-icon">🌿</div>
+        <div class="thanks-text">
+            <strong>¡Gracias por elegir StayHuila!</strong>
+            <p>Tu visita apoya a las comunidades rurales del Huila. Ganarás +100 puntos al completar el checkout.</p>
+        </div>
+    </div>
+
+    <!-- Resumen estadía -->
+    <div class="co-card">
+        <h2><i class="ph-fill ph-house" style="color:var(--primary)"></i> Resumen de tu estadía</h2>
+        <div class="prop-row">
+            <img src="{{ reserva.hosp_img or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=400' }}" class="prop-img" alt="{{ reserva.hosp_nombre }}">
+            <div>
+                <div class="prop-name">{{ reserva.hosp_nombre }}</div>
+                <div class="prop-loc"><i class="ph ph-map-pin"></i> {{ reserva.municipio }}, Huila</div>
+            </div>
+        </div>
+        <div class="estadia-grid">
+            <div class="est-box">
+                <div class="est-num">{{ (reserva.fecha_checkout - reserva.fecha_checkin).days if reserva.fecha_checkout and reserva.fecha_checkin else '—' }}</div>
+                <div class="est-label">Noches</div>
+            </div>
+            <div class="est-box">
+                <div class="est-num">{{ reserva.num_huespedes }}</div>
+                <div class="est-label">Huéspedes</div>
+            </div>
+            <div class="est-box">
+                <div class="est-num" style="font-size:1.1rem;">${{ "{:,.0f}".format(reserva.total).replace(',','.') }}</div>
+                <div class="est-label">Total pagado COP</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="/checkout/{{ reserva.id }}">
+        <!-- Checklist de salida -->
+        <div class="co-card">
+            <h2><i class="ph-fill ph-check-square" style="color:var(--primary)"></i> Lista de salida</h2>
+            <div class="checklist">
+                <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span>Recogí todos mis objetos personales</span></label>
+                <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span>Dejé el hospedaje ordenado y limpio</span></label>
+                <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span>Entregué las llaves al anfitrión</span></label>
+                <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span>Cerré bien todas las puertas y ventanas</span></label>
+                <label class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span>Apagué luces, TV y aire acondicionado</span></label>
+            </div>
+        </div>
+
+        <!-- RESEÑA -->
+        <div class="co-card">
+            <h2><i class="ph-fill ph-star" style="color:#F59E0B"></i> Deja tu reseña</h2>
+            <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.2rem;">Tu opinión ayuda a otros viajeros y motiva a los anfitriones 💚</p>
+
+            <!-- Calificación general -->
+            <div class="rating-section">
+                <label>Calificación general *</label>
+                <div class="stars-input">
+                    {% for n in [5,4,3,2,1] %}
+                    <input type="radio" name="calificacion_general" id="g{{ n }}" value="{{ n }}">
+                    <label for="g{{ n }}" title="{{ n }} estrella{% if n!=1 %}s{% endif %}">★</label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Calificaciones detalladas -->
+            <div class="ratings-grid">
+                {% for field,label,icon in [
+                    ('calificacion_limpieza','Limpieza','ph-broom'),
+                    ('calificacion_ubicacion','Ubicación','ph-map-pin'),
+                    ('calificacion_comunicacion','Comunicación','ph-chat-circle'),
+                    ('calificacion_valor','Calidad-precio','ph-tag')
+                ] %}
+                <div class="mini-rating stars-small">
+                    <label><i class="ph {{ icon }}"></i> {{ label }}</label>
+                    <div class="stars-input">
+                        {% for n in [5,4,3,2,1] %}
+                        <input type="radio" name="{{ field }}" id="{{ field }}{{ n }}" value="{{ n }}">
+                        <label for="{{ field }}{{ n }}">★</label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Comentario -->
+            <div style="margin-top:1.2rem;">
+                <label style="display:block;font-weight:600;font-size:.88rem;margin-bottom:.5rem;color:var(--text-muted)">Tu comentario</label>
+                <textarea class="review-text" name="comentario" id="review-text" placeholder="¿Cómo fue tu experiencia? ¿Qué fue lo mejor? ¿Algo que mejorar?" maxlength="600" oninput="countChars(this)"></textarea>
+                <div class="char-count"><span id="char-count">0</span>/600</div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-co">
+            <i class="ph-fill ph-sign-out"></i> Confirmar Check-out y enviar reseña
+        </button>
+    </form>
+    <p class="co-note">La reseña es opcional, pero muy valorada por los anfitriones 🙏</p>
+</div>
+
+<script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
+</body>
+</html>

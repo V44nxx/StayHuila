@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunidad | StayHuila</title>
+    <meta name="description" content="Conecta con otros viajeros, comparte tus experiencias y descubre los secretos del Huila.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/comunidad.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+
+<body>
+
+    <!-- NAVBAR SÓLIDO -->
+    <header class="navbar navbar-solid navbar-comunidad" id="navbar">
+        <div class="logo" onclick="window.location.href='/'">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img"
+                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <span>StayHuila</span>
+        </div>
+        <nav class="nav-links">
+            <a href="/hospedajes">Hospedajes</a>
+            <a href="/experiencias">Experiencias</a>
+
+            <a href="/comunidad" class="active">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight:700;">Panel Anfitrión</a>
+        </nav>
+        <div class="user-menu">
+            <div class="language-selector"><i class="ph ph-globe"></i> ES</div>
+            {% if current_user.is_authenticated %}
+            <div class="profile-btn" style="position:relative;"
+                onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <i class="ph ph-list"></i>
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
+                    alt="Avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-left:5px;">
+                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                    <div class="dropdown-header">
+                        <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                        <span>{{ current_user.email }}</span>
+                    </div>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="profile-btn" onclick="window.location.href='/login'">
+                <i class="ph ph-list"></i>
+                <i class="ph-fill ph-user-circle"></i>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- MODAL SELECTOR DE RECOMENDACIÓN -->
+    <div class="rec-modal-overlay" id="rec-modal-overlay">
+        <div class="rec-modal">
+            <div class="rec-modal-header">
+                <h3><i class="ph ph-map-pin-plus" style="color:var(--primary)"></i> Recomendar un lugar</h3>
+                <button onclick="closeRecModal()"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="rec-search-box">
+                <input type="text" id="rec-search-input" placeholder="Buscar hospedaje o experiencia..." 
+                       oninput="searchRec(this.value)" autocomplete="off">
+            </div>
+            <div class="rec-results" id="rec-results">
+                <p style="text-align:center; color:var(--text-muted); padding:2rem 0; font-size:0.95rem;">
+                    <i class="ph ph-magnifying-glass" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i>
+                    Escribe para buscar hospedajes y experiencias
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="comunidad-layout">
+
+        <!-- ── SIDEBAR IZQUIERDA ── -->
+        <aside class="comunidad-sidebar">
+            {% if current_user.is_authenticated %}
+            <div class="profile-card">
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Tu perfil">
+                <h3>{{ current_user.nombre }} {{ current_user.apellido }}</h3>
+                <p>@{{ current_user.nombre|lower }}{{ current_user.id }}</p>
+                <div style="color:var(--secondary);font-weight:600;font-size:0.9rem;">
+                    <i class="ph-fill ph-compass"></i> Nivel Explorador
+                </div>
+            </div>
+            {% else %}
+            <div class="login-banner">
+                <h3>¡Únete a la charla!</h3>
+                <p>Comparte fotos y recomendaciones del Huila con viajeros como tú.</p>
+                <button class="btn-login" onclick="window.location.href='/login'">Iniciar Sesión</button>
+            </div>
+            {% endif %}
+
+            <div class="nav-menu">
+                <a href="#" class="active" onclick="switchTab('feed', this)"><i class="ph-fill ph-house"></i> Inicio</a>
+                <a href="#" onclick="switchTab('explore', this)"><i class="ph ph-compass"></i> Explorar</a>
+                <a href="#" onclick="switchTab('hospedajes', this)"><i class="ph ph-bed"></i> Hospedajes</a>
+                <a href="#" onclick="switchTab('experiencias', this)"><i class="ph ph-mountains"></i> Experiencias</a>
+            </div>
+        </aside>
+
+        <!-- ── FEED / EXPLORAR ── -->
+        <main class="comunidad-feed">
+
+            <!-- Sección: FEED -->
+            <div id="section-feed">
+                {% if current_user.is_authenticated %}
+                <div class="create-post">
+                    <div class="create-post-header">
+                        <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Tu perfil">
+                        <textarea id="post-content" rows="3" placeholder="¿Qué quieres compartir sobre el Huila, {{ current_user.nombre }}?"></textarea>
+                    </div>
+
+                    <!-- Vista previa de recomendación -->
+                    <div class="rec-preview" id="rec-preview">
+                        <div class="rec-title"><i class="ph-fill ph-map-pin"></i> Lugar recomendado</div>
+                        <div class="rec-content">
+                            <img id="rec-preview-img" src="" alt="">
+                            <div class="rec-info">
+                                <h4 id="rec-preview-name"></h4>
+                                <p id="rec-preview-desc"></p>
+                            </div>
+                        </div>
+                        <button class="remove-rec" onclick="removeRec()"><i class="ph ph-x"></i></button>
+                    </div>
+
+                    <!-- Vista previa de imagen -->
+                    <div class="image-preview-container" id="image-preview">
+                        <img src="" id="preview-img" alt="Vista previa">
+                        <button class="remove-img" onclick="removeImage()"><i class="ph ph-x"></i></button>
+                    </div>
+
+                    <div class="create-post-actions">
+                        <div class="action-btns">
+                            <input type="file" id="post-image-input" accept="image/*" style="display:none;" onchange="previewImage(event)">
+                            <button onclick="document.getElementById('post-image-input').click()">
+                                <i class="ph ph-image" style="color:#10B981; font-size:1.2rem;"></i> Foto
+                            </button>
+                            <button onclick="openRecModal()">
+                                <i class="ph ph-map-pin-plus" style="color:#F59E0B; font-size:1.2rem;"></i> Recomendar lugar
+                            </button>
+                        </div>
+                        <button class="btn-post" id="btn-submit-post" onclick="submitPost()">Publicar</button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div id="posts-container">
+                    <div style="text-align:center; padding:3rem; color:var(--text-muted);">
+                        <i class="ph ph-spinner ph-spin" style="font-size:2rem;"></i>
+                        <p>Cargando publicaciones...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: EXPLORAR (grid de fotos) -->
+            <div id="section-explore" style="display:none;">
+                <div id="explore-grid">
+                    <div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted);">
+                        <i class="ph ph-spinner ph-spin" style="font-size:2rem;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Hospedajes -->
+            <div id="section-hospedajes" style="display:none;">
+                <div id="hospedajes-feed-container">
+                    <div style="text-align:center; padding:3rem; color:var(--text-muted);">
+                        <i class="ph ph-spinner ph-spin" style="font-size:2rem;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Experiencias -->
+            <div id="section-experiencias" style="display:none;">
+                <div id="experiencias-feed-container">
+                    <div style="text-align:center; padding:3rem; color:var(--text-muted);">
+                        <i class="ph ph-spinner ph-spin" style="font-size:2rem;"></i>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ── SIDEBAR DERECHA ── -->
+        <aside class="comunidad-right">
+            <div class="widget-card">
+                <h3>🔥 Tendencias en Huila</h3>
+                <div class="trending-topic">
+                    <span>1 · Destino</span>
+                    <strong>#DesiertoDeLaTatacoa</strong>
+                    <span>1,204 posts</span>
+                </div>
+                <div class="trending-topic">
+                    <span>2 · Gastronomía</span>
+                    <strong>#AsadoHuilense</strong>
+                    <span>856 posts</span>
+                </div>
+                <div class="trending-topic">
+                    <span>3 · Aventura</span>
+                    <strong>#ParqueSanAgustín</strong>
+                    <span>642 posts</span>
+                </div>
+                <div class="trending-topic">
+                    <span>4 · Naturaleza</span>
+                    <strong>#RíoMagdalena</strong>
+                    <span>418 posts</span>
+                </div>
+            </div>
+
+            <div class="widget-card">
+                <h3>📍 Lugares populares</h3>
+                <div id="popular-places"></div>
+            </div>
+
+            <p style="font-size:0.78rem; color:var(--text-muted); text-align:center;">&copy; 2024 StayHuila · Privacidad · Términos</p>
+        </aside>
+
+    </div>
+
+    <script>
+        const CURRENT_USER = {
+            id: {{ current_user.id if current_user.is_authenticated else 'null' }},
+            nombre: "{{ current_user.nombre if current_user.is_authenticated else '' }}",
+            apellido: "{{ current_user.apellido if current_user.is_authenticated else '' }}",
+            foto_perfil: "{{ current_user.foto_perfil if current_user.is_authenticated else '' }}"
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/comunidad.js') }}"></script>
+</body>
+</html>

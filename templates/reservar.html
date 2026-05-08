@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completar Reserva | StayHuila</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reservar.css') }}">
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+<body>
+<header class="navbar navbar-solid">
+    <div class="logo" onclick="window.location.href='/'">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+        <span>StayHuila</span>
+    </div>
+            <nav class="nav-links">
+            <a href="/hospedajes">Hospedajes</a>
+            <a href="#">Experiencias</a>
+
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Pon tu espacio en StayHuila</a>
+        </nav>
+        <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            {% if current_user.is_authenticated %}
+                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <i class="ph ph-list"></i>
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                    
+                    <!-- Dropdown -->
+                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                        <div class="dropdown-header">
+                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                            <span>{{ current_user.email }}</span>
+                        </div>
+                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="profile-btn" onclick="window.location.href='/login'">
+                    <i class="ph ph-list"></i>
+                    <i class="ph-fill ph-user-circle"></i>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+    
+    <script src="{{ url_for('static', filename='js/reservar.js') }}"></script><div class="page-wrap">
+    <h1 class="page-title">Confirma y paga</h1>
+    <p class="page-sub">Revisa los detalles antes de confirmar tu reserva</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}
+    <div style="padding:.9rem 1rem;border-radius:10px;margin-bottom:1rem;background:{% if cat=='error' %}#FEF2F2{% else %}#F0FDF4{% endif %};color:{% if cat=='error' %}#DC2626{% else %}#16A34A{% endif %};border:1px solid {% if cat=='error' %}#FECACA{% else %}#BBF7D0{% endif %};">{{ msg }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="/reservar" id="reserva-form">
+        <input type="hidden" name="hospedaje_id" value="{{ hosp.id }}">
+        <div class="reserva-layout">
+            <!-- LEFT -->
+            <div class="reserva-left">
+                <!-- FECHAS -->
+                <div class="r-section">
+                    <h2><i class="ph-fill ph-calendar"></i> Tu viaje</h2>
+                    <div class="trip-info">
+                        <div class="trip-box">
+                            <label>LLEGADA</label>
+                            <input type="date" name="checkin" id="inp-checkin" value="{{ checkin }}" required min="{{ now }}">
+                        </div>
+                        <div class="trip-box">
+                            <label>SALIDA</label>
+                            <input type="date" name="checkout" id="inp-checkout" value="{{ checkout }}" required min="{{ now }}">
+                        </div>
+                        <div class="trip-box-guests">
+                            <div>
+                                <div style="font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--text-muted);margin-bottom:.2rem;">HUÉSPEDES</div>
+                                <div class="guests-ctrl">
+                                    <button type="button" onclick="chGuest(-1)"><i class="ph ph-minus"></i></button>
+                                    <span id="gc">{{ huespedes }}</span>
+                                    <button type="button" onclick="chGuest(1)"><i class="ph ph-plus"></i></button>
+                                </div>
+                            </div>
+                            <input type="hidden" name="huespedes" id="inp-huespedes" value="{{ huespedes }}">
+                            <span style="font-size:.85rem;color:var(--text-muted)">Máx. {{ hosp.capacidad_max }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAGO -->
+                <div class="r-section">
+                    <h2><i class="ph-fill ph-credit-card"></i> Método de pago</h2>
+                    <div class="metodos-grid">
+                        <label class="metodo-card selected" onclick="selectMetodo('tarjeta',this)">
+                            <input type="radio" name="metodo_pago" value="tarjeta" checked>
+                            <div class="metodo-icon"><i class="ph ph-credit-card"></i></div>
+                            <div><div class="metodo-label">Tarjeta</div><div style="font-size:.78rem;color:var(--text-muted)">Débito/Crédito</div></div>
+                        </label>
+                        <label class="metodo-card" onclick="selectMetodo('nequi',this)">
+                            <input type="radio" name="metodo_pago" value="nequi">
+                            <div class="metodo-icon" style="font-size:.85rem;font-weight:800;color:#6B21A8">Ne</div>
+                            <div><div class="metodo-label">Nequi</div><div style="font-size:.78rem;color:var(--text-muted)">Transferencia</div></div>
+                        </label>
+                        <label class="metodo-card" onclick="selectMetodo('daviplata',this)">
+                            <input type="radio" name="metodo_pago" value="daviplata">
+                            <div class="metodo-icon" style="font-size:.85rem;font-weight:800;color:#EF4444">Da</div>
+                            <div><div class="metodo-label">Daviplata</div><div style="font-size:.78rem;color:var(--text-muted)">Transferencia</div></div>
+                        </label>
+                        <label class="metodo-card" onclick="selectMetodo('efectivo',this)">
+                            <input type="radio" name="metodo_pago" value="efectivo">
+                            <div class="metodo-icon"><i class="ph ph-money"></i></div>
+                            <div><div class="metodo-label">Efectivo</div><div style="font-size:.78rem;color:var(--text-muted)">Al llegar</div></div>
+                        </label>
+                    </div>
+                    <!-- Campos tarjeta -->
+                    <div class="card-fields visible" id="card-fields">
+                        <div class="cf-group">
+                            <label>NÚMERO DE TARJETA</label>
+                            <input type="text" placeholder="1234 5678 9012 3456" maxlength="19" oninput="fmtCard(this)">
+                        </div>
+                        <div class="cf-group">
+                            <label>NOMBRE EN LA TARJETA</label>
+                            <input type="text" placeholder="Como aparece en la tarjeta">
+                        </div>
+                        <div class="cf-row">
+                            <div class="cf-group">
+                                <label>VENCIMIENTO</label>
+                                <input type="text" placeholder="MM/AA" maxlength="5">
+                            </div>
+                            <div class="cf-group">
+                                <label>CVV</label>
+                                <input type="text" placeholder="123" maxlength="4">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTAS -->
+                <div class="r-section">
+                    <h2><i class="ph-fill ph-note"></i> Notas para el anfitrión <span style="font-weight:400;font-size:.85rem;color:var(--text-muted)">(opcional)</span></h2>
+                    <textarea class="notes-area" name="notas" placeholder="¿Hora de llegada aproximada? ¿Alguna necesidad especial? ¿Celebras algo?"></textarea>
+                </div>
+
+                <button type="submit" class="btn-confirm">
+                    <i class="ph ph-lock"></i> Confirmar y pagar — $<span id="btn-total">{{ "{:,.0f}".format(total).replace(',','.') }}</span> COP
+                </button>
+                <p class="secure-note"><i class="ph ph-shield-check"></i> Pago 100% seguro y cifrado</p>
+            </div>
+
+            <!-- RIGHT: RESUMEN -->
+            <div>
+                <div class="r-summary">
+                    <img src="{{ hosp.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}" class="summary-img" alt="{{ hosp.nombre }}">
+                    <div class="summary-body">
+                        <div class="rating-row">
+                            <i class="ph-fill ph-star"></i>
+                            <strong>{{ hosp.calificacion }}</strong>
+                            <span>· {{ hosp.total_resenas }} reseñas</span>
+                            {% if hosp.descuento_porcentaje %}<span style="margin-left:auto;background:#FEF3C7;color:#D97706;padding:2px 8px;border-radius:10px;font-size:.78rem;font-weight:700;">-{{ hosp.descuento_porcentaje }}%</span>{% endif %}
+                        </div>
+                        <div class="summary-hosp">{{ hosp.nombre }}</div>
+                        <div class="summary-loc"><i class="ph ph-map-pin"></i> {{ hosp.municipio }}, Huila</div>
+                        <div class="summary-dates">
+                            <div class="sd-item"><label>LLEGADA</label><span>{{ checkin }}</span></div>
+                            <div class="sd-item"><label>SALIDA</label><span>{{ checkout }}</span></div>
+                        </div>
+                        <div class="price-lines">
+                            <div class="pl-row">
+                                <span>${{ "{:,.0f}".format(hosp.precio_noche).replace(',','.') }} × {{ noches }} noche{% if noches != 1 %}s{% endif %}</span>
+                                <span>${{ "{:,.0f}".format(precio_base).replace(',','.') }}</span>
+                            </div>
+                            {% if descuento > 0 %}
+                            <div class="pl-row discount-line">
+                                <span>Descuento {{ hosp.descuento_porcentaje }}%</span>
+                                <span>-${{ "{:,.0f}".format(descuento).replace(',','.') }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="pl-row">
+                                <span>Tarifa de servicio (14%)</span>
+                                <span>${{ "{:,.0f}".format(tarifa).replace(',','.') }}</span>
+                            </div>
+                            <div class="pl-row total">
+                                <strong>Total COP</strong>
+                                <strong>${{ "{:,.0f}".format(total).replace(',','.') }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+const MAX_GUESTS = {{ hosp.capacidad_max }};
+let guests = {{ huespedes }};
+</script>
+<script src="{{ url_for('static', filename='js/reservar.js') }}"></script>
+</body>
+</html>

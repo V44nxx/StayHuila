@@ -1,0 +1,47 @@
+        .navbar-solid{background:white;color:var(--text-main);box-shadow:0 2px 20px rgba(0,0,0,.08);}
+        .perfil-page{max-width:1000px;margin:0 auto;padding:6rem 2rem 4rem;display:grid;grid-template-columns:300px 1fr;gap:2rem;}
+        
+        /* Sidebar */
+        .perfil-sidebar{background:white;border:1px solid var(--border);border-radius:24px;padding:2rem;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.03);height:fit-content;}
+        .perfil-avatar-container{position:relative;width:120px;height:120px;margin:0 auto 1.5rem;}
+        .perfil-avatar{width:100%;height:100%;border-radius:50%;object-fit:cover;border:4px solid white;box-shadow:0 4px 15px rgba(0,0,0,.1);}
+        .perfil-avatar-edit{position:absolute;bottom:0;right:0;width:36px;height:36px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:3px solid white;transition:transform .2s;}
+        .perfil-avatar-edit:hover{transform:scale(1.1);}
+        .perfil-name{font-size:1.4rem;font-weight:700;margin-bottom:.3rem;color:var(--text-main);}
+        .perfil-role{font-size:.9rem;color:var(--text-muted);display:block;margin-bottom:1.5rem;}
+        
+        .gamification-card{background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border-radius:16px;padding:1.2rem;margin-top:1.5rem;text-align:left;}
+        .gamification-card h3{font-size:1rem;display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;}
+        .gamification-card .pts{font-size:1.8rem;font-weight:700;}
+        .gamification-card p{font-size:.85rem;opacity:.9;margin-top:.3rem;}
+        
+        .sidebar-menu{margin-top:2rem;display:flex;flex-direction:column;gap:.5rem;}
+        .sm-item{display:flex;align-items:center;gap:1rem;padding:1rem;border-radius:12px;color:var(--text-main);text-decoration:none;font-weight:500;transition:all .2s;}
+        .sm-item i{font-size:1.2rem;color:var(--text-muted);transition:color .2s;}
+        .sm-item:hover{background:var(--bg-color);}
+        .sm-item.active{background:rgba(44,74,59,.08);color:var(--primary);}
+        .sm-item.active i{color:var(--primary);}
+        
+        /* Contenido */
+        .perfil-content{background:white;border:1px solid var(--border);border-radius:24px;padding:2.5rem;box-shadow:0 4px 20px rgba(0,0,0,.03);}
+        .perfil-content h2{font-size:1.5rem;font-weight:700;margin-bottom:.5rem;color:var(--text-main);}
+        .perfil-content p.subtitle{color:var(--text-muted);margin-bottom:2rem;font-size:.95rem;}
+        
+        .form-section{margin-bottom:2.5rem;}
+        .form-section h3{font-size:1.1rem;font-weight:600;margin-bottom:1.2rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);color:var(--text-main);}
+        
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.2rem;}
+        .form-group label{display:block;font-size:.85rem;font-weight:600;color:var(--text-muted);margin-bottom:.5rem;}
+        .form-group input{width:100%;padding:.8rem 1rem;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:.95rem;transition:all .2s;outline:none;}
+        .form-group input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(44,74,59,.1);}
+        .form-group input:read-only{background:var(--bg-color);color:var(--text-muted);cursor:not-allowed;}
+        
+        .btn-save{background:linear-gradient(135deg,var(--primary),#3d6b52);color:white;border:none;padding:1rem 2rem;border-radius:12px;font-family:inherit;font-weight:600;font-size:1rem;cursor:pointer;transition:all .2s;box-shadow:0 4px 15px rgba(44,74,59,.3);display:flex;align-items:center;gap:.5rem;margin-left:auto;}
+        .btn-save:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(44,74,59,.4);}
+        
+        .alert{padding:1rem;border-radius:12px;margin-bottom:1.5rem;font-size:.95rem;display:flex;align-items:center;gap:.6rem;}
+        .alert-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;}
+        .alert-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;}
+        
+        @media(max-width:850px){.perfil-page{grid-template-columns:1fr;}}
+        @media(max-width:600px){.form-row{grid-template-columns:1fr;}}

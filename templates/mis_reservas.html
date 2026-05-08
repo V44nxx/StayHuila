@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Reservas | StayHuila</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mis_reservas.css') }}">
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+<body>
+<header class="navbar navbar-solid">
+    <div class="logo" onclick="window.location.href='/'">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+        <span>StayHuila</span>
+    </div>
+            <nav class="nav-links">
+            <a href="/hospedajes">Hospedajes</a>
+            <a href="#">Experiencias</a>
+
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Pon tu espacio en StayHuila</a>
+        </nav>
+        <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            {% if current_user.is_authenticated %}
+                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <i class="ph ph-list"></i>
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                    
+                    <!-- Dropdown -->
+                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                        <div class="dropdown-header">
+                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                            <span>{{ current_user.email }}</span>
+                        </div>
+                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="profile-btn" onclick="window.location.href='/login'">
+                    <i class="ph ph-list"></i>
+                    <i class="ph-fill ph-user-circle"></i>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+    
+<div class="mr-page">
+    <div class="mr-header">
+        <div>
+            <h1>Mis Reservas</h1>
+            <p>Hola, <strong>{{ current_user.nombre }}</strong> · {{ reservas|length }} reserva{% if reservas|length != 1 %}s{% endif %} en total</p>
+        </div>
+        <a href="/hospedajes" class="btn-explore">+ Nueva reserva</a>
+    </div>
+
+    <!-- Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}
+    <div style="padding:.9rem 1rem;border-radius:10px;margin-bottom:1rem;background:{% if cat=='error' %}#FEF2F2{% elif cat=='success' %}#F0FDF4{% else %}#EFF6FF{% endif %};color:{% if cat=='error' %}#DC2626{% elif cat=='success' %}#16A34A{% else %}#2563EB{% endif %};border:1px solid {% if cat=='error' %}#FECACA{% elif cat=='success' %}#BBF7D0{% else %}#BFDBFE{% endif %};">{{ msg }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <!-- Filtros -->
+    <div class="filters">
+        <button class="filter-btn active" onclick="filter('all',this)">Todas</button>
+        <button class="filter-btn" onclick="filter('confirmada',this)">Confirmadas</button>
+        <button class="filter-btn" onclick="filter('checkin',this)">En estadía</button>
+        <button class="filter-btn" onclick="filter('completada',this)">Completadas</button>
+        <button class="filter-btn" onclick="filter('cancelada',this)">Canceladas</button>
+    </div>
+
+    {% if reservas %}
+    <div id="reservas-list">
+        {% for r in reservas %}
+        <div class="reserva-card" data-estado="{{ r.estado }}">
+            <div class="rc-body">
+                <img src="{{ r.hosp_img or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=400' }}" class="rc-img" alt="{{ r.hosp_nombre }}">
+                <div class="rc-info">
+                    <div class="rc-top">
+                        <div>
+                            <div class="rc-name">{{ r.hosp_nombre }}</div>
+                            <div class="rc-loc"><i class="ph ph-map-pin"></i> {{ r.municipio }}, Huila</div>
+                        </div>
+                        <div>
+                            <span class="estado-badge estado-{{ r.estado }}">
+                                {% if r.estado == 'confirmada' %}<i class="ph-fill ph-check-circle"></i> Confirmada
+                                {% elif r.estado == 'checkin' %}<i class="ph-fill ph-house"></i> En estadía
+                                {% elif r.estado == 'completada' %}<i class="ph-fill ph-star"></i> Completada
+                                {% elif r.estado == 'cancelada' %}<i class="ph-fill ph-x-circle"></i> Cancelada
+                                {% else %}<i class="ph-fill ph-clock"></i> Pendiente{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="rc-dates">
+                        <span><i class="ph ph-sign-in"></i> <strong>{{ r.fecha_checkin }}</strong></span>
+                        <span>→</span>
+                        <span><i class="ph ph-sign-out"></i> <strong>{{ r.fecha_checkout }}</strong></span>
+                        <span><i class="ph ph-users"></i> {{ r.num_huespedes }} hués.</span>
+                    </div>
+                    <div style="font-size:.82rem;color:var(--text-muted);">Código: <strong>{{ r.codigo_reserva }}</strong></div>
+                    <div class="rc-actions">
+                        <a href="/reserva/{{ r.id }}" class="rc-btn"><i class="ph ph-eye"></i> Ver detalle</a>
+                        {% if r.estado == 'confirmada' %}
+                        <a href="/checkin/{{ r.id }}" class="rc-btn primary"><i class="ph ph-sign-in"></i> Check-in</a>
+                        {% elif r.estado == 'checkin' %}
+                        <a href="/checkout/{{ r.id }}" class="rc-btn purple"><i class="ph ph-sign-out"></i> Check-out</a>
+                        {% endif %}
+                        <span class="rc-price">${{ "{:,.0f}".format(r.total).replace(',','.') }} COP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🏕️</div>
+        <h2>Aún no tienes reservas</h2>
+        <p>Explora los hospedajes del Huila y vive una experiencia única</p>
+        <a href="/hospedajes" class="btn-explore">Explorar hospedajes</a>
+    </div>
+    {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='js/mis_reservas.js') }}"></script>
+</body>
+</html>

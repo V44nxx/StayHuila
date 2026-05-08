@@ -4,26 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StayHuila | Todos los Hospedajes</title>
+    <title>StayHuila | Todas las Experiencias</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/hospedajes.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/experiencias.css') }}">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Leaflet CSS para el Mapa Interactivo -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </head>
 
 <body>
-    <!-- Navbar (Solid) -->
     <header class="navbar navbar-hospedajes" id="navbar">
         <div class="logo" onclick="window.location.href='/'" style="cursor: pointer;">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
-                <nav class="nav-links">
+        <nav class="nav-links">
             <a href="/hospedajes">Hospedajes</a>
-            <a href="/experiencias">Experiencias</a>
+            <a href="/experiencias" style="font-weight:700; color:var(--primary);">Experiencias</a>
 
             <a href="/comunidad">Comunidad</a>
             <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;">Panel Anfitrion</a>
@@ -38,7 +36,6 @@
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     
-                    <!-- Dropdown -->
                     <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
                         <div class="dropdown-header">
                             <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
@@ -62,45 +59,35 @@
         </div>
     </header>
     
-<!-- Split Screen Layout -->
     <div class="hospedajes-layout">
-        
-        <!-- Mitad Izquierda: Mapa -->
         <section class="hospedajes-map">
             <div id="interactive-map"></div>
         </section>
 
-        <!-- Mitad Derecha: Listado -->
         <section class="hospedajes-list">
             <div class="hospedajes-header">
-                <h1>Hospedajes en el Huila</h1>
+                <h1>Experiencias en el Huila</h1>
                 <p style="color: var(--text-muted); font-size: 1.05rem;">
-                    Más de {{ hospedajes|length }} alojamientos mágicos esperando por ti. Explora el mapa interactivo para ver detalles.
+                    Más de {{ experiencias|length }} aventuras únicas esperando por ti. Explora el mapa interactivo para ver detalles.
                 </p>
             </div>
 
             <main class="grid-half" id="hospedajes-grid">
-                {% for h in hospedajes %}
-                <article class="listing-card" id="card-{{ h.id }}" style="margin:0;cursor:pointer;" onclick="window.location.href='/hospedaje/{{ h.id }}'">
+                {% for e in experiencias %}
+                <article class="listing-card" id="card-{{ e.id }}" style="margin:0;cursor:pointer;" onclick="window.location.href='/experiencia/{{ e.id }}'">
                     <div class="image-wrapper">
-                        <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}" alt="{{ h.tipo }}">
-                        {% if h.es_eco %}
-                        <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> Sostenible</div>
-                        {% endif %}
-                        {% if h.descuento_porcentaje %}
-                        <div class="discount-badge">-{{ h.descuento_porcentaje }}% Hoy</div>
-                        {% endif %}
+                        <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600' }}" alt="{{ e.tipo }}">
                         <button class="favorite-btn" onclick="event.stopPropagation()"><i class="ph ph-heart"></i></button>
                     </div>
                     <div class="listing-info" style="padding-top: 0;">
                         <div class="listing-header">
-                            <h3 style="font-size: 1rem;">{{ h.nombre }}</h3>
-                            <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ h.calificacion }}</span>
+                            <h3 style="font-size: 1rem;">{{ e.nombre }}</h3>
+                            <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ e.calificacion or '5.0' }}</span>
                         </div>
-                        <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}, Huila</p>
-                        <p class="details" style="font-size:0.8rem;">{{ h.descripcion_corta or h.tipo }}</p>
-                        <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche</p>
-                        <a href="/hospedaje/{{ h.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()">Ver detalles</a>
+                        <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}, Huila</p>
+                        <p class="details" style="font-size:0.8rem;">{{ e.duracion_horas }} horas · {{ e.tipo }}</p>
+                        <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> por persona</p>
+                        <a href="/experiencia/{{ e.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()">Ver detalles</a>
                     </div>
                 </article>
                 {% endfor %}
@@ -109,15 +96,12 @@
 
     </div>
 
-    <!-- Pasamos los datos de Python a Javascript usando un script con JSON -->
-    <script id="hospedajes-data" type="application/json">
-        {{ hospedajes | tojson | safe }}
+    <script id="experiencias-data" type="application/json">
+        {{ experiencias | tojson | safe }}
     </script>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="{{ url_for('static', filename='js/hospedajes.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/experiencias.js') }}"></script>
 </body>
 </html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión | StayHuila</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+<body>
+<div class="auth-wrapper">
+    <!-- HERO lateral con SLIDER -->
+    <div class="auth-hero" id="auth-hero">
+
+        <!-- Pista de slides (se puebla por JS) -->
+        <div class="slider-track" id="sliderTrack"></div>
+        <!-- Fallback por si no hay imágenes -->
+        <div class="slider-fallback" id="sliderFallback"></div>
+
+        <!-- Botones anterior / siguiente -->
+        <button class="slider-nav slider-prev" id="sliderPrev" onclick="sliderMove(-1)" aria-label="Anterior">
+            <i class="ph ph-caret-left"></i>
+        </button>
+        <button class="slider-nav slider-next" id="sliderNext" onclick="sliderMove(1)" aria-label="Siguiente">
+            <i class="ph ph-caret-right"></i>
+        </button>
+
+        <!-- Puntos indicadores -->
+        <div class="slider-dots" id="sliderDots"></div>
+
+        <!-- Contenido superpuesto -->
+        <div class="slider-content">
+            <div class="auth-hero-logo">
+                <img src="/static/images/logo.png" alt="" height="65px">
+                StayHuila
+            </div>
+            <h2>Vive la magia del Huila</h2>
+            <p>Hospedajes auténticos, experiencias únicas y la calidez de nuestra gente</p>
+            <div class="auth-features">
+                <div class="auth-feat"><i class="ph-fill ph-shield-check"></i> Reservas 100% seguras</div>
+                <div class="auth-feat"><i class="ph-fill ph-star"></i> Anfitriones verificados</div>
+                <div class="auth-feat"><i class="ph-fill ph-coin"></i> Gana puntos con cada reserva</div>
+                <div class="auth-feat"><i class="ph-fill ph-headset"></i> Soporte 24/7</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL -->
+    <div class="auth-panel">
+        <a href="/" class="back-link"><i class="ph ph-arrow-left"></i> Volver al inicio</a>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}"><i class="ph ph-{{ 'warning-circle' if cat=='error' else 'check-circle' }}"></i> {{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        {% if next %}
+        <input type="hidden" name="next_val" value="{{ next }}" class="next-input">
+        <div class="alert alert-info"><i class="ph ph-lock"></i> Inicia sesión para completar tu reserva</div>
+        {% endif %}
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn {% if tab=='login' %}active{% endif %}" onclick="switchTab('login')" id="tab-login">Iniciar Sesión</button>
+            <button class="tab-btn {% if tab=='register' %}active{% endif %}" onclick="switchTab('register')" id="tab-register">Registrarse</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="tab-content {% if tab=='login' %}active{% endif %}" id="content-login">
+            <h1 class="form-title">Bienvenido de nuevo</h1>
+            <p class="form-sub">Accede a tu cuenta para gestionar tus reservas</p>
+            <form method="POST" action="/login?next={{ next }}">
+                <input type="hidden" name="action" value="login">
+                <input type="hidden" name="next" value="{{ next }}">
+                <div class="form-group">
+                    <label>Correo electrónico</label>
+                    <div class="input-icon">
+                        <i class="ph ph-envelope"></i>
+                        <input type="email" name="email" placeholder="tu@correo.com" required autocomplete="email">
+                        </div>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <div class="input-icon" style="position:relative">
+                        <i class="ph ph-lock"></i>
+                        <input type="password" name="password" id="pw-login" placeholder="Tu contraseña" required>
+                        <i class="ph ph-eye pw-toggle" onclick="togglePw('pw-login',this)"></i>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Iniciar Sesión <i class="ph ph-sign-in"></i></button>
+            </form>
+            <div class="divider">¿No tienes cuenta?</div>
+            <button class="btn-primary" style="background:white;color:var(--primary);border:2px solid var(--primary);box-shadow:none;" onclick="switchTab('register')">Crear cuenta gratis</button>
+        </div>
+
+        <!-- REGISTRO -->
+        <div class="tab-content {% if tab=='register' %}active{% endif %}" id="content-register">
+            <h1 class="form-title">Crear cuenta</h1>
+            <p class="form-sub">Únete a la comunidad StayHuila gratis</p>
+            <form method="POST" action="/registro?next={{ next }}">
+                <input type="hidden" name="action" value="register">
+                <input type="hidden" name="next" value="{{ next }}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" name="nombre" placeholder="Tu nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Apellido</label>
+                        <input type="text" name="apellido" placeholder="Tu apellido" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Correo electrónico</label>
+                    <div class="input-icon">
+                        <i class="ph ph-envelope"></i>
+                        <input type="email" name="email" placeholder="tu@correo.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <div class="input-icon" style="position:relative">
+                        <i class="ph ph-lock"></i>
+                        <input type="password" name="password" id="pw-reg" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                        <i class="ph ph-eye pw-toggle" onclick="togglePw('pw-reg',this)"></i>
+                    </div>
+                </div>
+                <!-- User type selector removed, everyone defaults to guest initially -->
+                <button type="submit" class="btn-primary">Crear cuenta <i class="ph ph-user-plus"></i></button>
+                <p style="text-align:center;font-size:.8rem;color:var(--muted);margin-top:.8rem">Al registrarte aceptas nuestros <a href="#" style="color:var(--primary)">Términos de uso</a></p>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>
