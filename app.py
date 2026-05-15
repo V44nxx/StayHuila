@@ -4,7 +4,9 @@ from flask_bcrypt import Bcrypt
 import pymysql
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-import random, string                           
+import random, string
+# Módulo de validación y optimización de imágenes (OpenCV + Pillow)
+from image_optimizer import process_image
 
 app = Flask(__name__)
 app.secret_key = 'stayhuila_secret_2024_xk9'
@@ -70,14 +72,18 @@ def home():
     c = db()
     try:
         with c.cursor() as cur:
+            # Solo muestra hospedajes activos, no deshabilitados y no eliminados
             cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                WHERE h.activo=1 AND h.verificado=1 ORDER BY h.destacado DESC,h.calificacion DESC""")
+                WHERE h.activo=1 AND h.eliminado=0 AND h.estado='abierta' AND h.verificado=1
+                ORDER BY h.destacado DESC,h.calificacion DESC""")
             hospedajes = serialize(cur.fetchall())
-            
+
+            # Solo muestra experiencias activas, no deshabilitadas y no eliminadas
             cur.execute("""SELECT e.*,i.url as image FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                WHERE e.activo=1 AND e.verificado=1 ORDER BY e.destacado DESC,e.calificacion DESC""")
+                WHERE e.activo=1 AND e.eliminado=0 AND e.estado='abierta' AND e.verificado=1
+                ORDER BY e.destacado DESC,e.calificacion DESC""")
             experiencias = serialize(cur.fetchall())
         return render_template('index.html', hospedajes=hospedajes, experiencias=experiencias)
     finally:
@@ -94,10 +100,11 @@ def hospedajes():
     try:
         with c.cursor() as cur:
             query = """
-                SELECT h.*, i.url as image 
+                SELECT h.*, i.url as image
                 FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
-                WHERE h.activo = 1
+                -- Filtrar: activos, no eliminados (soft delete) y en estado abierta
+                WHERE h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
             """
             params = []
             
@@ -131,7 +138,9 @@ def detalle_hospedaje(id):
                 u.foto_perfil as anf_foto,u.fecha_registro as anf_desde,
                 a.super_anfitrion,a.calificacion_promedio as anf_cal,a.total_resenas as anf_res
                 FROM hospedajes h JOIN usuarios u ON h.anfitrion_id=u.id
-                LEFT JOIN anfitriones a ON u.id=a.usuario_id WHERE h.id=%s AND h.activo=1""", (id,))
+                LEFT JOIN anfitriones a ON u.id=a.usuario_id
+                -- No mostrar detalle de publicaciones eliminadas o deshabilitadas
+                WHERE h.id=%s AND h.activo=1 AND h.eliminado=0""", (id,))
             hosp = cur.fetchone()
             if not hosp:
                 return redirect(url_for('hospedajes'))
@@ -145,7 +154,9 @@ def detalle_hospedaje(id):
             resenas = cur.fetchall()
             cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                WHERE h.id!=%s AND h.activo=1 ORDER BY RAND() LIMIT 3""", (id,))
+                -- Sugerencias solo de publicaciones disponibles
+                WHERE h.id!=%s AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
+                ORDER BY RAND() LIMIT 3""", (id,))
             sugerencias = cur.fetchall()
             hosp = serialize(hosp)
             imgs = serialize(cur.fetchall()) if False else serialize(imgs)
@@ -166,10 +177,11 @@ def experiencias():
     try:
         with c.cursor() as cur:
             query = """
-                SELECT e.*, i.url as image 
+                SELECT e.*, i.url as image
                 FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
-                WHERE e.activo = 1
+                -- Filtrar: activas, no eliminadas y disponibles
+                WHERE e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
             """
             params = []
             
@@ -198,7 +210,8 @@ def detalle_experiencia(id):
                 u.foto_perfil as anf_foto,u.fecha_registro as anf_desde,
                 a.super_anfitrion,a.calificacion_promedio as anf_cal,a.total_resenas as anf_res
                 FROM experiencias e JOIN usuarios u ON e.anfitrion_id=u.id
-                LEFT JOIN anfitriones a ON u.id=a.usuario_id WHERE e.id=%s AND e.activo=1""", (id,))
+                LEFT JOIN anfitriones a ON u.id=a.usuario_id
+                WHERE e.id=%s AND e.activo=1 AND e.eliminado=0""", (id,))
             exp = cur.fetchone()
             if not exp:
                 return redirect(url_for('experiencias'))
@@ -210,7 +223,8 @@ def detalle_experiencia(id):
             resenas = cur.fetchall()
             cur.execute("""SELECT e.*,i.url as image FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                WHERE e.id!=%s AND e.activo=1 ORDER BY RAND() LIMIT 3""", (id,))
+                WHERE e.id!=%s AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
+                ORDER BY RAND() LIMIT 3""", (id,))
             sugerencias = cur.fetchall()
             exp = serialize(exp)
             imgs = serialize(imgs)
@@ -483,11 +497,18 @@ def reservar():
         c = db()
         try:
             with c.cursor() as cur:
-                cur.execute("SELECT * FROM hospedajes WHERE id=%s AND activo=1", (hid,))
+                # Busca el hospedaje: no eliminado. Verificar activo y estado abierta por separado
+                # para dar mensajes específicos al usuario
+                cur.execute("SELECT * FROM hospedajes WHERE id=%s AND eliminado=0", (hid,))
                 hosp = cur.fetchone()
                 if not hosp:
-                    flash('Hospedaje no encontrado', 'error')
+                    flash('Hospedaje no encontrado.', 'error')
                     return redirect(url_for('hospedajes'))
+
+                # Bloquear nuevas reservas si la publicación está deshabilitada
+                if hosp.get('estado') == 'deshabilitada' or not hosp.get('activo'):
+                    flash('Este hospedaje no está disponible para nuevas reservas en este momento.', 'error')
+                    return redirect(url_for('detalle_hospedaje', id=hid))
                 
                 if hosp['anfitrion_id'] == current_user.id:
                     flash('No puedes reservar tu propia publicación.', 'error')
@@ -703,14 +724,18 @@ def panel_anfitrion():
     c = db()
     try:
         with c.cursor() as cur:
+            # El anfitrión ve TODAS sus publicaciones (incluso deshabilitadas),
+            # pero NO las eliminadas lógicamente (eliminado=1) ya que fueron dadas de baja.
             cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                WHERE h.anfitrion_id=%s ORDER BY h.fecha_creacion DESC""", (current_user.id,))
+                WHERE h.anfitrion_id=%s AND h.eliminado=0
+                ORDER BY h.fecha_creacion DESC""", (current_user.id,))
             mis_hospedajes = cur.fetchall()
 
             cur.execute("""SELECT e.*,i.url as image FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                WHERE e.anfitrion_id=%s ORDER BY e.fecha_creacion DESC""", (current_user.id,))
+                WHERE e.anfitrion_id=%s AND e.eliminado=0
+                ORDER BY e.fecha_creacion DESC""", (current_user.id,))
             mis_experiencias = cur.fetchall()
 
             ids = [h['id'] for h in mis_hospedajes]
@@ -734,6 +759,30 @@ def panel_anfitrion():
                                mis_experiencias=mis_experiencias, reservas_recientes=reservas_recientes, stats=stats)
     finally:
         c.close()
+
+# ── API VALIDAR IMAGEN ────────────────────────────────────────
+@app.route('/api/validar-imagen', methods=['POST'])
+@login_required
+def api_validar_imagen():
+    """
+    Recibe una sola imagen (campo 'foto'), la valida con image_optimizer
+    (formato, tamaño, resolución, detección de blur via OpenCV) y, si es
+    válida, la optimiza con Pillow y la guarda en /static/uploads/.
+    Devuelve un JSON con el resultado para que el frontend actualice la
+    tarjeta de vista previa en tiempo real.
+    """
+    import os
+    file = request.files.get('foto')
+    if not file or not file.filename:
+        return jsonify({'status': 'corrupt_error', 'message': 'No se recibió ningún archivo.'}), 400
+
+    upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+    idx = int(request.form.get('idx', 0))
+
+    # Delegar toda la lógica al módulo image_optimizer
+    result = process_image(file, upload_folder, index=idx)
+    return jsonify(result.to_dict())
+
 
 # ── PUBLICAR ──────────────────────────────────────────────────
 @app.route('/publicar', methods=['POST'])
@@ -777,32 +826,28 @@ def publicar():
     except:
         servicios = []
     
-    files = request.files.getlist('fotos')
-    
+    # Las imágenes ya fueron validadas y optimizadas por /api/validar-imagen.
+    # El frontend envía las URLs resultantes como lista de campos 'fotos_urls'.
+    fotos_urls = request.form.getlist('fotos_urls')
+
     c = db()
     try:
         with c.cursor() as cur:
             if tipo == 'hospedaje':
-                cur.execute("""INSERT INTO hospedajes(anfitrion_id, tipo, nombre, municipio, direccion_detalle, latitud, longitud, 
+                cur.execute("""INSERT INTO hospedajes(anfitrion_id, tipo, nombre, municipio, direccion_detalle, latitud, longitud,
                     descripcion, precio_noche, capacidad_max, num_habitaciones, num_banos, hora_checkin, hora_checkout, activo, verificado)
                     VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 1)""",
                     (current_user.id, categoria, nombre, municipio, direccion, lat, lng, descripcion, precio, max_huespedes, habitaciones, banos, checkin, checkout))
                 pub_id = cur.lastrowid
-                
-                if files and files[0].filename != '':
-                    import uuid
-                    for idx, f in enumerate(files):
-                        if f.filename:
-                            ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
-                            filename = f"{uuid.uuid4().hex}_{idx}.{ext}"
-                            os.makedirs(os.path.join(app.root_path, 'static', 'uploads'), exist_ok=True)
-                            path = os.path.join(app.root_path, 'static', 'uploads', filename)
-                            f.save(path)
-                            url = f"/static/uploads/{filename}"
-                            cur.execute("INSERT INTO hospedaje_imagenes(hospedaje_id, url, es_portada, orden) VALUES(%s, %s, %s, %s)",
-                                (pub_id, url, 1 if idx == 0 else 0, idx))
+
+                if fotos_urls:
+                    # Insertar las URLs de imágenes ya optimizadas
+                    for idx_url, url in enumerate(fotos_urls):
+                        cur.execute("INSERT INTO hospedaje_imagenes(hospedaje_id, url, es_portada, orden) VALUES(%s, %s, %s, %s)",
+                            (pub_id, url, 1 if idx_url == 0 else 0, idx_url))
                 else:
-                    cur.execute("INSERT INTO hospedaje_imagenes(hospedaje_id, url, es_portada) VALUES(%s, %s, 1)", 
+                    # Imagen de respaldo si el anfitrión no subió fotos
+                    cur.execute("INSERT INTO hospedaje_imagenes(hospedaje_id, url, es_portada) VALUES(%s, %s, 1)",
                         (pub_id, "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=500"))
                 
                 # Insert Amenities
@@ -815,20 +860,15 @@ def publicar():
                     VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 1)""",
                     (current_user.id, categoria, nombre, municipio, lat, lng, descripcion, precio, e_cap_min, max_huespedes, e_duracion, e_nivel, e_incluye, e_traer))
                 pub_id = cur.lastrowid
-                if files and files[0].filename != '':
-                    import uuid
-                    for idx, f in enumerate(files):
-                        if f.filename:
-                            ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
-                            filename = f"{uuid.uuid4().hex}_{idx}.{ext}"
-                            os.makedirs(os.path.join(app.root_path, 'static', 'uploads'), exist_ok=True)
-                            path = os.path.join(app.root_path, 'static', 'uploads', filename)
-                            f.save(path)
-                            url = f"/static/uploads/{filename}"
-                            cur.execute("INSERT INTO experiencia_imagenes(experiencia_id, url, es_portada, orden) VALUES(%s, %s, %s, %s)",
-                                (pub_id, url, 1 if idx == 0 else 0, idx))
+
+                if fotos_urls:
+                    # Insertar las URLs de imágenes ya optimizadas
+                    for idx_url, url in enumerate(fotos_urls):
+                        cur.execute("INSERT INTO experiencia_imagenes(experiencia_id, url, es_portada, orden) VALUES(%s, %s, %s, %s)",
+                            (pub_id, url, 1 if idx_url == 0 else 0, idx_url))
                 else:
-                    cur.execute("INSERT INTO experiencia_imagenes(experiencia_id, url, es_portada) VALUES(%s, %s, 1)", 
+                    # Imagen de respaldo si el anfitrión no subió fotos
+                    cur.execute("INSERT INTO experiencia_imagenes(experiencia_id, url, es_portada) VALUES(%s, %s, 1)",
                         (pub_id, "https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500"))
             
             # Verify user and save verification info
@@ -852,34 +892,103 @@ def publicar():
 @app.route('/api/publicacion/estado', methods=['POST'])
 @login_required
 def cambiar_estado_publicacion():
+    """
+    Gestiona el cambio de estado de una publicación con las siguientes reglas:
+    - 'abierta'       → publicación disponible para reservas.
+    - 'deshabilitada' → oculta del buscador, sin nuevas reservas, historial intacto.
+    - 'eliminar'      → soft delete: marca eliminado=1 en BD, nunca borra registros.
+                        BLOQUEADO si la publicación tiene reservas asociadas.
+    """
     pub_id = request.form.get('id')
-    tipo = request.form.get('tipo')
+    tipo   = request.form.get('tipo')
     estado = request.form.get('estado')
-    
-    if not pub_id or tipo not in ('hospedaje', 'experiencia') or estado not in ('abierta', 'reparacion', 'eliminar'):
+
+    # Validar parámetros de entrada
+    if not pub_id or tipo not in ('hospedaje', 'experiencia') or estado not in ('abierta', 'deshabilitada', 'eliminar'):
         return jsonify({'success': False, 'message': 'Datos inválidos.'})
-        
+
+    tabla           = 'hospedajes'  if tipo == 'hospedaje'   else 'experiencias'
+    tabla_reservas  = 'reservas'    # Las reservas siempre son en esta tabla
+    campo_fk        = 'hospedaje_id' if tipo == 'hospedaje' else 'experiencia_id'
+
     c = db()
     try:
         with c.cursor() as cur:
-            # Check ownership
-            tabla = 'hospedajes' if tipo == 'hospedaje' else 'experiencias'
-            cur.execute(f"SELECT id FROM {tabla} WHERE id=%s AND anfitrion_id=%s", (pub_id, current_user.id))
+            # ── Verificar propiedad de la publicación ────────────────────────
+            cur.execute(
+                f"SELECT id FROM {tabla} WHERE id=%s AND anfitrion_id=%s AND eliminado=0",
+                (pub_id, current_user.id)
+            )
             if not cur.fetchone() and current_user.tipo != 'admin':
-                return jsonify({'success': False, 'message': 'No tienes permiso.'})
-                
+                return jsonify({'success': False, 'message': 'No tienes permiso sobre esta publicación.'})
+
+            # ── Cambio de estado: abierta / deshabilitada ─────────────────────
+            if estado in ('abierta', 'deshabilitada'):
+                cur.execute(
+                    f"UPDATE {tabla} SET estado=%s WHERE id=%s",
+                    (estado, pub_id)
+                )
+                msg = (
+                    'Publicación activada. Ya aparece en el buscador.'
+                    if estado == 'abierta'
+                    else 'Publicación deshabilitada. No acepta nuevas reservas, pero el historial se conserva.'
+                )
+                c.commit()
+                return jsonify({'success': True, 'message': msg})
+
+            # ── Soft delete (eliminar lógico) ─────────────────────────────────
             if estado == 'eliminar':
-                cur.execute(f"DELETE FROM {tabla} WHERE id=%s", (pub_id,))
-                msg = "Publicación eliminada correctamente."
-            else:
-                cur.execute(f"UPDATE {tabla} SET estado=%s WHERE id=%s", (estado, pub_id))
-                msg = "Estado actualizado correctamente."
-            
-            c.commit()
-            return jsonify({'success': True, 'message': msg})
+                # Regla crítica: no se puede eliminar si tiene reservas históricas.
+                # Esto protege el historial financiero del anfitrión y los huéspedes.
+                if tipo == 'hospedaje':
+                    cur.execute(
+                        "SELECT COUNT(*) as total FROM reservas WHERE hospedaje_id=%s",
+                        (pub_id,)
+                    )
+                else:
+                    # Las experiencias pueden tener reservas en una tabla diferente;
+                    # si no existe, simplemente devuelve 0.
+                    try:
+                        cur.execute(
+                            "SELECT COUNT(*) as total FROM reservas_experiencias WHERE experiencia_id=%s",
+                            (pub_id,)
+                        )
+                    except Exception:
+                        # Tabla no existe en esta versión: sin reservas
+                        cur.execute("SELECT 0 as total")
+
+                row = cur.fetchone()
+                total_reservas = row['total'] if row else 0
+
+                if total_reservas > 0:
+                    # BLOQUEADO: el anfitrión tiene reservas asociadas
+                    return jsonify({
+                        'success':  False,
+                        'blocked':  True,
+                        'message':  (
+                            f'No puedes eliminar esta publicación porque tiene '
+                            f'{total_reservas} reserva(s) registrada(s). '
+                            f'Puedes deshabilitarla para que deje de recibir nuevas reservas '
+                            f'sin perder el historial.'
+                        )
+                    })
+
+                # Sin reservas: aplicar soft delete (eliminado lógico)
+                # NUNCA se usa DELETE físico en publicaciones
+                cur.execute(
+                    f"UPDATE {tabla} SET eliminado=1, estado='deshabilitada', activo=0 WHERE id=%s",
+                    (pub_id,)
+                )
+                c.commit()
+                return jsonify({
+                    'success': True,
+                    'message': 'Publicación eliminada. Los datos se conservan por seguridad.'
+                })
+
     except Exception as e:
-        print(e)
-        return jsonify({'success': False, 'message': 'Error de servidor.'})
+        c.rollback()
+        print(f'[cambiar_estado_publicacion] Error: {e}')
+        return jsonify({'success': False, 'message': 'Error interno del servidor.'})
     finally:
         c.close()
 # ── API DISPONIBILIDAD ────────────────────────────────────────
@@ -914,11 +1023,14 @@ def api_buscar():
         with c.cursor() as cur:
             cur.execute("""SELECT h.id,h.nombre,h.municipio,h.precio_noche as precio,'hospedaje' as tipo,i.url as imagen
                 FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                WHERE (h.nombre LIKE %s OR h.municipio LIKE %s) AND h.activo=1
+                -- Solo resultados disponibles: activos, no eliminados, estado abierta
+                WHERE (h.nombre LIKE %s OR h.municipio LIKE %s)
+                    AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
                 UNION ALL
                 SELECT e.id,e.nombre,e.municipio,e.precio_persona as precio,'experiencia' as tipo,i.url as imagen
                 FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                WHERE (e.nombre LIKE %s OR e.municipio LIKE %s) AND e.activo=1 LIMIT 8""",
+                WHERE (e.nombre LIKE %s OR e.municipio LIKE %s)
+                    AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta' LIMIT 8""",
                 (f'%{q}%', f'%{q}%', f'%{q}%', f'%{q}%'))
             return jsonify(cur.fetchall())
     finally:

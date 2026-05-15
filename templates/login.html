@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="description" content="Accede a tu cuenta StayHuila.">
@@ -28,137 +29,160 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </head>
+
 <body>
-<div class="auth-wrapper">
-    <!-- HERO lateral con SLIDER -->
-    <div class="auth-hero" id="auth-hero">
+    <div class="auth-wrapper">
+        <!-- HERO lateral con SLIDER -->
+        <div class="auth-hero" id="auth-hero">
 
-        <!-- Pista de slides (se puebla por JS) -->
-        <div class="slider-track" id="sliderTrack"></div>
-        <!-- Fallback por si no hay imágenes -->
-        <div class="slider-fallback" id="sliderFallback"></div>
+            <!-- Pista de slides (se puebla por JS) -->
+            <div class="slider-track" id="sliderTrack"></div>
+            <!-- Fallback por si no hay imágenes -->
+            <div class="slider-fallback" id="sliderFallback"></div>
 
-        <!-- Botones anterior / siguiente -->
-        <button class="slider-nav slider-prev" id="sliderPrev" onclick="sliderMove(-1)" aria-label="Anterior">
-            <i class="ph ph-caret-left"></i>
-        </button>
-        <button class="slider-nav slider-next" id="sliderNext" onclick="sliderMove(1)" aria-label="Siguiente">
-            <i class="ph ph-caret-right"></i>
-        </button>
+            <!-- Botones anterior / siguiente -->
+            <button class="slider-nav slider-prev" id="sliderPrev" onclick="sliderMove(-1)" aria-label="Anterior">
+                <i class="ph ph-caret-left"></i>
+            </button>
+            <button class="slider-nav slider-next" id="sliderNext" onclick="sliderMove(1)" aria-label="Siguiente">
+                <i class="ph ph-caret-right"></i>
+            </button>
 
-        <!-- Puntos indicadores -->
-        <div class="slider-dots" id="sliderDots"></div>
+            <!-- Puntos indicadores -->
+            <div class="slider-dots" id="sliderDots"></div>
 
-        <!-- Contenido superpuesto -->
-        <div class="slider-content">
-            <div class="auth-hero-logo">
-                <img src="/static/images/logo.png" alt="" height="65px">
-                StayHuila
-            </div>
-            <h2 data-i18n="login.hero_title">Vive la magia del Huila</h2>
-            <p data-i18n="login.hero_sub">Hospedajes auténticos, experiencias únicas y la calidez de nuestra gente</p>
-            <div class="auth-features">
-                <div class="auth-feat"><i class="ph-fill ph-shield-check"></i> <span data-i18n="login.feat1">Reservas 100% seguras</span></div>
-                <div class="auth-feat"><i class="ph-fill ph-star"></i> <span data-i18n="login.feat2">Anfitriones verificados</span></div>
-                <div class="auth-feat"><i class="ph-fill ph-coin"></i> <span data-i18n="login.feat3">Gana puntos con cada reserva</span></div>
-                <div class="auth-feat"><i class="ph-fill ph-headset"></i> <span data-i18n="login.feat4">Soporte 24/7</span></div>
+            <!-- Contenido superpuesto -->
+            <div class="slider-content">
+                <div class="auth-hero-logo">
+                    <img src="/static/images/logo.png" alt="" height="65px">
+                    StayHuila
+                </div>
+                <h2 data-i18n="login.hero_title">Vive la magia del Huila</h2>
+                <p data-i18n="login.hero_sub">Hospedajes auténticos, experiencias únicas y la calidez de nuestra gente
+                </p>
+                <div class="auth-features">
+                    <div class="auth-feat"><i class="ph-fill ph-shield-check"></i> <span
+                            data-i18n="login.feat1">Reservas 100% seguras</span></div>
+                    <div class="auth-feat"><i class="ph-fill ph-star"></i> <span data-i18n="login.feat2">Anfitriones
+                            verificados</span></div>
+                    <div class="auth-feat"><i class="ph-fill ph-coin"></i> <span data-i18n="login.feat3">Gana puntos con
+                            cada reserva</span></div>
+                    <div class="auth-feat"><i class="ph-fill ph-headset"></i> <span data-i18n="login.feat4">Soporte
+                            24/7</span></div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- PANEL -->
-    <div class="auth-panel">
-        <div style="position:absolute; top:20px; right:20px;" class="language-selector"></div>
-        <a href="/" class="back-link"><i class="ph ph-arrow-left"></i> <span data-i18n="general.back_home">Volver al inicio</span></a>
+        <!-- PANEL -->
+        <div class="auth-panel">
+            <div style="position:absolute; top:-5x; margin-bottom: 10px; right: 10px;" class="language-selector"></div>
+            <a href="/" class="back-link"><i class="ph ph-arrow-left"></i> <span data-i18n="general.back_home">Volver al
+                    inicio</span></a>
 
-        <!-- Flash messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-        <script>document.addEventListener('DOMContentLoaded',()=>showToast({{ msg|tojson }}, '{{ "success" if cat=="success" else "error" if cat=="error" else "info" }}'));</script>
-        {% endfor %}
-        {% endwith %}
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for cat, msg in messages %}
+            <script>document.addEventListener('DOMContentLoaded', () => showToast({{ msg| tojson }}, '{{ "success" if cat=="success" else "error" if cat=="error" else "info" }}'));</script>
+            {% endfor %}
+            {% endwith %}
 
-        {% if next %}
-        <input type="hidden" name="next_val" value="{{ next }}" class="next-input">
-        <div class="alert alert-info"><i class="ph ph-lock"></i> <span data-i18n="login.next_alert">Inicia sesión para completar tu reserva</span></div>
-        {% endif %}
+            {% if next %}
+            <input type="hidden" name="next_val" value="{{ next }}" class="next-input">
+            <div class="alert alert-info"><i class="ph ph-lock"></i> <span data-i18n="login.next_alert">Inicia sesión
+                    para completar tu reserva</span></div>
+            {% endif %}
 
-        <!-- TABS -->
-        <div class="tabs">
-            <button class="tab-btn {% if tab=='login' %}active{% endif %}" onclick="switchTab('login')" id="tab-login"><span data-i18n="tab.login">Iniciar Sesión</span></button>
-            <button class="tab-btn {% if tab=='register' %}active{% endif %}" onclick="switchTab('register')" id="tab-register"><span data-i18n="tab.register">Registrarse</span></button>
-        </div>
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab-btn {% if tab=='login' %}active{% endif %}" onclick="switchTab('login')"
+                    id="tab-login"><span data-i18n="tab.login">Iniciar Sesión</span></button>
+                <button class="tab-btn {% if tab=='register' %}active{% endif %}" onclick="switchTab('register')"
+                    id="tab-register"><span data-i18n="tab.register">Registrarse</span></button>
+            </div>
 
-        <!-- LOGIN -->
-        <div class="tab-content {% if tab=='login' %}active{% endif %}" id="content-login">
-            <h1 class="form-title" data-i18n="login.welcome">Bienvenido de nuevo</h1>
-            <p class="form-sub" data-i18n="login.sub">Accede a tu cuenta para gestionar tus reservas</p>
-            <form method="POST" action="/login?next={{ next }}">
-                <input type="hidden" name="action" value="login">
-                <input type="hidden" name="next" value="{{ next }}">
-                <div class="form-group">
-                    <label data-i18n="login.email">Correo electrónico</label>
-                    <div class="input-icon">
-                        <i class="ph ph-envelope"></i>
-                        <input type="email" name="email" data-i18n="form.email_ph" data-i18n-attr="placeholder" placeholder="tu@correo.com" required autocomplete="email">
+            <!-- LOGIN -->
+            <div class="tab-content {% if tab=='login' %}active{% endif %}" id="content-login">
+                <h1 class="form-title" data-i18n="login.welcome">Bienvenido de nuevo</h1>
+                <p class="form-sub" data-i18n="login.sub">Accede a tu cuenta para gestionar tus reservas</p>
+                <form method="POST" action="/login?next={{ next }}">
+                    <input type="hidden" name="action" value="login">
+                    <input type="hidden" name="next" value="{{ next }}">
+                    <div class="form-group">
+                        <label data-i18n="login.email">Correo electrónico</label>
+                        <div class="input-icon">
+                            <i class="ph ph-envelope"></i>
+                            <input type="email" name="email" data-i18n="form.email_ph" data-i18n-attr="placeholder"
+                                placeholder="tu@correo.com" required autocomplete="email">
                         </div>
-                </div>
-                <div class="form-group">
-                    <label data-i18n="login.pw">Contraseña</label>
-                    <div class="input-icon" style="position:relative">
-                        <i class="ph ph-lock"></i>
-                        <input type="password" name="password" id="pw-login" data-i18n="form.pw_ph" data-i18n-attr="placeholder" placeholder="Tu contraseña" required>
-                        <i class="ph ph-eye pw-toggle" onclick="togglePw('pw-login',this)"></i>
                     </div>
-                </div>
-                <button type="submit" class="btn-primary"><span data-i18n="login.btn">Iniciar Sesión</span> <i class="ph ph-sign-in"></i></button>
-            </form>
-            <div class="divider" data-i18n="login.no_acc">¿No tienes cuenta?</div>
-            <button class="btn-primary" style="background:white;color:var(--primary);border:2px solid var(--primary);box-shadow:none;" onclick="switchTab('register')"><span data-i18n="login.create">Crear cuenta gratis</span></button>
-        </div>
+                    <div class="form-group">
+                        <label data-i18n="login.pw">Contraseña</label>
+                        <div class="input-icon" style="position:relative">
+                            <i class="ph ph-lock"></i>
+                            <input type="password" name="password" id="pw-login" data-i18n="form.pw_ph"
+                                data-i18n-attr="placeholder" placeholder="Tu contraseña" required>
+                            <i class="ph ph-eye pw-toggle" onclick="togglePw('pw-login',this)"></i>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary"><span data-i18n="login.btn">Iniciar Sesión</span> <i
+                            class="ph ph-sign-in"></i></button>
+                </form>
+                <div class="divider" data-i18n="login.no_acc">¿No tienes cuenta?</div>
+                <button class="btn-primary"
+                    style="background:white;color:var(--primary);border:2px solid var(--primary);box-shadow:none;"
+                    onclick="switchTab('register')"><span data-i18n="login.create">Crear cuenta gratis</span></button>
+            </div>
 
-        <!-- REGISTRO -->
-        <div class="tab-content {% if tab=='register' %}active{% endif %}" id="content-register">
-            <h1 class="form-title" data-i18n="reg.title">Crear cuenta</h1>
-            <p class="form-sub" data-i18n="reg.sub">Únete a la comunidad StayHuila gratis</p>
-            <form method="POST" action="/registro?next={{ next }}">
-                <input type="hidden" name="action" value="register">
-                <input type="hidden" name="next" value="{{ next }}">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label data-i18n="form.name">Nombre</label>
-                        <input type="text" name="nombre" data-i18n="form.name_ph" data-i18n-attr="placeholder" placeholder="Tu nombre" required>
+            <!-- REGISTRO -->
+            <div class="tab-content {% if tab=='register' %}active{% endif %}" id="content-register">
+                <h1 class="form-title" data-i18n="reg.title">Crear cuenta</h1>
+                <p class="form-sub" data-i18n="reg.sub">Únete a la comunidad StayHuila gratis</p>
+                <form method="POST" action="/registro?next={{ next }}">
+                    <input type="hidden" name="action" value="register">
+                    <input type="hidden" name="next" value="{{ next }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label data-i18n="form.name">Nombre</label>
+                            <input type="text" name="nombre" data-i18n="form.name_ph" data-i18n-attr="placeholder"
+                                placeholder="Tu nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="form.lastname">Apellido</label>
+                            <input type="text" name="apellido" data-i18n="form.lastname_ph" data-i18n-attr="placeholder"
+                                placeholder="Tu apellido" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label data-i18n="form.lastname">Apellido</label>
-                        <input type="text" name="apellido" data-i18n="form.lastname_ph" data-i18n-attr="placeholder" placeholder="Tu apellido" required>
+                        <label data-i18n="login.email">Correo electrónico</label>
+                        <div class="input-icon">
+                            <i class="ph ph-envelope"></i>
+                            <input type="email" name="email" data-i18n="form.email_ph" data-i18n-attr="placeholder"
+                                placeholder="tu@correo.com" required>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label data-i18n="login.email">Correo electrónico</label>
-                    <div class="input-icon">
-                        <i class="ph ph-envelope"></i>
-                        <input type="email" name="email" data-i18n="form.email_ph" data-i18n-attr="placeholder" placeholder="tu@correo.com" required>
+                    <div class="form-group">
+                        <label data-i18n="login.pw">Contraseña</label>
+                        <div class="input-icon" style="position:relative">
+                            <i class="ph ph-lock"></i>
+                            <input type="password" name="password" id="pw-reg" data-i18n="form.pw_reg_ph"
+                                data-i18n-attr="placeholder" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                            <i class="ph ph-eye pw-toggle" onclick="togglePw('pw-reg',this)"></i>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label data-i18n="login.pw">Contraseña</label>
-                    <div class="input-icon" style="position:relative">
-                        <i class="ph ph-lock"></i>
-                        <input type="password" name="password" id="pw-reg" data-i18n="form.pw_reg_ph" data-i18n-attr="placeholder" placeholder="Mínimo 6 caracteres" minlength="6" required>
-                        <i class="ph ph-eye pw-toggle" onclick="togglePw('pw-reg',this)"></i>
-                    </div>
-                </div>
-                <!-- User type selector removed, everyone defaults to guest initially -->
-                <button type="submit" class="btn-primary"><span data-i18n="reg.btn">Crear cuenta</span> <i class="ph ph-user-plus"></i></button>
-                <p style="text-align:center;font-size:.8rem;color:var(--muted);margin-top:.8rem"><span data-i18n="reg.agree">Al registrarte aceptas nuestros</span> <a href="#" style="color:var(--primary)" data-i18n="reg.terms">Términos de uso</a></p>
-            </form>
+                    <!-- User type selector removed, everyone defaults to guest initially -->
+                    <button type="submit" class="btn-primary"><span data-i18n="reg.btn">Crear cuenta</span> <i
+                            class="ph ph-user-plus"></i></button>
+                    <p style="text-align:center;font-size:.8rem;color:var(--muted);margin-top:.8rem"><span
+                            data-i18n="reg.agree">Al registrarte aceptas nuestros</span> <a href="#"
+                            style="color:var(--primary)" data-i18n="reg.terms">Términos de uso</a></p>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<script src="{{ url_for('static', filename='js/login.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
+
 </html>

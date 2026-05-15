@@ -29,6 +29,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/panel_anfitrion.css') }}">
+    <!-- Módulo de carga y validación de imágenes -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/image_uploader.css') }}">
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </head>
 
@@ -129,33 +131,47 @@
         <h2 class="section-title">Tus Publicaciones</h2>
         <div class="listings-grid">
             {% for h in mis_hospedajes %}
-            <div class="list-card">
-                <img src="{{ h.image or 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=500' }}"
-                    alt="{{ h.nombre }}" class="list-img">
+            <div class="list-card {% if h.estado == 'deshabilitada' %}card-disabled{% endif %}">
+                <!-- Imagen con overlay si está deshabilitada -->
+                <div style="position:relative;">
+                    <img src="{{ h.image or 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=500' }}"
+                        alt="{{ h.nombre }}" class="list-img"
+                        style="{% if h.estado == 'deshabilitada' %}filter:grayscale(60%) opacity(0.7);{% endif %}">
+                    {% if h.estado == 'deshabilitada' %}
+                    <div class="card-disabled-badge"><i class="ph-fill ph-pause-circle"></i> Deshabilitada</div>
+                    {% endif %}
+                </div>
                 <div class="list-info">
                     <h3>{{ h.nombre }}</h3>
                     <p>{{ h.municipio }}, Huila</p>
-                    <span class="list-status" style="display:none;">Publicado</span>
-                    <select onchange="changeState({{ h.id }}, 'hospedaje', this.value)" style="margin-top:0.5rem; padding:0.4rem; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:0.85rem; width:100%; outline:none; cursor:pointer;">
-                        <option value="abierta" {% if h.estado == 'abierta' %}selected{% endif %}>Abierta (Activa)</option>
-                        <option value="reparacion" {% if h.estado == 'reparacion' %}selected{% endif %}>En reparación</option>
-                        <option value="eliminar" style="color:red;">Eliminar publicación</option>
+                    <!-- Selector de estado con los nuevos estados -->
+                    <select onchange="changeState({{ h.id }}, 'hospedaje', this.value)"
+                        style="margin-top:0.5rem; padding:0.4rem; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:0.85rem; width:100%; outline:none; cursor:pointer;">
+                        <option value="abierta" {% if h.estado == 'abierta' %}selected{% endif %}>✅ Abierta (Activa)</option>
+                        <option value="deshabilitada" {% if h.estado == 'deshabilitada' %}selected{% endif %}>⏸ Deshabilitar (sin borrar)</option>
+                        <option value="eliminar" style="color:red;">🗑 Eliminar publicación</option>
                     </select>
                 </div>
             </div>
             {% endfor %}
             {% for e in mis_experiencias %}
-            <div class="list-card">
-                <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
-                    alt="{{ e.nombre }}" class="list-img">
+            <div class="list-card {% if e.estado == 'deshabilitada' %}card-disabled{% endif %}">
+                <div style="position:relative;">
+                    <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
+                        alt="{{ e.nombre }}" class="list-img"
+                        style="{% if e.estado == 'deshabilitada' %}filter:grayscale(60%) opacity(0.7);{% endif %}">
+                    {% if e.estado == 'deshabilitada' %}
+                    <div class="card-disabled-badge"><i class="ph-fill ph-pause-circle"></i> Deshabilitada</div>
+                    {% endif %}
+                </div>
                 <div class="list-info">
                     <h3>{{ e.nombre }}</h3>
                     <p>{{ e.municipio }}, Huila (Experiencia)</p>
-                    <span class="list-status" style="display:none;">Publicado</span>
-                    <select onchange="changeState({{ e.id }}, 'experiencia', this.value)" style="margin-top:0.5rem; padding:0.4rem; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:0.85rem; width:100%; outline:none; cursor:pointer;">
-                        <option value="abierta" {% if e.estado == 'abierta' %}selected{% endif %}>Abierta (Activa)</option>
-                        <option value="reparacion" {% if e.estado == 'reparacion' %}selected{% endif %}>En reparación</option>
-                        <option value="eliminar" style="color:red;">Eliminar publicación</option>
+                    <select onchange="changeState({{ e.id }}, 'experiencia', this.value)"
+                        style="margin-top:0.5rem; padding:0.4rem; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:0.85rem; width:100%; outline:none; cursor:pointer;">
+                        <option value="abierta" {% if e.estado == 'abierta' %}selected{% endif %}>✅ Abierta (Activa)</option>
+                        <option value="deshabilitada" {% if e.estado == 'deshabilitada' %}selected{% endif %}>⏸ Deshabilitar (sin borrar)</option>
+                        <option value="eliminar" style="color:red;">🗑 Eliminar publicación</option>
                     </select>
                 </div>
             </div>
@@ -406,17 +422,53 @@
                         </div>
                     </div>
 
-                    <!-- PASO 6: Fotos -->
+                    <!-- PASO 6: Fotos con validación en tiempo real -->
                     <div class="wizard-step" id="step-6">
                         <h2>Añade fotografías</h2>
-                        <p class="sub">Los anuncios con fotos luminosas reciben más reservas.</p>
-                        <div class="file-upload-box">
-                            <i class="ph ph-upload-simple"></i>
-                            <h3 style="font-size:1.1rem;margin-bottom:.5rem;">Haz clic para subir fotos</h3>
-                            <p style="color:var(--text-muted);font-size:.85rem;">Formatos JPG, PNG. Máximo 5MB por foto.
-                            </p>
-                            <input type="file" multiple style="display:none;" id="file-input">
+                        <p class="sub">Los anuncios con fotos luminosas y nítidas reciben más reservas.<br>
+                            <strong>Las imágenes se validan y optimizan automáticamente.</strong></p>
+
+                        <!-- Zona de carga con drag & drop -->
+                        <div class="img-upload-zone" id="img-upload-zone" role="button" tabindex="0"
+                            aria-label="Zona de carga de imágenes">
+                            <i class="ph ph-images upload-icon"></i>
+                            <h3>Arrastra tus fotos aquí o haz clic para seleccionar</h3>
+                            <p>Puedes subir varias imágenes a la vez</p>
+
+                            <!-- Etiquetas de requisitos -->
+                            <div class="img-upload-reqs">
+                                <span class="img-upload-req-badge">
+                                    <i class="ph ph-check"></i> JPG / PNG
+                                </span>
+                                <span class="img-upload-req-badge">
+                                    <i class="ph ph-check"></i> Máx. 5 MB
+                                </span>
+                                <span class="img-upload-req-badge">
+                                    <i class="ph ph-check"></i> Mín. 1280 × 720 px
+                                </span>
+                                <span class="img-upload-req-badge">
+                                    <i class="ph ph-check"></i> Nitidez verificada
+                                </span>
+                            </div>
+
+                            <!-- Input oculto de archivos -->
+                            <input type="file" id="img-upload-input" multiple accept=".jpg,.jpeg,.png"
+                                style="display:none;" aria-hidden="true">
                         </div>
+
+                        <!-- Barra de progreso global -->
+                        <div class="img-upload-progress-wrap" id="img-progress-wrap">
+                            <div class="img-upload-progress-bar">
+                                <div class="img-upload-progress-fill" id="img-progress-fill"></div>
+                            </div>
+                            <p class="img-upload-progress-label" id="img-progress-label">Procesando...</p>
+                        </div>
+
+                        <!-- Grid de previsualización de imágenes -->
+                        <div class="img-preview-grid" id="img-preview-grid"></div>
+
+                        <!-- Resumen de validación -->
+                        <div class="img-validation-summary" id="img-validation-summary"></div>
                     </div>
 
                 </form>
@@ -430,11 +482,44 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Módulo de carga y validación de imágenes -->
+    <script src="{{ url_for('static', filename='js/image_uploader.js') }}"></script>
     <script src="{{ url_for('static', filename='js/panel_anfitrion.js') }}"></script>
     <script>
+        /**
+         * changeState — Cambia el estado de una publicación del anfitrión.
+         *
+         * Estados posibles:
+         *   'abierta'       → activa y visible para reservas.
+         *   'deshabilitada' → oculta del buscador, historial intacto.
+         *   'eliminar'      → soft delete (solo si no tiene reservas).
+         *
+         * El servidor devuelve { success, message, blocked? } para el caso
+         * en que se intente eliminar una publicación con reservas históricas.
+         */
         async function changeState(id, tipo, newState) {
+            const selectEl = event.target;  // Selector que disparó el cambio
+
+            // ── Confirmación previa para acciones destructivas ────────────────
             if (newState === 'eliminar') {
-                if(!confirm("¿Estás seguro de que deseas eliminar permanentemente esta publicación? Esta acción no se puede deshacer.")) {
+                const confirmed = confirm(
+                    '⚠️ ¿Eliminar esta publicación?\n\n' +
+                    'Si tiene reservas históricas, NO podrá eliminarse para proteger\n' +
+                    'el historial financiero. En ese caso, considera deshabilitarla.\n\n' +
+                    'Esta acción no puede deshacerse.'
+                );
+                if (!confirmed) {
+                    // Revertir el selector al valor anterior
+                    window.location.reload();
+                    return;
+                }
+            } else if (newState === 'deshabilitada') {
+                const confirmed = confirm(
+                    '⏸ ¿Deshabilitar esta publicación?\n\n' +
+                    'Dejará de recibir nuevas reservas pero el historial y\n' +
+                    'las ganancias se conservan intactas. Puedes reactivarla cuando quieras.'
+                );
+                if (!confirmed) {
                     window.location.reload();
                     return;
                 }
@@ -446,23 +531,33 @@
                 formData.append('tipo', tipo);
                 formData.append('estado', newState);
 
-                const res = await fetch('/api/publicacion/estado', {
+                const res  = await fetch('/api/publicacion/estado', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const data = await res.json();
-                if(data.success) {
-                    showToast(data.message);
-                    if (newState === 'eliminar') {
-                        setTimeout(() => window.location.reload(), 1000);
-                    }
+
+                if (data.success) {
+                    // Éxito: mostrar toast y recargar para reflejar el nuevo estado visual
+                    showToast(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 1200);
+
+                } else if (data.blocked) {
+                    // Caso especial: no se puede eliminar por tener reservas históricas.
+                    // Mostrar mensaje informativo y revertir el selector.
+                    showToast(data.message, 'error');
+                    setTimeout(() => window.location.reload(), 300);
+
                 } else {
-                    showToast("Error al actualizar la publicación.", true);
+                    showToast(data.message || 'Error al actualizar la publicación.', 'error');
+                    setTimeout(() => window.location.reload(), 300);
                 }
-            } catch(e) {
-                console.error(e);
-                showToast("Error de conexión.", true);
+
+            } catch (e) {
+                console.error('[changeState] Error de red:', e);
+                showToast('Error de conexión. Inténtalo de nuevo.', 'error');
+                setTimeout(() => window.location.reload(), 500);
             }
         }
     </script>

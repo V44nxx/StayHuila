@@ -3,11 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia. Reserva experiencias únicas con StayHuila.">
+    <meta name="description"
+        content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia. Reserva experiencias únicas con StayHuila.">
     <meta property="og:title" content="StayHuila | Hospedajes Auténticos en el Huila">
-    <meta property="og:description" content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia. Reserva experiencias únicas con StayHuila.">
+    <meta property="og:description"
+        content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia. Reserva experiencias únicas con StayHuila.">
     <meta name="twitter:title" content="StayHuila | Hospedajes Auténticos en el Huila">
-    <meta name="twitter:description" content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia.">
+    <meta name="twitter:description"
+        content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia.">
     <!-- Favicon & Metadatos SEO -->
     <link rel="icon" type="image/png" href="/static/images/logo.png">
     <link rel="shortcut icon" href="/static/images/logo.png">
@@ -43,9 +46,10 @@
             background-color: #4285F4;
             border: 2px solid white;
             border-radius: 50%;
-            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
             position: relative;
         }
+
         .user-location-marker::after {
             content: '';
             position: absolute;
@@ -58,9 +62,17 @@
             animation: pulse-user 2s infinite;
             z-index: -1;
         }
+
         @keyframes pulse-user {
-            0% { transform: scale(1); opacity: 0.6; }
-            100% { transform: scale(3.5); opacity: 0; }
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(3.5);
+                opacity: 0;
+            }
         }
     </style>
 </head>
@@ -132,8 +144,7 @@
     <section class="hero">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <div class="offline-badge"><i class="ph ph-wifi-slash"></i> <span data-i18n="general.offline">Disponible
-                    Offline</span></div>
+
             <h1 class="hero-title" data-i18n="hero.title">Descubre la esencia del Huila</h1>
             <p class="hero-subtitle" data-i18n="hero.subtitle">Hospedajes rurales, fincas y cabañas mágicas recomendadas
                 para ti</p>
@@ -158,8 +169,8 @@
                 <div class="search-divider"></div>
                 <div class="search-field">
                     <label data-i18n="hero.guests">Huéspedes</label>
-                    <input type="number" data-i18n="hero.guests_ph" data-i18n-attr="placeholder"
-                        placeholder="¿Cuántos?" min="1">
+                    <input type="number" data-i18n="hero.guests_ph" data-i18n-attr="placeholder" placeholder="¿Cuántos?"
+                        min="1">
                 </div>
                 <button class="voice-search-btn" title="Búsqueda por voz">
                     <i class="ph-fill ph-microphone"></i>
@@ -587,7 +598,7 @@
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition((position) => {
                         const { latitude, longitude } = position.coords;
-                        
+
                         // Create a pulsing blue dot for the user
                         const userIcon = L.divIcon({
                             className: '',
@@ -599,7 +610,7 @@
                         L.marker([latitude, longitude], { icon: userIcon, zIndexOffset: 1000 })
                             .addTo(homeMap)
                             .bindPopup(`<div style="text-align:center; font-weight:600;">${I18n.t('map.user_location')}</div>`);
-                        
+
                         // Optionally center map on user (smoothly)
                         // homeMap.flyTo([latitude, longitude], 12);
                     }, (err) => {

@@ -100,6 +100,8 @@
         function closeWizard() {
             document.getElementById('wizard-modal').classList.remove('show');
             document.body.style.overflow = 'auto';
+            // Limpiar el módulo de imágenes al cerrar el wizard
+            if (typeof ImageUploader !== 'undefined') ImageUploader.reset();
         }
 
         function updateWizard() {
@@ -219,6 +221,12 @@
                         setTimeout(() => wizardMap.invalidateSize(), 100);
                     }
                 }
+
+                // Inicializar el módulo de imágenes cuando el usuario llega al paso 6
+                if (currentStep === 6 && typeof ImageUploader !== 'undefined') {
+                    // Pequeño delay para que el DOM del paso sea visible
+                    setTimeout(() => ImageUploader.init(), 50);
+                }
             } else {
                 submitWizard();
             }
@@ -275,13 +283,9 @@
                 formData.append('e_traer', document.getElementById('e-traer').value);
             }
             
-            // Paso 5 - Archivos
-            const fileInput = document.getElementById('file-input');
-            if(fileInput && fileInput.files.length > 0) {
-                for (let i = 0; i < fileInput.files.length; i++) {
-                    formData.append('fotos', fileInput.files[i]);
-                }
-            }
+            // Paso 6 - Imágenes ya optimizadas (sus URLs vienen del módulo ImageUploader)
+            const validUrls = typeof ImageUploader !== 'undefined' ? ImageUploader.getValidUrls() : [];
+            validUrls.forEach(url => formData.append('fotos_urls', url));
 
             fetch('/publicar', {
                 method: 'POST',
@@ -304,24 +308,5 @@
             });
         }
 
-        // Configurar subida de archivos real
-        const fileInput = document.getElementById('file-input');
-        const fileBox = document.querySelector('.file-upload-box');
-        
-        if(fileBox && fileInput) {
-            fileBox.addEventListener('click', () => {
-                fileInput.click();
-            });
-            
-            fileInput.addEventListener('change', (e) => {
-                if(e.target.files.length > 0) {
-                    fileBox.querySelector('h3').textContent = e.target.files.length + " archivo(s) seleccionado(s)";
-                    fileBox.style.borderColor = "var(--primary)";
-                    fileBox.style.background = "#eefcf6";
-                } else {
-                    fileBox.querySelector('h3').textContent = "Haz clic para subir fotos";
-                    fileBox.style.borderColor = "var(--border)";
-                    fileBox.style.background = "#f9f9f9";
-                }
-            });
-        }
+        // El módulo image_uploader.js maneja toda la lógica de carga de imágenes.
+        // Se inicializa automáticamente cuando el usuario llega al paso 6 del wizard.
