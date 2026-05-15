@@ -148,9 +148,20 @@
 
     <!-- Acciones -->
     <div class="actions-row">
-        <a href="/checkin/{{ reserva.id }}" class="btn-action btn-checkin">
-            <i class="ph-fill ph-sign-in"></i> Realizar Check-in
-        </a>
+        {% if reserva.estado == 'confirmada' %}
+            <a href="/checkin/{{ reserva.id }}" class="btn-action btn-checkin">
+                <i class="ph-fill ph-sign-in"></i> Realizar Check-in
+            </a>
+        {% elif reserva.estado == 'checkin' %}
+            <a href="/checkout/{{ reserva.id }}" class="btn-action" style="background:#8b5cf6;color:white;border:none;">
+                <i class="ph-fill ph-sign-out"></i> Realizar Check-out
+            </a>
+        {% elif reserva.estado == 'completada' %}
+            <div class="btn-action" style="background:var(--bg-light);color:var(--text-dark);cursor:default;">
+                <i class="ph-fill ph-check-circle"></i> Reserva Finalizada
+            </div>
+        {% endif %}
+        
         <a href="/mis-reservas" class="btn-action btn-outline">
             <i class="ph ph-calendar"></i> Mis Reservas
         </a>

@@ -520,9 +520,12 @@ def reservar():
                 if noches < 1:
                     flash('Las fechas no son válidas', 'error')
                     return redirect(request.referrer)
-                # Verificar disponibilidad
+                # Verificar disponibilidad usando la fecha efectiva de checkout
                 cur.execute("""SELECT id FROM reservas WHERE hospedaje_id=%s AND estado NOT IN ('cancelada')
-                    AND NOT (fecha_checkout <= %s OR fecha_checkin >= %s)""", (hid, checkin, checkout))
+                    AND NOT (
+                        IF(estado='completada', DATE(IFNULL(fecha_checkout_real, fecha_checkout)), fecha_checkout) <= %s 
+                        OR fecha_checkin >= %s
+                    )""", (hid, checkin, checkout))
                 if cur.fetchone():
                     flash('Las fechas seleccionadas no están disponibles', 'error')
                     return redirect(request.referrer)
@@ -637,25 +640,37 @@ def checkin(id):
                 FROM reservas r JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                 JOIN usuarios u ON h.anfitrion_id=u.id
-                WHERE r.id=%s AND r.usuario_id=%s""", (id, current_user.id))
+                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
             reserva = cur.fetchone()
+            
         if not reserva:
             flash('Reserva no encontrada', 'error')
             return redirect(url_for('mis_reservas'))
-        if reserva['estado'] not in ('confirmada', 'checkin'):
+            
+        # Solo se permite check-in si la reserva está confirmada
+        if reserva['estado'] == 'checkin':
+            flash('Ya realizaste el check-in para esta reserva', 'info')
+            return redirect(url_for('confirmacion', id=id))
+        elif reserva['estado'] == 'completada':
+            flash('Esta reserva ya finalizó', 'info')
+            return redirect(url_for('confirmacion', id=id))
+        elif reserva['estado'] != 'confirmada':
             flash('Esta reserva no está disponible para check-in', 'error')
             return redirect(url_for('mis_reservas'))
+            
         if request.method == 'POST':
             c2 = db()
             try:
                 with c2.cursor() as cur2:
-                    cur2.execute("""UPDATE reservas SET estado='checkin',fecha_checkin_real=NOW()
-                        WHERE id=%s AND usuario_id=%s""", (id, current_user.id))
+                    cur2.execute("""UPDATE reservas r JOIN hospedajes h ON r.hospedaje_id=h.id 
+                        SET r.estado='checkin', r.fecha_checkin_real=NOW()
+                        WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
                     c2.commit()
                 flash('¡Check-in realizado con éxito! Disfruta tu estadía 🏡', 'success')
                 return redirect(url_for('confirmacion', id=id))
             finally:
                 c2.close()
+                
         return render_template('checkin.html', reserva=reserva)
     finally:
         c.close()
@@ -672,13 +687,16 @@ def checkout(id):
                 FROM reservas r JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                 JOIN usuarios u ON h.anfitrion_id=u.id
-                WHERE r.id=%s AND r.usuario_id=%s""", (id, current_user.id))
+                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
             reserva = cur.fetchone()
         if not reserva:
             flash('Reserva no encontrada', 'error')
             return redirect(url_for('mis_reservas'))
-        if reserva['estado'] != 'checkin':
-            flash('Solo puedes hacer checkout después del check-in', 'error')
+        if reserva['estado'] == 'completada':
+            flash('Ya realizaste el check-out de esta reserva', 'info')
+            return redirect(url_for('confirmacion', id=id))
+        elif reserva['estado'] != 'checkin':
+            flash('Solo puedes hacer check-out después del check-in', 'error')
             return redirect(url_for('mis_reservas'))
         if request.method == 'POST':
             cal_gen = request.form.get('calificacion_general')
@@ -690,9 +708,10 @@ def checkout(id):
             c2 = db()
             try:
                 with c2.cursor() as cur2:
-                    cur2.execute("""UPDATE reservas SET estado='completada',fecha_checkout_real=NOW()
-                        WHERE id=%s AND usuario_id=%s""", (id, current_user.id))
-                    if cal_gen:
+                    cur2.execute("""UPDATE reservas r JOIN hospedajes h ON r.hospedaje_id=h.id 
+                        SET r.estado='completada', r.fecha_checkout_real=NOW()
+                        WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
+                    if cal_gen and reserva['usuario_id'] == current_user.id:
                         cur2.execute("""INSERT INTO resenas(reserva_id,usuario_id,tipo,hospedaje_id,
                             calificacion_general,calificacion_limpieza,calificacion_ubicacion,
                             calificacion_comunicacion,calificacion_valor,comentario)
@@ -997,14 +1016,19 @@ def disponibilidad(id):
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT fecha_checkin,fecha_checkout FROM reservas
+            # Fechas bloqueadas: Si la reserva está completada, usar fecha_checkout_real como fin
+            # para liberar el resto de los días.
+            cur.execute("""SELECT fecha_checkin, 
+                IF(estado='completada', DATE(IFNULL(fecha_checkout_real, fecha_checkout)), fecha_checkout) AS fecha_checkout_efectiva
+                FROM reservas
                 WHERE hospedaje_id=%s AND estado NOT IN ('cancelada')
-                AND fecha_checkout >= CURDATE()""", (id,))
+                AND (fecha_checkout >= CURDATE() OR fecha_checkout_real >= CURDATE())""", (id,))
             rows = cur.fetchall()
         bloqueadas = []
         for r in rows:
             fi = r['fecha_checkin']
-            fo = r['fecha_checkout']
+            fo = r['fecha_checkout_efectiva']
+            if not fi or not fo: continue
             current = fi
             while current < fo:
                 bloqueadas.append(current.isoformat())

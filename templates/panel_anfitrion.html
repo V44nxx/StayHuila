@@ -204,9 +204,20 @@
                             ${{ "{:,.0f}".format(r.total).replace(',', '.') }} COP
                         </td>
                         <td style="padding:1rem;">
-                            <span style="background:var(--bg-light); padding:0.3rem 0.6rem; border-radius:8px; font-size:0.85rem; font-weight:600; color:var(--text-dark);">
-                                {{ r.estado|capitalize }}
-                            </span>
+                            <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-start;">
+                                <span style="background:var(--bg-light); padding:0.3rem 0.6rem; border-radius:8px; font-size:0.85rem; font-weight:600; color:var(--text-dark);">
+                                    {{ r.estado|capitalize }}
+                                </span>
+                                {% if r.estado == 'confirmada' %}
+                                    <a href="/checkin/{{ r.id }}" style="background:var(--primary); color:white; padding:0.3rem 0.6rem; border-radius:6px; font-size:0.8rem; text-decoration:none; font-weight:600;">
+                                        <i class="ph-fill ph-sign-in"></i> Hacer Check-in
+                                    </a>
+                                {% elif r.estado == 'checkin' %}
+                                    <a href="/checkout/{{ r.id }}" style="background:#8b5cf6; color:white; padding:0.3rem 0.6rem; border-radius:6px; font-size:0.8rem; text-decoration:none; font-weight:600;">
+                                        <i class="ph-fill ph-sign-out"></i> Hacer Check-out
+                                    </a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
