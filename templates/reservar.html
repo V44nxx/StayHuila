@@ -2,6 +2,25 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Confirma y paga tu reserva en StayHuila.">
+    <meta property="og:title" content="Completar Reserva | StayHuila">
+    <meta property="og:description" content="Confirma y paga tu reserva en StayHuila.">
+    <meta name="twitter:title" content="Completar Reserva | StayHuila">
+    <meta name="twitter:description" content="Confirma y paga tu reserva en StayHuila.">
+    <!-- Favicon & Metadatos SEO -->
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link rel="shortcut icon" href="/static/images/logo.png">
+    <link rel="apple-touch-icon" href="/static/images/logo.png">
+    <meta name="theme-color" content="#2C4A3B">
+    <meta name="author" content="StayHuila">
+    <meta name="robots" content="index, follow">
+    <meta property="og:site_name" content="StayHuila">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/images/logo.png">
+    <meta property="og:locale" content="es_CO">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="/static/images/logo.png">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Completar Reserva | StayHuila</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -58,12 +77,12 @@
     </header>
     
     <script src="{{ url_for('static', filename='js/reservar.js') }}"></script><div class="page-wrap">
-    <h1 class="page-title">Confirma y paga</h1>
-    <p class="page-sub">Revisa los detalles antes de confirmar tu reserva</p>
+    <h1 class="page-title" data-i18n="booking.page_title">Confirma y paga</h1>
+    <p class="page-sub" data-i18n="booking.page_sub">Revisa los detalles antes de confirmar tu reserva</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat,msg in messages %}
-    <div style="padding:.9rem 1rem;border-radius:10px;margin-bottom:1rem;background:{% if cat=='error' %}#FEF2F2{% else %}#F0FDF4{% endif %};color:{% if cat=='error' %}#DC2626{% else %}#16A34A{% endif %};border:1px solid {% if cat=='error' %}#FECACA{% else %}#BBF7D0{% endif %};">{{ msg }}</div>
+    <script>document.addEventListener('DOMContentLoaded',()=>showToast({{ msg|tojson }}, '{{ "success" if cat=="success" else "error" if cat=="error" else "info" }}'));</script>
     {% endfor %}
     {% endwith %}
 
@@ -74,19 +93,19 @@
             <div class="reserva-left">
                 <!-- FECHAS -->
                 <div class="r-section">
-                    <h2><i class="ph-fill ph-calendar"></i> Tu viaje</h2>
+                    <h2><i class="ph-fill ph-calendar"></i> <span data-i18n="booking.your_trip">Tu viaje</span></h2>
                     <div class="trip-info">
                         <div class="trip-box">
-                            <label>LLEGADA</label>
+                            <label><span data-i18n="booking.checkin">LLEGADA</span></label>
                             <input type="date" name="checkin" id="inp-checkin" value="{{ checkin }}" required min="{{ now }}">
                         </div>
                         <div class="trip-box">
-                            <label>SALIDA</label>
+                            <label><span data-i18n="booking.checkout">SALIDA</span></label>
                             <input type="date" name="checkout" id="inp-checkout" value="{{ checkout }}" required min="{{ now }}">
                         </div>
                         <div class="trip-box-guests">
                             <div>
-                                <div style="font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--text-muted);margin-bottom:.2rem;">HUÉSPEDES</div>
+                                <div style="font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--text-muted);margin-bottom:.2rem;"><span data-i18n="booking.guests_label">HUÉSPEDES</span></div>
                                 <div class="guests-ctrl">
                                     <button type="button" onclick="chGuest(-1)"><i class="ph ph-minus"></i></button>
                                     <span id="gc">{{ huespedes }}</span>
@@ -101,12 +120,12 @@
 
                 <!-- PAGO -->
                 <div class="r-section">
-                    <h2><i class="ph-fill ph-credit-card"></i> Método de pago</h2>
+                    <h2><i class="ph-fill ph-credit-card"></i> <span data-i18n="booking.payment_method">Método de pago</span></h2>
                     <div class="metodos-grid">
                         <label class="metodo-card selected" onclick="selectMetodo('tarjeta',this)">
                             <input type="radio" name="metodo_pago" value="tarjeta" checked>
                             <div class="metodo-icon"><i class="ph ph-credit-card"></i></div>
-                            <div><div class="metodo-label">Tarjeta</div><div style="font-size:.78rem;color:var(--text-muted)">Débito/Crédito</div></div>
+                            <div><div class="metodo-label" data-i18n="payment.card">Tarjeta</div><div style="font-size:.78rem;color:var(--text-muted)">Débito/Crédito</div></div>
                         </label>
                         <label class="metodo-card" onclick="selectMetodo('nequi',this)">
                             <input type="radio" name="metodo_pago" value="nequi">
@@ -121,7 +140,7 @@
                         <label class="metodo-card" onclick="selectMetodo('efectivo',this)">
                             <input type="radio" name="metodo_pago" value="efectivo">
                             <div class="metodo-icon"><i class="ph ph-money"></i></div>
-                            <div><div class="metodo-label">Efectivo</div><div style="font-size:.78rem;color:var(--text-muted)">Al llegar</div></div>
+                            <div><div class="metodo-label" data-i18n="payment.cash">Efectivo</div><div style="font-size:.78rem;color:var(--text-muted)">Al llegar</div></div>
                         </label>
                     </div>
                     <!-- Campos tarjeta -->
@@ -149,14 +168,14 @@
 
                 <!-- NOTAS -->
                 <div class="r-section">
-                    <h2><i class="ph-fill ph-note"></i> Notas para el anfitrión <span style="font-weight:400;font-size:.85rem;color:var(--text-muted)">(opcional)</span></h2>
+                    <h2><i class="ph-fill ph-note"></i> <span data-i18n="booking.notes">Notas para el anfitrión</span> <span style="font-weight:400;font-size:.85rem;color:var(--text-muted)">(opcional)</span></h2>
                     <textarea class="notes-area" name="notas" placeholder="¿Hora de llegada aproximada? ¿Alguna necesidad especial? ¿Celebras algo?"></textarea>
                 </div>
 
                 <button type="submit" class="btn-confirm">
                     <i class="ph ph-lock"></i> Confirmar y pagar — $<span id="btn-total">{{ "{:,.0f}".format(total).replace(',','.') }}</span> COP
                 </button>
-                <p class="secure-note"><i class="ph ph-shield-check"></i> Pago 100% seguro y cifrado</p>
+                <p class="secure-note"><i class="ph ph-shield-check"></i> <span data-i18n="booking.secure">Pago 100% seguro y cifrado</span></p>
             </div>
 
             <!-- RIGHT: RESUMEN -->
@@ -208,5 +227,7 @@ const MAX_GUESTS = {{ hosp.capacidad_max }};
 let guests = {{ huespedes }};
 </script>
 <script src="{{ url_for('static', filename='js/reservar.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 </html>

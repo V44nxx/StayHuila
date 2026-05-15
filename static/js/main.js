@@ -10,48 +10,91 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 2. Categories Selection
-    const categories = document.querySelectorAll('.category-item');
-    categories.forEach(category => {
-        category.addEventListener('click', () => {
-            // Remove active class from all
-            categories.forEach(c => c.classList.remove('active'));
-            // Add active class to clicked
-            category.classList.add('active');
-            
-            // Simulate a loading state or filtering action
-            const listings = document.querySelector('.listings-container');
-            listings.style.opacity = '0.5';
-            setTimeout(() => {
-                listings.style.opacity = '1';
-            }, 300);
-        });
-    });
+    // Handled in index.html with dynamic filtering
 
     // 3. Favorite Buttons Toggle
-    const favoriteBtns = document.querySelectorAll('.favorite-btn');
+    const favoriteBtns = document.querySelectorAll('.favorite-btn, #btn-favorito');
     favoriteBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             e.preventDefault();
-            btn.classList.toggle('active');
+            e.stopPropagation();
             
-            // Optional: change icon from outline to fill
-            const icon = btn.querySelector('i');
-            if(btn.classList.contains('active')) {
-                icon.classList.remove('ph');
-                icon.classList.add('ph-fill');
-            } else {
-                icon.classList.remove('ph-fill');
-                icon.classList.add('ph');
+            let id = btn.getAttribute('data-id');
+            let tipo = btn.getAttribute('data-tipo');
+
+            if(!id) {
+                // Try to infer from closest card or URL
+                const card = btn.closest('.listing-card');
+                if(card && card.id) {
+                    const parts = card.id.split('-');
+                    // Format could be card-12 or card-h-12
+                    id = parts[parts.length - 1];
+                    if (window.location.pathname.includes('experiencias')) {
+                        tipo = 'experiencia';
+                    } else {
+                        tipo = 'hospedaje';
+                    }
+                } else if(window.location.pathname.startsWith('/hospedaje/')) {
+                    id = window.location.pathname.split('/')[2];
+                    tipo = 'hospedaje';
+                } else if(window.location.pathname.startsWith('/experiencia/')) {
+                    id = window.location.pathname.split('/')[2];
+                    tipo = 'experiencia';
+                }
+            }
+            
+            if(!id || !tipo) return;
+
+            try {
+                const res = await fetch('/api/favoritos/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, tipo: tipo })
+                });
+                
+                // If not authenticated or other HTML response (like redirect to login)
+                if(!res.ok && res.redirected) {
+                    window.location.href = res.url;
+                    return;
+                }
+                
+                const data = await res.json();
+                
+                if(data.success) {
+                    btn.classList.toggle('active');
+                    const icon = btn.querySelector('i');
+                    if(data.status === 'added') {
+                        icon.classList.remove('ph');
+                        icon.classList.add('ph-fill');
+                        icon.style.color = '#ff385c';
+                        if(btn.id === 'btn-favorito') btn.innerHTML = '<i class="ph-fill ph-heart" style="color: #ff385c;"></i> Guardado';
+                    } else {
+                        icon.classList.remove('ph-fill');
+                        icon.classList.add('ph');
+                        icon.style.color = '';
+                        if(btn.id === 'btn-favorito') btn.innerHTML = '<i class="ph ph-heart"></i> Guardar';
+                    }
+                } else {
+                    if(data.error === 'No autenticado' || res.status === 401) {
+                        window.location.href = '/login';
+                    } else if (data.error) {
+                        alert(data.error);
+                    } else {
+                        window.location.href = '/login';
+                    }
+                }
+            } catch(error) {
+                console.error("Error al guardar favorito:", error);
+                // Posiblemente no esté logueado y devuelva el HTML del login
+                window.location.href = '/login';
             }
         });
     });
 
-    // 4. Floating Map Button
+    // 4. Floating Map Button (Moved to inline script for Leaflet)
     const mapBtn = document.querySelector('.floating-map-btn');
     if (mapBtn) {
-        mapBtn.addEventListener('click', () => {
-            showToast('Abriendo el mapa interactivo de Google Maps... (Mockup)');
-        });
+        // Handled in index.html now
     }
 
     // 5. Book Now Buttons

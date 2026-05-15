@@ -7,7 +7,7 @@
 
         // WIZARD LOGIC
         let currentStep = 1;
-        const totalSteps = 5;
+        const totalSteps = 6;
 
         const categoriesData = {
             hospedaje: [
@@ -39,30 +39,30 @@
                 }
             }
 
-            // Toggle form fields for step 3 and 4
-            const hFields3 = document.getElementById('fields-hospedaje-3');
-            const eFields3 = document.getElementById('fields-experiencia-3');
+            // Toggle form fields for step 4 and 5
             const hFields4 = document.getElementById('fields-hospedaje-4');
             const eFields4 = document.getElementById('fields-experiencia-4');
+            const hFields5 = document.getElementById('fields-hospedaje-5');
+            const eFields5 = document.getElementById('fields-experiencia-5');
             const lblDin = document.querySelector('.lbl-tipo-dinamico');
 
             if(tipo === 'hospedaje') {
-                if(hFields3) hFields3.style.display = 'grid';
-                if(eFields3) eFields3.style.display = 'none';
                 if(hFields4) hFields4.style.display = 'block';
                 if(eFields4) eFields4.style.display = 'none';
+                if(hFields5) hFields5.style.display = 'block';
+                if(eFields5) eFields5.style.display = 'none';
                 if(lblDin) lblDin.textContent = 'del alojamiento';
             } else if (tipo === 'experiencia') {
-                if(hFields3) hFields3.style.display = 'none';
-                if(eFields3) eFields3.style.display = 'grid';
                 if(hFields4) hFields4.style.display = 'none';
                 if(eFields4) eFields4.style.display = 'block';
+                if(hFields5) hFields5.style.display = 'none';
+                if(eFields5) eFields5.style.display = 'block';
                 if(lblDin) lblDin.textContent = 'de la experiencia';
             } else {
-                if(hFields3) hFields3.style.display = 'none';
-                if(eFields3) eFields3.style.display = 'none';
                 if(hFields4) hFields4.style.display = 'none';
                 if(eFields4) eFields4.style.display = 'none';
+                if(hFields5) hFields5.style.display = 'none';
+                if(eFields5) eFields5.style.display = 'none';
                 if(lblDin) lblDin.textContent = 'del anuncio';
             }
         }
@@ -212,7 +212,7 @@
                 currentStep++;
                 updateWizard();
                 
-                if (currentStep === 2) {
+                if (currentStep === 3) {
                     if (!wizardMap) {
                         initWizardMap();
                     } else {
@@ -239,21 +239,29 @@
             formData.append('pub-tipo', pubTipo);
             formData.append('pub-categoria', document.getElementById('pub-categoria').value);
             
-            // Paso 2
-            const step2Inputs = document.getElementById('step-2').querySelectorAll('input, select, textarea');
-            // 0: Nombre (input), 1: Descripcion (textarea), 2: pub-municipio (input), 3: pub-direccion (input), 4: pub-lat, 5: pub-lng
-            formData.append('nombre', step2Inputs[0].value);
-            formData.append('descripcion', step2Inputs[1].value);
+            // Paso 2: Verificación
+            formData.append('v_tipo_doc', document.getElementById('v-tipo-doc').value);
+            formData.append('v_documento', document.getElementById('v-documento').value);
+            formData.append('v_telefono', document.getElementById('v-telefono').value);
+            
+            // Paso 3
+            const step3Inputs = document.getElementById('step-3').querySelectorAll('input, select, textarea');
+            formData.append('nombre', step3Inputs[0].value);
+            formData.append('descripcion', step3Inputs[1].value);
             formData.append('municipio', document.getElementById('pub-municipio').value);
             formData.append('direccion', document.getElementById('pub-direccion').value);
             formData.append('lat', document.getElementById('pub-lat').value);
             formData.append('lng', document.getElementById('pub-lng').value);
             
-            // Paso 3 & 4
+            // Paso 4 & 5
             if(pubTipo === 'hospedaje') {
                 formData.append('max_huespedes', document.getElementById('h-huespedes').value);
                 formData.append('habitaciones', document.getElementById('h-habitaciones').value);
                 formData.append('banos', document.getElementById('h-banos').value);
+                
+                const servicios = Array.from(document.querySelectorAll('input[name="servicios"]:checked')).map(cb => cb.value);
+                formData.append('servicios', JSON.stringify(servicios));
+
                 formData.append('precio', document.getElementById('h-precio').value);
                 formData.append('checkin', document.getElementById('h-checkin').value);
                 formData.append('checkout', document.getElementById('h-checkout').value);

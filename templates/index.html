@@ -3,6 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia. Reserva experiencias únicas con StayHuila.">
+    <meta property="og:title" content="StayHuila | Hospedajes Auténticos en el Huila">
+    <meta property="og:description" content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia. Reserva experiencias únicas con StayHuila.">
+    <meta name="twitter:title" content="StayHuila | Hospedajes Auténticos en el Huila">
+    <meta name="twitter:description" content="Descubre hospedajes rurales, fincas y cabañas mágicas en el Huila, Colombia.">
+    <!-- Favicon & Metadatos SEO -->
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link rel="shortcut icon" href="/static/images/logo.png">
+    <link rel="apple-touch-icon" href="/static/images/logo.png">
+    <meta name="theme-color" content="#2C4A3B">
+    <meta name="author" content="StayHuila">
+    <meta name="robots" content="index, follow">
+    <meta property="og:site_name" content="StayHuila">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/images/logo.png">
+    <meta property="og:locale" content="es_CO">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="/static/images/logo.png">
+    <link rel="icon" href="../static/image/logo.png" sizes="48x48">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StayHuila | Hospedajes Auténticos</title>
     <!-- Google Fonts -->
@@ -11,9 +30,48 @@
     <!-- Phosphor Icons for modern minimalist icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+    <!-- IA Assistant Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/asistente.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* Pulsing User Location Dot */
+        .user-location-marker {
+            width: 16px;
+            height: 16px;
+            background-color: #4285F4;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .user-location-marker::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #4285F4;
+            animation: pulse-user 2s infinite;
+            z-index: -1;
+        }
+        @keyframes pulse-user {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(3.5); opacity: 0; }
+        }
+    </style>
 </head>
 
 <body>
+    {# Consumir flashes en home para que no aparezcan en otras paginas #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <script>document.addEventListener('DOMContentLoaded', () => showToast({{ msg| tojson }}, '{{ "success" if cat=="success" else "error" if cat=="error" else "info" }}'));</script>
+    {% endfor %}
+    {% endwith %}
     <!-- Navbar -->
     <header class="navbar" id="navbar">
         <div class="logo">
@@ -22,11 +80,11 @@
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
-            <a href="/hospedajes">Hospedajes</a>
-            <a href="/experiencias">Experiencias</a>
-
-            <a href="/comunidad">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;">Panel Anfitrion</a>
+            <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
+            <a href="/experiencias" data-i18n="nav.experiences">Experiencias</a>
+            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;" data-i18n="nav.host_panel">Panel
+                Anfitrion</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
@@ -47,14 +105,18 @@
                         <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
                         <span>{{ current_user.email }}</span>
                     </div>
-                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
-                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
-                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span
+                            data-i18n="nav.my_profile">Mi Perfil</span></a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span
+                            data-i18n="nav.my_bookings">Mis Reservas</span></a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span
+                            data-i18n="nav.my_favorites">Mis Favoritos</span></a>
                     <div class="dropdown-divider"></div>
-                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel
-                        Anfitrión</a>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span
+                            data-i18n="nav.host_panel">Panel Anfitrión</span></a>
                     <div class="dropdown-divider"></div>
-                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span
+                            data-i18n="nav.logout">Cerrar Sesión</span></a>
                 </div>
             </div>
             {% else %}
@@ -70,30 +132,34 @@
     <section class="hero">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <div class="offline-badge"><i class="ph ph-wifi-slash"></i> Disponible Offline</div>
-            <h1 class="hero-title">Descubre la esencia del Huila</h1>
-            <p class="hero-subtitle">Hospedajes rurales, fincas y cabañas mágicas recomendadas para ti</p>
+            <div class="offline-badge"><i class="ph ph-wifi-slash"></i> <span data-i18n="general.offline">Disponible
+                    Offline</span></div>
+            <h1 class="hero-title" data-i18n="hero.title">Descubre la esencia del Huila</h1>
+            <p class="hero-subtitle" data-i18n="hero.subtitle">Hospedajes rurales, fincas y cabañas mágicas recomendadas
+                para ti</p>
 
             <!-- Search Bar -->
             <div class="search-bar">
                 <div class="search-field">
-                    <label>Ubicación / Experiencia</label>
-                    <input type="text" placeholder="Ej. Aventura en Tatacoa...">
+                    <label data-i18n="hero.loc">Ubicación / Experiencia</label>
+                    <input type="text" data-i18n="hero.loc_ph" data-i18n-attr="placeholder"
+                        placeholder="Ej. Aventura en Tatacoa...">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
-                    <label>Llegada</label>
+                    <label data-i18n="hero.checkin">Llegada</label>
                     <input type="date" placeholder="Agrega fechas">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
-                    <label>Salida</label>
+                    <label data-i18n="hero.checkout">Salida</label>
                     <input type="date" placeholder="Agrega fechas">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
-                    <label>Huéspedes</label>
-                    <input type="number" placeholder="¿Cuántos?" min="1">
+                    <label data-i18n="hero.guests">Huéspedes</label>
+                    <input type="number" data-i18n="hero.guests_ph" data-i18n-attr="placeholder"
+                        placeholder="¿Cuántos?" min="1">
                 </div>
                 <button class="voice-search-btn" title="Búsqueda por voz">
                     <i class="ph-fill ph-microphone"></i>
@@ -109,38 +175,39 @@
     <section class="categories">
         <div class="category-item active">
             <i class="ph ph-coffee"></i>
-            <span>Fincas Cafeteras</span>
+            <span data-i18n="cat.coffee">Fincas Cafeteras</span>
         </div>
         <div class="category-item">
             <i class="ph ph-leaf"></i>
-            <span>Sostenible & Eco</span>
+            <span data-i18n="cat.eco">Sostenible &amp; Eco</span>
         </div>
         <div class="category-item">
             <i class="ph ph-cactus"></i>
-            <span>Desierto</span>
+            <span data-i18n="cat.desert">Desierto</span>
         </div>
         <div class="category-item">
             <i class="ph ph-heart"></i>
-            <span>Romántico</span>
+            <span data-i18n="cat.romantic">Romántico</span>
         </div>
         <div class="category-item">
             <i class="ph ph-person-simple-walk"></i>
-            <span>Aventura</span>
+            <span data-i18n="cat.adventure">Aventura</span>
         </div>
         <div class="category-item">
             <i class="ph ph-bed"></i>
-            <span>Descanso Profundo</span>
+            <span data-i18n="cat.rest">Descanso Profundo</span>
         </div>
         <div class="category-item">
             <i class="ph ph-map-pin"></i>
-            <span>Cerca de ti</span>
+            <span data-i18n="cat.nearby">Cerca de ti</span>
         </div>
     </section>
 
     <!-- Recomendaciones -->
     <div style="text-align: center; padding: 2rem 4rem 0;">
-        <h2 style="font-size: 2rem; color: var(--primary);">Recomendaciones para ti</h2>
-        <p style="color: var(--text-muted);">Seleccionados especialmente según tus gustos</p>
+        <h2 style="font-size: 2rem; color: var(--primary);" data-i18n="listings.title">Recomendaciones para ti</h2>
+        <p style="color: var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus gustos
+        </p>
     </div>
     <main class="listings-container" id="hospedajes">
         {% for h in hospedajes %}
@@ -173,21 +240,447 @@
         </article>
         {% endfor %}
     </main>
-    <div style="text-align: center; margin-bottom: 3rem;">
-        <a href="/hospedajes" class="book-now-btn"
-            style="text-decoration: none; display: inline-block; width: auto; padding: 1rem 2rem;">Ver Todos los
-            Hospedajes</a>
-    </div>
 
     <!-- Floating Map Button -->
-    <button class="floating-map-btn">
-        <span>Mostrar Mapa</span>
+    <button class="floating-map-btn" onclick="openHomeMap()">
+        <span data-i18n="map.show">Mostrar Mapa</span>
         <i class="ph-fill ph-map-trifold"></i>
     </button>
+
+    <!-- Map Modal -->
+    <div class="map-modal" id="home-map-modal">
+        <div class="map-modal-content">
+            <button class="close-map-btn" onclick="closeHomeMap()"><i class="ph ph-x"></i></button>
+            <div id="home-map" style="width:100%; height:100%; border-radius:12px;"></div>
+        </div>
+    </div>
+    <style>
+        .map-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .map-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .map-modal-content {
+            width: 90%;
+            height: 85%;
+            background: white;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 4px;
+        }
+
+        .close-map-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 2100;
+            background: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            color: var(--text-main);
+        }
+
+        /* Diseño del Popup de Leaflet elegante */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            width: 200px !important;
+        }
+
+        .popup-card {
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .popup-img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .popup-info {
+            padding: 10px;
+        }
+
+        .popup-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .popup-price {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .popup-type-tag {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .leaflet-popup-close-button {
+            color: white !important;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            font-size: 16px !important;
+            padding: 4px !important;
+        }
+    </style>
+
+    <script id="map-data" type="application/json">
+        {
+            "hospedajes": [
+                {% for h in hospedajes %}
+                {
+                    "id": {{ h.id }},
+                    "nombre": {{ h.nombre | tojson | safe }},
+                    "tipo_publicacion": "hospedaje",
+                    "categoria": {{ h.tipo | tojson | safe }},
+                    "municipio": {{ h.municipio | tojson | safe }},
+                    "descripcion_corta": {{ (h.descripcion_corta or h.tipo) | tojson | safe }},
+                    "es_eco": {{ 1 if h.es_eco else 0 }},
+                    "calificacion": {{ h.calificacion or 5.0 }},
+                    "total_resenas": {{ h.total_resenas or 0 }},
+                    "estado": {{ h.estado | tojson | safe }},
+                    "lat": {{ h.latitud or 2.5 }},
+                    "lng": {{ h.longitud or -75.5 }},
+                    "precio": {{ h.precio_noche }},
+                    "image": "{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}",
+                    "descuento_porcentaje": {{ h.descuento_porcentaje or 0 }}
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            "experiencias": [
+                {% for e in experiencias %}
+                {
+                    "id": {{ e.id }},
+                    "nombre": {{ e.nombre | tojson | safe }},
+                    "tipo_publicacion": "experiencia",
+                    "categoria": {{ e.tipo | tojson | safe }},
+                    "municipio": {{ e.municipio | tojson | safe }},
+                    "descripcion_corta": {{ (e.descripcion_corta or e.tipo) | tojson | safe }},
+                    "calificacion": {{ e.calificacion or 5.0 }},
+                    "total_resenas": {{ e.total_resenas or 0 }},
+                    "estado": {{ e.estado | tojson | safe }},
+                    "lat": {{ e.latitud or 2.5 }},
+                    "lng": {{ e.longitud or -75.5 }},
+                    "precio": {{ e.precio_persona }},
+                    "image": "{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let homeMap = null;
+        let allItems = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const data = JSON.parse(document.getElementById('map-data').textContent);
+            allItems = [...data.hospedajes, ...data.experiencias];
+
+            const categories = document.querySelectorAll('.category-item');
+            categories.forEach(category => {
+                category.addEventListener('click', () => {
+                    // Remove active class from all
+                    categories.forEach(c => c.classList.remove('active'));
+                    // Add active class to clicked
+                    category.classList.add('active');
+
+                    const catName = category.querySelector('span').textContent.trim();
+                    filterCategory(catName);
+                });
+            });
+        });
+
+        function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function deg2rad(deg) { return deg * (Math.PI / 180); }
+
+        function filterCategory(catName) {
+            const container = document.getElementById('hospedajes');
+            container.style.opacity = '0.5';
+
+            let filtered = [];
+
+            if (catName === 'Fincas Cafeteras') {
+                filtered = allItems.filter(i => i.tipo_publicacion === 'hospedaje' && i.categoria === 'Finca');
+            } else if (catName === 'Sostenible & Eco') {
+                filtered = allItems.filter(i => i.es_eco === 1 || i.categoria === 'Lodge' || i.categoria === 'Glamping' || i.categoria === 'Naturaleza');
+            } else if (catName === 'Desierto') {
+                filtered = allItems.filter(i => (i.municipio || '').toLowerCase().includes('villavieja') || (i.descripcion_corta || '').toLowerCase().includes('desierto'));
+            } else if (catName === 'Romántico') {
+                filtered = allItems.filter(i => i.categoria === 'Glamping' || i.categoria === 'Cabaña' || i.categoria === 'Arte');
+            } else if (catName === 'Aventura') {
+                filtered = allItems.filter(i => i.tipo_publicacion === 'experiencia' && (i.categoria === 'Aventura' || i.categoria === 'Deportes'));
+            } else if (catName === 'Descanso Profundo') {
+                filtered = allItems.filter(i => i.categoria === 'Lodge' || i.categoria === 'Bienestar' || i.categoria === 'Casa');
+            } else if (catName === 'Cerca de ti') {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(position => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        allItems.forEach(item => {
+                            if (item.lat && item.lng) {
+                                item.distance = getDistanceFromLatLonInKm(userLat, userLng, item.lat, item.lng);
+                                item.distanceText = `A ${item.distance.toFixed(1)} km de ti`;
+                            } else {
+                                item.distance = Infinity;
+                            }
+                        });
+                        filtered = [...allItems].sort((a, b) => a.distance - b.distance);
+                        renderListings(filtered);
+                        container.style.opacity = '1';
+                    }, error => {
+                        alert("No pudimos acceder a tu ubicación. Mostrando todos los resultados.");
+                        renderListings(allItems);
+                        container.style.opacity = '1';
+                    });
+                    return; // exit early, rendering will happen in callback
+                } else {
+                    alert("Geolocalización no es soportada por este navegador.");
+                    filtered = allItems;
+                }
+            } else {
+                filtered = allItems.filter(i => i.tipo_publicacion === 'hospedaje'); // default behavior
+            }
+
+            renderListings(filtered);
+            container.style.opacity = '1';
+        }
+
+        function renderListings(items) {
+            const container = document.getElementById('hospedajes');
+            if (items.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 3rem; color:var(--text-muted); font-size:1.1rem;">No se encontraron resultados para esta categoría.</div>';
+                return;
+            }
+
+            let html = '';
+            items.forEach(item => {
+                const isHospedaje = item.tipo_publicacion === 'hospedaje';
+                const url = `/${item.tipo_publicacion}/${item.id}`;
+                const locationText = item.distanceText ? item.distanceText : `${item.municipio}, Huila`;
+                const priceText = isHospedaje ? 'noche' : 'persona';
+                const badgeHtml = item.es_eco ? '<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>' : '';
+                const discountHtml = item.descuento_porcentaje ? `<div class="discount-badge">-${item.descuento_porcentaje}% Hoy</div>` : '';
+                const repairHtml = item.estado === 'reparacion' ? '<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); color:white; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.9rem; z-index:10; white-space:nowrap;"><i class="ph-fill ph-wrench"></i> En reparación</div>' : '';
+
+                html += `
+                <article class="listing-card" onclick="window.location.href='${url}'" style="cursor:pointer; ${item.estado === 'reparacion' ? 'opacity: 0.8;' : ''}">
+                    <div class="image-wrapper" style="position:relative;">
+                        <img src="${item.image}" alt="${item.categoria}" style="${item.estado === 'reparacion' ? 'filter: grayscale(80%);' : ''}">
+                        ${repairHtml}
+                        ${badgeHtml}
+                        ${discountHtml}
+                        <button class="favorite-btn" data-id="${item.id}" data-tipo="${item.tipo_publicacion}" onclick="toggleFavInline(event, this)"><i class="ph ph-heart"></i></button>
+                    </div>
+                    <div class="listing-info">
+                        <div class="listing-header">
+                            <h3>${item.nombre}</h3>
+                            <span class="rating"><i class="ph-fill ph-star"></i> ${item.calificacion} (${item.total_resenas})</span>
+                        </div>
+                        <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> ${locationText}</p>
+                        <p class="details">${item.descripcion_corta}</p>
+                        <p class="price"><strong>$${parseFloat(item.precio).toLocaleString('es-CO')} COP</strong> ${priceText}</p>
+                        <a href="${url}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
+                    </div>
+                </article>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        async function toggleFavInline(e, btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            let id = btn.getAttribute('data-id');
+            let tipo = btn.getAttribute('data-tipo');
+            if (!id || !tipo) return;
+
+            try {
+                const res = await fetch('/api/favoritos/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, tipo: tipo })
+                });
+                if (!res.ok && res.redirected) {
+                    window.location.href = res.url;
+                    return;
+                }
+                const data = await res.json();
+                if (data.success) {
+                    btn.classList.toggle('active');
+                    const icon = btn.querySelector('i');
+                    if (data.status === 'added') {
+                        icon.classList.remove('ph');
+                        icon.classList.add('ph-fill');
+                        icon.style.color = '#ff385c';
+                    } else {
+                        icon.classList.remove('ph-fill');
+                        icon.classList.add('ph');
+                        icon.style.color = '';
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function openHomeMap() {
+            document.getElementById('home-map-modal').classList.add('active');
+
+            if (!homeMap) {
+                // Initialize map centered on Huila
+                homeMap = L.map('home-map', { zoomControl: true }).setView([2.5, -75.5], 8);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '© OpenStreetMap © CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(homeMap);
+
+                // Try to get user's real location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((position) => {
+                        const { latitude, longitude } = position.coords;
+                        
+                        // Create a pulsing blue dot for the user
+                        const userIcon = L.divIcon({
+                            className: '',
+                            html: '<div class="user-location-marker"></div>',
+                            iconSize: [16, 16],
+                            iconAnchor: [8, 8]
+                        });
+
+                        L.marker([latitude, longitude], { icon: userIcon, zIndexOffset: 1000 })
+                            .addTo(homeMap)
+                            .bindPopup(`<div style="text-align:center; font-weight:600;">${I18n.t('map.user_location')}</div>`);
+                        
+                        // Optionally center map on user (smoothly)
+                        // homeMap.flyTo([latitude, longitude], 12);
+                    }, (err) => {
+                        console.warn("Geolocation access denied or failed:", err);
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    });
+                }
+
+                const data = JSON.parse(document.getElementById('map-data').textContent);
+
+                // Add markers for Hospedajes
+                data.hospedajes.forEach(h => {
+                    const icon = L.divIcon({
+                        className: '',
+                        html: `<div style="background:white; border:3px solid var(--primary, #2C4A3B); border-radius:50%; width:48px;height:48px; display:flex;align-items:center;justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); overflow:hidden; position:relative; cursor:pointer; transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+                                <img src="${h.image || 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600'}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">
+                               </div>`,
+                        iconSize: [48, 48],
+                        iconAnchor: [24, 24]
+                    });
+                    const popupHTML = `
+                        <div class="popup-card" onclick="window.location.href='/hospedaje/${h.id}'">
+                            <img src="${h.image || 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600'}" class="popup-img" alt="${h.nombre}">
+                            <div class="popup-info">
+                                <div class="popup-type-tag" style="color:var(--primary);">Hospedaje</div>
+                                <h4 class="popup-title">${h.nombre}</h4>
+                                <div class="popup-price">$${parseFloat(h.precio).toLocaleString('es-CO')} COP / noche</div>
+                            </div>
+                        </div>
+                    `;
+                    L.marker([h.lat, h.lng], { icon })
+                        .addTo(homeMap)
+                        .bindPopup(popupHTML);
+                });
+
+                // Add markers for Experiencias
+                data.experiencias.forEach(e => {
+                    const icon = L.divIcon({
+                        className: '',
+                        html: `<div style="background:white; border:3px solid #FF5A5F; border-radius:50%; width:48px;height:48px; display:flex;align-items:center;justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); overflow:hidden; position:relative; cursor:pointer; transition:transform 0.3s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+                                <img src="${e.image || 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500'}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">
+                               </div>`,
+                        iconSize: [48, 48],
+                        iconAnchor: [24, 24]
+                    });
+                    const popupHTML = `
+                        <div class="popup-card" onclick="window.location.href='/experiencia/${e.id}'">
+                            <img src="${e.image || 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500'}" class="popup-img" alt="${e.nombre}">
+                            <div class="popup-info">
+                                <div class="popup-type-tag" style="color:#FF5A5F;">Experiencia</div>
+                                <h4 class="popup-title">${e.nombre}</h4>
+                                <div class="popup-price">$${parseFloat(e.precio).toLocaleString('es-CO')} COP / persona</div>
+                            </div>
+                        </div>
+                    `;
+                    L.marker([e.lat, e.lng], { icon })
+                        .addTo(homeMap)
+                        .bindPopup(popupHTML);
+                });
+            } else {
+                homeMap.invalidateSize();
+            }
+        }
+
+        function closeHomeMap() {
+            document.getElementById('home-map-modal').classList.remove('active');
+        }
+    </script>
 
 
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- IA Assistant Interface -->
+    {% include 'components/asistente.html' %}
+    <script src="{{ url_for('static', filename='js/asistente.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 
 </html>

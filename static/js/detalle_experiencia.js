@@ -326,15 +326,15 @@ document.addEventListener('DOMContentLoaded', () => {
         className: '',
         html: `<div style="
             background:white;
-            border:2px solid #2C4A3B;
+            border:2px solid var(--primary, #2C4A3B);
             border-radius:50%;
-            width:44px;height:44px;
+            width:48px;height:48px;
             display:flex;align-items:center;justify-content:center;
             box-shadow:0 4px 15px rgba(0,0,0,0.2);
-            font-size:1.3rem;
-        ">🏡</div>`,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22]
+            overflow:hidden;
+        "><img src="${DATA.images && DATA.images.length > 0 ? DATA.images[0] : ''}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'"></div>`,
+        iconSize: [48, 48],
+        iconAnchor: [24, 24]
     });
 
     L.marker([DATA.lat, DATA.lng], { icon })

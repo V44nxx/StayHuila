@@ -3,6 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Administra tus publicaciones en StayHuila.">
+    <meta property="og:title" content="Panel Anfitrion | StayHuila">
+    <meta property="og:description" content="Administra tus publicaciones en StayHuila.">
+    <meta name="twitter:title" content="Panel Anfitrion | StayHuila">
+    <meta name="twitter:description" content="Administra tus publicaciones en StayHuila.">
+    <!-- Favicon & Metadatos SEO -->
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link rel="shortcut icon" href="/static/images/logo.png">
+    <link rel="apple-touch-icon" href="/static/images/logo.png">
+    <meta name="theme-color" content="#2C4A3B">
+    <meta name="author" content="StayHuila">
+    <meta name="robots" content="index, follow">
+    <meta property="og:site_name" content="StayHuila">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/images/logo.png">
+    <meta property="og:locale" content="es_CO">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="/static/images/logo.png">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Anfitrión | StayHuila</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -23,9 +42,9 @@
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
-            <a href="/hospedajes">Hospedajes</a>
-            <a href="/experiencias">Experiencias</a>
-            <a href="/comunidad">Comunidad</a>
+            <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
+            <a href="/experiencias" data-i18n="nav.experiences">Experiencias</a>
+            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
 
         </nav>
         <div class="user-menu">
@@ -42,11 +61,11 @@
                         <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
                         <span>{{ current_user.email }}</span>
                     </div>
-                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
-                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
-                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span data-i18n="nav.my_profile">Mi Perfil</span></a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span data-i18n="nav.my_bookings">Mis Reservas</span></a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span data-i18n="nav.my_favorites">Mis Favoritos</span></a>
                     <div class="dropdown-divider"></div>
-                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span data-i18n="nav.logout">Cerrar Sesión</span></a>
                 </div>
             </div>
         </div>
@@ -116,7 +135,12 @@
                 <div class="list-info">
                     <h3>{{ h.nombre }}</h3>
                     <p>{{ h.municipio }}, Huila</p>
-                    <span class="list-status">Publicado</span>
+                    <span class="list-status" style="display:none;">Publicado</span>
+                    <select onchange="changeState({{ h.id }}, 'hospedaje', this.value)" style="margin-top:0.5rem; padding:0.4rem; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:0.85rem; width:100%; outline:none; cursor:pointer;">
+                        <option value="abierta" {% if h.estado == 'abierta' %}selected{% endif %}>Abierta (Activa)</option>
+                        <option value="reparacion" {% if h.estado == 'reparacion' %}selected{% endif %}>En reparación</option>
+                        <option value="eliminar" style="color:red;">Eliminar publicación</option>
+                    </select>
                 </div>
             </div>
             {% endfor %}
@@ -127,7 +151,12 @@
                 <div class="list-info">
                     <h3>{{ e.nombre }}</h3>
                     <p>{{ e.municipio }}, Huila (Experiencia)</p>
-                    <span class="list-status">Publicado</span>
+                    <span class="list-status" style="display:none;">Publicado</span>
+                    <select onchange="changeState({{ e.id }}, 'experiencia', this.value)" style="margin-top:0.5rem; padding:0.4rem; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:0.85rem; width:100%; outline:none; cursor:pointer;">
+                        <option value="abierta" {% if e.estado == 'abierta' %}selected{% endif %}>Abierta (Activa)</option>
+                        <option value="reparacion" {% if e.estado == 'reparacion' %}selected{% endif %}>En reparación</option>
+                        <option value="eliminar" style="color:red;">Eliminar publicación</option>
+                    </select>
                 </div>
             </div>
             {% endfor %}
@@ -190,6 +219,8 @@
                     <div class="step-dot"></div>
                     <div class="step-dot"></div>
                     <div class="step-dot"></div>
+                    <div class="step-dot"></div>
+                    <div class="step-dot"></div>
                 </div>
 
                 <form id="publish-form" onsubmit="event.preventDefault(); submitWizard();">
@@ -213,8 +244,35 @@
                         </div>
                     </div>
 
-                    <!-- PASO 2: Info Básica y Ubicación -->
+                    <!-- PASO 2: Verificación de Identidad -->
                     <div class="wizard-step" id="step-2">
+                        <h2>Verificación de Identidad</h2>
+                        <p class="sub">Para la seguridad de nuestra comunidad, necesitamos validar que eres una persona real. Esta información no será pública.</p>
+                        <div class="form-group">
+                            <label>Tipo de Documento</label>
+                            <select id="v-tipo-doc" required>
+                                <option value="CC" selected>Cédula de Ciudadanía</option>
+                                <option value="CE">Cédula de Extranjería</option>
+                                <option value="Pasaporte">Pasaporte</option>
+                                <option value="NIT">NIT</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Número de Documento</label>
+                            <input type="text" id="v-documento" placeholder="Ej. 1000200300" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono de Contacto</label>
+                            <input type="tel" id="v-telefono" placeholder="Ej. 300 123 4567" value="{{ current_user.telefono or '' }}" required>
+                        </div>
+                        <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border);">
+                            <i class="ph-fill ph-shield-check" style="color: var(--primary); font-size: 1.5rem; float: left; margin-right: 10px;"></i>
+                            <p style="font-size: 0.85rem; color: var(--text-dark); margin: 0; padding-top: 2px;">Tus datos están encriptados y protegidos según nuestras políticas de privacidad. Cuidamos a nuestros huéspedes y anfitriones de posibles fraudes.</p>
+                        </div>
+                    </div>
+
+                    <!-- PASO 3: Info Básica y Ubicación -->
+                    <div class="wizard-step" id="step-3">
                         <h2>Cuéntanos sobre el lugar</h2>
                         <p class="sub">Un buen título y ubicación atraen a más turistas.</p>
                         <div class="form-group">
@@ -248,31 +306,45 @@
                         </div>
                     </div>
 
-                    <!-- PASO 3: Detalles -->
-                    <div class="wizard-step" id="step-3">
+                    <!-- PASO 4: Detalles -->
+                    <div class="wizard-step" id="step-4">
                         <h2>Detalles <span class="lbl-tipo-dinamico">del alojamiento</span></h2>
                         <p class="sub">Configura la capacidad y espacios.</p>
                         
-                        <div id="fields-hospedaje-3" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                            <div class="form-group">
-                                <label>Huéspedes máx.</label>
-                                <input type="number" id="h-huespedes" min="1" value="2">
+                        <div id="fields-hospedaje-4">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                                <div class="form-group">
+                                    <label>Huéspedes máx.</label>
+                                    <input type="number" id="h-huespedes" min="1" value="2">
+                                </div>
+                                <div class="form-group">
+                                    <label>Habitaciones</label>
+                                    <input type="number" id="h-habitaciones" min="1" value="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Camas</label>
+                                    <input type="number" id="h-camas" min="1" value="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Baños</label>
+                                    <input type="number" id="h-banos" min="1" value="1">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Habitaciones</label>
-                                <input type="number" id="h-habitaciones" min="1" value="1">
-                            </div>
-                            <div class="form-group">
-                                <label>Camas</label>
-                                <input type="number" id="h-camas" min="1" value="1">
-                            </div>
-                            <div class="form-group">
-                                <label>Baños</label>
-                                <input type="number" id="h-banos" min="1" value="1">
+                            
+                            <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">¿Qué ofrece tu alojamiento?</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem;">
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="Wifi"> Wifi</label>
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="Cocina"> Cocina</label>
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="Piscina"> Piscina</label>
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="Parqueadero gratuito"> Parqueadero gratuito</label>
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="Aire acondicionado"> Aire acondicionado</label>
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="Se admiten mascotas"> Se admiten mascotas</label>
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="Zona de trabajo"> Zona de trabajo</label>
+                                <label style="display:flex; align-items:center; gap: 8px; font-weight:normal;"><input type="checkbox" name="servicios" value="TV"> TV</label>
                             </div>
                         </div>
 
-                        <div id="fields-experiencia-3" style="display:none;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div id="fields-experiencia-4" style="display:none;grid-template-columns:1fr 1fr;gap:1rem;">
                             <div class="form-group">
                                 <label>Capacidad Mínima</label>
                                 <input type="number" id="e-cap-min" min="1" value="1">
@@ -296,12 +368,12 @@
                         </div>
                     </div>
 
-                    <!-- PASO 4: Precios -->
-                    <div class="wizard-step" id="step-4">
+                    <!-- PASO 5: Precios -->
+                    <div class="wizard-step" id="step-5">
                         <h2>Establece tu tarifa</h2>
                         <p class="sub">Tú tienes el control total de cuánto cobrar.</p>
                         
-                        <div id="fields-hospedaje-4">
+                        <div id="fields-hospedaje-5">
                             <div class="form-group">
                                 <label>Precio por noche (COP)</label>
                                 <input type="number" id="h-precio" placeholder="Ej. 150000" min="10000">
@@ -318,7 +390,7 @@
                             </div>
                         </div>
 
-                        <div id="fields-experiencia-4" style="display:none;">
+                        <div id="fields-experiencia-5" style="display:none;">
                             <div class="form-group">
                                 <label>Precio por persona (COP)</label>
                                 <input type="number" id="e-precio" placeholder="Ej. 50000" min="10000">
@@ -334,8 +406,8 @@
                         </div>
                     </div>
 
-                    <!-- PASO 5: Fotos -->
-                    <div class="wizard-step" id="step-5">
+                    <!-- PASO 6: Fotos -->
+                    <div class="wizard-step" id="step-6">
                         <h2>Añade fotografías</h2>
                         <p class="sub">Los anuncios con fotos luminosas reciben más reservas.</p>
                         <div class="file-upload-box">
@@ -359,6 +431,43 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/panel_anfitrion.js') }}"></script>
+    <script>
+        async function changeState(id, tipo, newState) {
+            if (newState === 'eliminar') {
+                if(!confirm("¿Estás seguro de que deseas eliminar permanentemente esta publicación? Esta acción no se puede deshacer.")) {
+                    window.location.reload();
+                    return;
+                }
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('id', id);
+                formData.append('tipo', tipo);
+                formData.append('estado', newState);
+
+                const res = await fetch('/api/publicacion/estado', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await res.json();
+                if(data.success) {
+                    showToast(data.message);
+                    if (newState === 'eliminar') {
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                } else {
+                    showToast("Error al actualizar la publicación.", true);
+                }
+            } catch(e) {
+                console.error(e);
+                showToast("Error de conexión.", true);
+            }
+        }
+    </script>
+
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 
 </html>

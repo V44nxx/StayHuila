@@ -4,7 +4,7 @@ from flask_bcrypt import Bcrypt
 import pymysql
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-import random, string
+import random, string                           
 
 app = Flask(__name__)
 app.secret_key = 'stayhuila_secret_2024_xk9'
@@ -13,6 +13,15 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar'
 login_manager.login_message_category = 'info'
+
+# --- INTEGRACIÓN ASISTENTE IA ---
+import sys
+import os
+sys.path.append(os.path.join(app.root_path, 'asistente_ia'))
+from asistente_api import asistente_bp
+app.register_blueprint(asistente_bp)
+# --------------------------------
+
 
 DB = dict(host='localhost', user='root', password='', database='StayHuila',
           charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
@@ -39,7 +48,7 @@ class User(UserMixin):
     def __init__(self, d):
         self.id = d['id']; self.nombre = d['nombre']; self.apellido = d['apellido']
         self.email = d['email']; self.tipo = d['tipo']; self.puntos = d['puntos_gamificacion']
-        self.foto = d.get('foto_perfil')
+        self.foto_perfil = d.get('foto_perfil')
 
 @login_manager.user_loader
 def load_user(uid):
@@ -63,23 +72,52 @@ def home():
         with c.cursor() as cur:
             cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                WHERE h.activo=1 AND h.verificado=1 ORDER BY h.destacado DESC,h.calificacion DESC LIMIT 6""")
+                WHERE h.activo=1 AND h.verificado=1 ORDER BY h.destacado DESC,h.calificacion DESC""")
             hospedajes = serialize(cur.fetchall())
-        return render_template('index.html', hospedajes=hospedajes)
+            
+            cur.execute("""SELECT e.*,i.url as image FROM experiencias e
+                LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
+                WHERE e.activo=1 AND e.verificado=1 ORDER BY e.destacado DESC,e.calificacion DESC""")
+            experiencias = serialize(cur.fetchall())
+        return render_template('index.html', hospedajes=hospedajes, experiencias=experiencias)
     finally:
         c.close()
 
 # ── HOSPEDAJES ────────────────────────────────────────────────
 @app.route('/hospedajes')
 def hospedajes():
+    q = request.args.get('q', '').strip()
+    huespedes = request.args.get('huespedes')
+    precio_max = request.args.get('precio_max')
+    
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
-                LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                WHERE h.activo=1 ORDER BY h.calificacion DESC""")
+            query = """
+                SELECT h.*, i.url as image 
+                FROM hospedajes h
+                LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                WHERE h.activo = 1
+            """
+            params = []
+            
+            if q:
+                query += " AND (h.municipio LIKE %s OR h.nombre LIKE %s OR h.tipo LIKE %s)"
+                params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
+            
+            if huespedes:
+                query += " AND h.capacidad_max >= %s"
+                params.append(huespedes)
+                
+            if precio_max:
+                query += " AND h.precio_noche <= %s"
+                params.append(precio_max)
+                
+            query += " ORDER BY h.calificacion DESC"
+            
+            cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
-        return render_template('hospedajes.html', hospedajes=data)
+        return render_template('hospedajes.html', hospedajes=data, search_query=q)
     finally:
         c.close()
 
@@ -111,7 +149,6 @@ def detalle_hospedaje(id):
             sugerencias = cur.fetchall()
             hosp = serialize(hosp)
             imgs = serialize(cur.fetchall()) if False else serialize(imgs)
-            resenas = serialize(resenas)
             sugerencias = serialize(sugerencias)
         return render_template('detalle_hospedaje.html', hospedaje=hosp,
                                imagenes=imgs, servicios=servicios,
@@ -122,14 +159,33 @@ def detalle_hospedaje(id):
 # ── EXPERIENCIAS ──────────────────────────────────────────────
 @app.route('/experiencias')
 def experiencias():
+    q = request.args.get('q', '').strip()
+    precio_max = request.args.get('precio_max')
+    
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT e.*,i.url as image FROM experiencias e
-                LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                WHERE e.activo=1 ORDER BY e.calificacion DESC""")
+            query = """
+                SELECT e.*, i.url as image 
+                FROM experiencias e
+                LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
+                WHERE e.activo = 1
+            """
+            params = []
+            
+            if q:
+                query += " AND (e.municipio LIKE %s OR e.nombre LIKE %s OR e.tipo LIKE %s)"
+                params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
+            
+            if precio_max:
+                query += " AND e.precio_persona <= %s"
+                params.append(precio_max)
+                
+            query += " ORDER BY e.calificacion DESC"
+            
+            cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
-        return render_template('experiencias.html', experiencias=data)
+        return render_template('experiencias.html', experiencias=data, search_query=q)
     finally:
         c.close()
 
@@ -150,7 +206,7 @@ def detalle_experiencia(id):
             imgs = cur.fetchall()
             cur.execute("""SELECT r.*,u.nombre,u.apellido,u.foto_perfil FROM resenas r
                 JOIN usuarios u ON r.usuario_id=u.id
-                WHERE r.hospedaje_id=%s AND r.tipo='experiencia' AND r.publicada=1 ORDER BY r.fecha_resena DESC LIMIT 6""", (id,))
+                WHERE r.experiencia_id=%s AND r.tipo='experiencia' AND r.publicada=1 ORDER BY r.fecha_resena DESC LIMIT 6""", (id,))
             resenas = cur.fetchall()
             cur.execute("""SELECT e.*,i.url as image FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
@@ -158,7 +214,6 @@ def detalle_experiencia(id):
             sugerencias = cur.fetchall()
             exp = serialize(exp)
             imgs = serialize(imgs)
-            resenas = serialize(resenas)
             sugerencias = serialize(sugerencias)
         return render_template('detalle_experiencia.html', experiencia=exp,
                                imagenes=imgs, resenas=resenas, sugerencias=sugerencias)
@@ -280,21 +335,42 @@ def perfil():
         new_pw = request.form.get('new_password', '')
         conf_pw = request.form.get('confirm_password', '')
         
+        foto = request.files.get('foto')
+        foto_url = None
+        if foto and foto.filename != '':
+            import os
+            from werkzeug.utils import secure_filename
+            filename = secure_filename(foto.filename)
+            os.makedirs(os.path.join(app.root_path, 'static', 'uploads'), exist_ok=True)
+            path = os.path.join(app.root_path, 'static', 'uploads', filename)
+            foto.save(path)
+            foto_url = f"/static/uploads/{filename}"
+        
         c = db()
         try:
             with c.cursor() as cur:
                 if new_pw:
                     if new_pw == conf_pw and len(new_pw) >= 6:
                         pw_hash = bcrypt.generate_password_hash(new_pw).decode('utf-8')
-                        cur.execute("UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s, password_hash=%s WHERE id=%s",
-                                   (nombre, apellido, telefono, pw_hash, current_user.id))
+                        if foto_url:
+                            cur.execute("UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s, password_hash=%s, foto_perfil=%s WHERE id=%s",
+                                       (nombre, apellido, telefono, pw_hash, foto_url, current_user.id))
+                            current_user.foto_perfil = foto_url
+                        else:
+                            cur.execute("UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s, password_hash=%s WHERE id=%s",
+                                       (nombre, apellido, telefono, pw_hash, current_user.id))
                         flash('Perfil y contraseña actualizados con éxito', 'success')
                     else:
                         flash('Las contraseñas no coinciden o es muy corta (min 6)', 'error')
                         return redirect(url_for('perfil'))
                 else:
-                    cur.execute("UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s WHERE id=%s",
-                               (nombre, apellido, telefono, current_user.id))
+                    if foto_url:
+                        cur.execute("UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s, foto_perfil=%s WHERE id=%s",
+                                   (nombre, apellido, telefono, foto_url, current_user.id))
+                        current_user.foto_perfil = foto_url
+                    else:
+                        cur.execute("UPDATE usuarios SET nombre=%s, apellido=%s, telefono=%s WHERE id=%s",
+                                   (nombre, apellido, telefono, current_user.id))
                     flash('Perfil actualizado con éxito', 'success')
                 c.commit()
                 # Update current_user in memory since session persists
@@ -309,12 +385,89 @@ def perfil():
         return redirect(url_for('perfil'))
     return render_template('perfil.html')
 
+@app.route('/perfil/eliminar-foto', methods=['POST'])
+@login_required
+def eliminar_foto():
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("UPDATE usuarios SET foto_perfil=NULL WHERE id=%s", (current_user.id,))
+            c.commit()
+            current_user.foto_perfil = None
+            flash('Foto de perfil eliminada', 'success')
+    except Exception as e:
+        c.rollback()
+        flash('Error al eliminar la foto: ' + str(e), 'error')
+    finally:
+        c.close()
+    return redirect(url_for('perfil'))
+
+@app.route('/api/favoritos/toggle', methods=['POST'])
+@login_required
+def toggle_favorito():
+    data = request.json
+    tipo = data.get('tipo')
+    item_id = data.get('id')
+    
+    c = db()
+    try:
+        with c.cursor() as cur:
+            if tipo == 'hospedaje':
+                cur.execute("SELECT id FROM favoritos WHERE usuario_id=%s AND hospedaje_id=%s", (current_user.id, item_id))
+                fav = cur.fetchone()
+                if fav:
+                    cur.execute("DELETE FROM favoritos WHERE id=%s", (fav['id'],))
+                    status = 'removed'
+                else:
+                    cur.execute("INSERT INTO favoritos (usuario_id, tipo, hospedaje_id) VALUES (%s, %s, %s)", (current_user.id, tipo, item_id))
+                    status = 'added'
+            elif tipo == 'experiencia':
+                cur.execute("SELECT id FROM favoritos WHERE usuario_id=%s AND experiencia_id=%s", (current_user.id, item_id))
+                fav = cur.fetchone()
+                if fav:
+                    cur.execute("DELETE FROM favoritos WHERE id=%s", (fav['id'],))
+                    status = 'removed'
+                else:
+                    cur.execute("INSERT INTO favoritos (usuario_id, tipo, experiencia_id) VALUES (%s, %s, %s)", (current_user.id, tipo, item_id))
+                    status = 'added'
+            else:
+                return jsonify({'success': False, 'error': 'Tipo no válido'}), 400
+            
+            c.commit()
+            return jsonify({'success': True, 'status': status})
+    except Exception as e:
+        c.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        c.close()
+
 @app.route('/favoritos')
 @login_required
 def favoritos():
-    # Placeholder: currently there's no favorites table, so we just flash a message and redirect to hospedajes
-    flash('La función de favoritos estará disponible muy pronto.', 'info')
-    return redirect(url_for('hospedajes'))
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                SELECT f.id as fav_id, h.*, i.url as image 
+                FROM favoritos f 
+                JOIN hospedajes h ON f.hospedaje_id = h.id 
+                LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1 
+                WHERE f.usuario_id = %s AND f.tipo = 'hospedaje'
+            """, (current_user.id,))
+            hospedajes = serialize(cur.fetchall())
+            
+            cur.execute("""
+                SELECT f.id as fav_id, e.*, i.url as image 
+                FROM favoritos f 
+                JOIN experiencias e ON f.experiencia_id = e.id 
+                LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1 
+                WHERE f.usuario_id = %s AND f.tipo = 'experiencia'
+            """, (current_user.id,))
+            experiencias = serialize(cur.fetchall())
+            
+        return render_template('favoritos.html', hospedajes=hospedajes, experiencias=experiencias)
+    finally:
+        c.close()
 
 # ── RESERVAR ──────────────────────────────────────────────────
 @app.route('/reservar', methods=['GET', 'POST'])
@@ -335,6 +488,11 @@ def reservar():
                 if not hosp:
                     flash('Hospedaje no encontrado', 'error')
                     return redirect(url_for('hospedajes'))
+                
+                if hosp['anfitrion_id'] == current_user.id:
+                    flash('No puedes reservar tu propia publicación.', 'error')
+                    return redirect(url_for('detalle_hospedaje', id=hid))
+                
                 fi = datetime.strptime(checkin, '%Y-%m-%d').date()
                 fo = datetime.strptime(checkout, '%Y-%m-%d').date()
                 noches = (fo - fi).days
@@ -388,6 +546,11 @@ def reservar():
             hosp = cur.fetchone()
         if not hosp:
             return redirect(url_for('hospedajes'))
+            
+        if hosp['anfitrion_id'] == current_user.id:
+            flash('No puedes reservar tu propia publicación.', 'error')
+            return redirect(url_for('detalle_hospedaje', id=hid))
+            
         noches = 0
         if checkin and checkout:
             fi = datetime.strptime(checkin, '%Y-%m-%d').date()
@@ -601,6 +764,18 @@ def publicar():
     e_nivel = request.form.get('e_nivel', 'moderado')
     e_incluye = request.form.get('e_incluye', '')
     e_traer = request.form.get('e_traer', '')
+    # Verification info
+    v_tipo_doc = request.form.get('v_tipo_doc')
+    v_documento = request.form.get('v_documento')
+    v_telefono = request.form.get('v_telefono')
+
+    # Amenities (JSON array string)
+    import json
+    servicios_str = request.form.get('servicios', '[]')
+    try:
+        servicios = json.loads(servicios_str)
+    except:
+        servicios = []
     
     files = request.files.getlist('fotos')
     
@@ -610,14 +785,16 @@ def publicar():
             if tipo == 'hospedaje':
                 cur.execute("""INSERT INTO hospedajes(anfitrion_id, tipo, nombre, municipio, direccion_detalle, latitud, longitud, 
                     descripcion, precio_noche, capacidad_max, num_habitaciones, num_banos, hora_checkin, hora_checkout, activo, verificado)
-                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 0)""",
+                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 1)""",
                     (current_user.id, categoria, nombre, municipio, direccion, lat, lng, descripcion, precio, max_huespedes, habitaciones, banos, checkin, checkout))
                 pub_id = cur.lastrowid
                 
                 if files and files[0].filename != '':
+                    import uuid
                     for idx, f in enumerate(files):
                         if f.filename:
-                            filename = secure_filename(f.filename)
+                            ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
+                            filename = f"{uuid.uuid4().hex}_{idx}.{ext}"
                             os.makedirs(os.path.join(app.root_path, 'static', 'uploads'), exist_ok=True)
                             path = os.path.join(app.root_path, 'static', 'uploads', filename)
                             f.save(path)
@@ -627,17 +804,23 @@ def publicar():
                 else:
                     cur.execute("INSERT INTO hospedaje_imagenes(hospedaje_id, url, es_portada) VALUES(%s, %s, 1)", 
                         (pub_id, "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=500"))
+                
+                # Insert Amenities
+                if servicios:
+                    for srv in servicios:
+                        cur.execute("INSERT INTO hospedaje_servicios(hospedaje_id, servicio) VALUES(%s, %s)", (pub_id, srv))
             else:
                 cur.execute("""INSERT INTO experiencias(anfitrion_id, tipo, nombre, municipio, latitud, longitud, 
                     descripcion, precio_persona, capacidad_min, capacidad_max, duracion_horas, nivel_dificultad, que_incluye, que_traer, activo, verificado)
-                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 0)""",
+                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 1)""",
                     (current_user.id, categoria, nombre, municipio, lat, lng, descripcion, precio, e_cap_min, max_huespedes, e_duracion, e_nivel, e_incluye, e_traer))
                 pub_id = cur.lastrowid
-                
                 if files and files[0].filename != '':
+                    import uuid
                     for idx, f in enumerate(files):
                         if f.filename:
-                            filename = secure_filename(f.filename)
+                            ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
+                            filename = f"{uuid.uuid4().hex}_{idx}.{ext}"
                             os.makedirs(os.path.join(app.root_path, 'static', 'uploads'), exist_ok=True)
                             path = os.path.join(app.root_path, 'static', 'uploads', filename)
                             f.save(path)
@@ -648,10 +831,16 @@ def publicar():
                     cur.execute("INSERT INTO experiencia_imagenes(experiencia_id, url, es_portada) VALUES(%s, %s, 1)", 
                         (pub_id, "https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500"))
             
+            # Verify user and save verification info
             if current_user.tipo not in ('anfitrion', 'admin'):
-                cur.execute("UPDATE usuarios SET tipo='anfitrion' WHERE id=%s", (current_user.id,))
-                cur.execute("INSERT INTO anfitriones(usuario_id) VALUES(%s)", (current_user.id,))
+                cur.execute("UPDATE usuarios SET tipo='anfitrion', telefono=%s WHERE id=%s", (v_telefono, current_user.id))
+                cur.execute("INSERT INTO anfitriones(usuario_id, documento_identidad) VALUES(%s, %s)", (current_user.id, f"{v_tipo_doc} {v_documento}"))
                 current_user.tipo = 'anfitrion'
+                current_user.telefono = v_telefono
+            else:
+                cur.execute("UPDATE usuarios SET telefono=%s WHERE id=%s", (v_telefono, current_user.id))
+                cur.execute("UPDATE anfitriones SET documento_identidad=%s WHERE usuario_id=%s", (f"{v_tipo_doc} {v_documento}", current_user.id))
+                current_user.telefono = v_telefono
 
             c.commit()
         return jsonify({"success": True})
@@ -660,7 +849,39 @@ def publicar():
         return jsonify({"success": False, "error": str(e)})
     finally:
         c.close()
-
+@app.route('/api/publicacion/estado', methods=['POST'])
+@login_required
+def cambiar_estado_publicacion():
+    pub_id = request.form.get('id')
+    tipo = request.form.get('tipo')
+    estado = request.form.get('estado')
+    
+    if not pub_id or tipo not in ('hospedaje', 'experiencia') or estado not in ('abierta', 'reparacion', 'eliminar'):
+        return jsonify({'success': False, 'message': 'Datos inválidos.'})
+        
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # Check ownership
+            tabla = 'hospedajes' if tipo == 'hospedaje' else 'experiencias'
+            cur.execute(f"SELECT id FROM {tabla} WHERE id=%s AND anfitrion_id=%s", (pub_id, current_user.id))
+            if not cur.fetchone() and current_user.tipo != 'admin':
+                return jsonify({'success': False, 'message': 'No tienes permiso.'})
+                
+            if estado == 'eliminar':
+                cur.execute(f"DELETE FROM {tabla} WHERE id=%s", (pub_id,))
+                msg = "Publicación eliminada correctamente."
+            else:
+                cur.execute(f"UPDATE {tabla} SET estado=%s WHERE id=%s", (estado, pub_id))
+                msg = "Estado actualizado correctamente."
+            
+            c.commit()
+            return jsonify({'success': True, 'message': msg})
+    except Exception as e:
+        print(e)
+        return jsonify({'success': False, 'message': 'Error de servidor.'})
+    finally:
+        c.close()
 # ── API DISPONIBILIDAD ────────────────────────────────────────
 @app.route('/api/disponibilidad/<int:id>')
 def disponibilidad(id):
@@ -773,7 +994,9 @@ def api_comunidad_posts():
                 imagen_url = None
                 
                 if file and file.filename != '':
-                    filename = secure_filename(file.filename)
+                    import uuid
+                    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+                    filename = f"post_{uuid.uuid4().hex}.{ext}"
                     os.makedirs(os.path.join(app.root_path, 'static', 'uploads'), exist_ok=True)
                     path = os.path.join(app.root_path, 'static', 'uploads', filename)
                     file.save(path)
@@ -842,15 +1065,133 @@ def api_comunidad_comentarios(post_id):
                     
                 data = request.json
                 contenido = data.get('contenido')
+                parent_id = data.get('parent_id')
                 if not contenido:
                     return jsonify({'success': False, 'error': 'Comentario vacío'}), 400
                     
-                cur.execute("INSERT INTO comunidad_comentarios (post_id, usuario_id, contenido) VALUES (%s, %s, %s)",
-                    (post_id, current_user.id, contenido))
+                cur.execute("INSERT INTO comunidad_comentarios (post_id, usuario_id, contenido, parent_id) VALUES (%s, %s, %s, %s)",
+                    (post_id, current_user.id, contenido, parent_id))
                 c.commit()
                 return jsonify({'success': True})
     finally:
         c.close()
+
+@app.route('/api/comunidad/posts/<int:post_id>', methods=['DELETE'])
+@login_required
+def api_comunidad_post_delete(post_id):
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("SELECT usuario_id FROM comunidad_posts WHERE id=%s", (post_id,))
+            row = cur.fetchone()
+            if not row or row['usuario_id'] != current_user.id:
+                return jsonify({'success': False, 'error': 'No autorizado'}), 403
+            cur.execute("DELETE FROM comunidad_comentarios WHERE post_id=%s", (post_id,))
+            cur.execute("DELETE FROM comunidad_likes WHERE post_id=%s", (post_id,))
+            cur.execute("DELETE FROM comunidad_posts WHERE id=%s", (post_id,))
+            c.commit()
+            return jsonify({'success': True})
+    finally:
+        c.close()
+
+@app.route('/api/comunidad/comentarios/<int:comment_id>', methods=['DELETE'])
+@login_required
+def api_comunidad_comentario_delete(comment_id):
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("SELECT usuario_id FROM comunidad_comentarios WHERE id=%s", (comment_id,))
+            row = cur.fetchone()
+            if not row or row['usuario_id'] != current_user.id:
+                return jsonify({'success': False, 'error': 'No autorizado'}), 403
+            
+            # Al eliminar un comentario, podríamos eliminar también sus respuestas, 
+            # o simplemente dejar que queden huérfanos. Lo ideal es eliminarlos en cascada.
+            cur.execute("DELETE FROM comunidad_comentarios WHERE parent_id=%s", (comment_id,))
+            cur.execute("DELETE FROM comunidad_comentarios WHERE id=%s", (comment_id,))
+            c.commit()
+            return jsonify({'success': True})
+    finally:
+        c.close()
+
+@app.route('/api/comunidad/tendencias')
+def api_comunidad_tendencias():
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("SELECT contenido FROM comunidad_posts")
+            posts = cur.fetchall()
+            
+            import re
+            from collections import Counter
+            
+            hashtags = []
+            for p in posts:
+                if p['contenido']:
+                    tags = re.findall(r'#\w+', p['contenido'])
+                    hashtags.extend([t.lower() for t in tags])
+            
+            counts = Counter(hashtags)
+            top = counts.most_common(5)
+            
+            result = []
+            for rank, (tag, count) in enumerate(top, 1):
+                result.append({
+                    'rank': rank,
+                    'tag': tag,
+                    'count': count
+                })
+            
+            return jsonify(result)
+    finally:
+        c.close()
+
+@app.route('/resena/<tipo>/<int:id>', methods=['POST'])
+@login_required
+def dejar_resena_directa(tipo, id):
+    calificacion = request.form.get('calificacion')
+    comentario = request.form.get('comentario')
+    
+    if not calificacion or not comentario:
+        flash('Debe llenar todos los campos de la reseña.', 'error')
+        return redirect(f"/{tipo}/{id}")
+        
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                INSERT INTO resenas (hospedaje_id, experiencia_id, usuario_id, calificacion_general, comentario, tipo)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                id if tipo == 'hospedaje' else None,
+                id if tipo == 'experiencia' else None,
+                current_user.id,
+                calificacion,
+                comentario,
+                tipo
+            ))
+            
+            # Actualizar promedio y total de reseñas en la tabla correspondiente
+            if tipo == 'hospedaje':
+                cur.execute("""UPDATE hospedajes SET
+                    calificacion=(SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=%s AND publicada=1),
+                    total_resenas=(SELECT COUNT(*) FROM resenas WHERE hospedaje_id=%s AND publicada=1)
+                    WHERE id=%s""", (id, id, id))
+            elif tipo == 'experiencia':
+                cur.execute("""UPDATE experiencias SET
+                    calificacion=(SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=%s AND publicada=1),
+                    total_resenas=(SELECT COUNT(*) FROM resenas WHERE experiencia_id=%s AND publicada=1)
+                    WHERE id=%s""", (id, id, id))
+                    
+            c.commit()
+            flash('¡Gracias por tu reseña!', 'success')
+    except Exception as e:
+        c.rollback()
+        flash('Error al guardar la reseña.', 'error')
+    finally:
+        c.close()
+        
+    return redirect(f"/{tipo}/{id}")
 
 if __name__ == '__main__':
     app.run(debug=True)

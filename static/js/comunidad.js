@@ -165,6 +165,7 @@ function submitPost() {
             removeRec();
             postsLoaded = false;
             loadPosts();
+            loadTendencias();
         } else {
             showToast(data.error || 'Ocurrió un error.', 'error', 'error');
         }
@@ -220,40 +221,132 @@ function loadComments(postId) {
             list.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:0.88rem; padding:0.5rem 0;">Sé el primero en comentar.</p>';
             return;
         }
+
+        const map = {};
+        const roots = [];
+        data.forEach(c => map[c.id] = {...c, replies: []});
         data.forEach(c => {
-            const div = document.createElement('div');
-            div.className = 'comment';
-            div.innerHTML = `
-                <img src="${getAvatar(c)}" alt="${escapeHtml(c.nombre)}">
-                <div class="comment-bubble">
-                    <strong>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido)}</strong>
-                    <p>${escapeHtml(c.contenido)}</p>
-                    <span class="comment-time">${formatDate(c.fecha_creacion)}</span>
-                </div>`;
-            list.appendChild(div);
+            if (c.parent_id && map[c.parent_id]) {
+                map[c.parent_id].replies.push(map[c.id]);
+            } else {
+                roots.push(map[c.id]);
+            }
         });
-        list.scrollTop = list.scrollHeight;
+
+        function renderComment(c, isReply = false) {
+            const delBtn = c.usuario_id === CURRENT_USER.id ? 
+                `<button onclick="deleteComment(${c.id}, ${postId})" style="background:none;border:none;color:red;cursor:pointer;font-size:0.9rem;padding:0;margin-left:10px;" title="Eliminar"><i class="ph ph-trash"></i></button>` : '';
+            const replyBtn = CURRENT_USER.id && !isReply ? 
+                `<button onclick="showReplyInput(${c.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.8rem;font-weight:600;margin-left:10px;padding:0;">Responder</button>` : '';
+
+            const wrapper = document.createElement('div');
+            wrapper.style.marginLeft = isReply ? '3rem' : '0';
+            wrapper.style.marginBottom = isReply ? '0.5rem' : '1rem';
+            wrapper.style.position = 'relative';
+
+            wrapper.innerHTML = `
+                <div class="comment" style="margin-bottom: 0.3rem;">
+                    <img src="${getAvatar(c)}" alt="${escapeHtml(c.nombre)}">
+                    <div class="comment-bubble" style="width: 100%;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                            <strong>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido)}</strong>
+                            ${delBtn}
+                        </div>
+                        <p style="margin-top:0.2rem;">${escapeHtml(c.contenido)}</p>
+                        <div style="margin-top:0.3rem;display:flex;align-items:center;">
+                            <span class="comment-time">${formatDate(c.fecha_creacion)}</span>
+                            ${replyBtn}
+                        </div>
+                    </div>
+                </div>
+                <div id="reply-input-${c.id}" style="display:none; margin-left: 2.5rem; margin-top: 0.5rem; flex-direction: row; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="reply-text-${c.id}" placeholder="Escribe una respuesta..."
+                           style="flex:1; border:1px solid var(--border); border-radius:20px; padding:0.4rem 1rem; font-size:0.9rem; outline:none;"
+                           onkeypress="if(event.key==='Enter') submitComment(${postId}, ${c.id})">
+                    <button onclick="submitComment(${postId}, ${c.id})" style="background:var(--primary);color:white;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;"><i class="ph ph-paper-plane-right"></i></button>
+                </div>
+            `;
+            list.appendChild(wrapper);
+
+            if (c.replies.length > 0) {
+                c.replies.forEach(r => renderComment(r, true));
+            }
+        }
+
+        roots.forEach(c => renderComment(c, false));
     });
 }
 
-function submitComment(postId) {
+function showReplyInput(commentId) {
+    const el = document.getElementById(`reply-input-${commentId}`);
+    if (el.style.display === 'none') {
+        el.style.display = 'flex';
+        document.getElementById(`reply-text-${commentId}`).focus();
+    } else {
+        el.style.display = 'none';
+    }
+}
+
+function submitComment(postId, parentId = null) {
     if (!CURRENT_USER.id) { window.location.href = '/login'; return; }
-    const input = document.getElementById(`comment-input-${postId}`);
+    let input;
+    if (parentId) {
+        input = document.getElementById(`reply-text-${parentId}`);
+    } else {
+        input = document.getElementById(`comment-input-${postId}`);
+    }
+    
     const content = input.value.trim();
     if (!content) return;
 
     fetch(`/api/comunidad/posts/${postId}/comentarios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contenido: content })
+        body: JSON.stringify({ contenido: content, parent_id: parentId })
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
             input.value = '';
+            if (parentId) {
+                document.getElementById(`reply-input-${parentId}`).style.display = 'none';
+            }
             const cnt = document.getElementById(`comment-count-${postId}`);
             cnt.textContent = parseInt(cnt.textContent) + 1;
             loadComments(postId);
+        } else {
+            showToast(data.error || 'Error al comentar', 'error', 'error');
+        }
+    });
+}
+
+function deleteComment(commentId, postId) {
+    if (!confirm("¿Estás seguro de que deseas eliminar este comentario?")) return;
+    fetch(`/api/comunidad/comentarios/${commentId}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const cnt = document.getElementById(`comment-count-${postId}`);
+            cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
+            loadComments(postId);
+            showToast('Comentario eliminado.');
+        } else {
+            showToast(data.error || 'Error al eliminar', 'error', 'error');
+        }
+    });
+}
+
+function deletePost(postId) {
+    if (!confirm("¿Estás seguro de que deseas eliminar esta publicación?")) return;
+    fetch(`/api/comunidad/posts/${postId}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const el = document.getElementById(`post-${postId}`);
+            if (el) el.remove();
+            showToast('Publicación eliminada correctamente.');
+        } else {
+            showToast(data.error || 'Error al eliminar', 'error', 'error');
         }
     });
 }
@@ -297,13 +390,17 @@ function renderPost(post) {
             <button onclick="submitComment(${post.id})"><i class="ph ph-paper-plane-right"></i></button>
         </div>` : '';
 
+    const deletePostBtn = post.usuario_id === CURRENT_USER.id ? 
+        `<button onclick="deletePost(${post.id})" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer;" title="Eliminar post"><i class="ph ph-trash"></i></button>` : '';
+
     div.innerHTML = `
         <div class="post-header">
             <img src="${getAvatar(post)}" alt="${escapeHtml(post.nombre)}">
-            <div class="post-meta">
+            <div class="post-meta" style="flex:1;">
                 <strong>${escapeHtml(post.nombre)} ${escapeHtml(post.apellido)}</strong>
                 <span>${formatDate(post.fecha_creacion)}</span>
             </div>
+            ${deletePostBtn}
         </div>
         ${post.contenido ? `<div class="post-content">${escapeHtml(post.contenido)}</div>` : ''}
         ${post.imagen_url ? `<img src="${post.imagen_url}" class="post-image" alt="Foto del post">` : ''}
@@ -452,6 +549,33 @@ function loadPopularPlaces() {
     .catch(() => {});
 }
 
+/* ── Tendencias (Hashtags) ────────────────────────────────────── */
+function loadTendencias() {
+    fetch('/api/comunidad/tendencias')
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('tendencias-container');
+        if (!container) return;
+        
+        if (!data.length) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;text-align:center;padding:1rem;">Aún no hay tendencias.<br>¡Usa un # en tu próximo post!</p>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        data.forEach(t => {
+            container.innerHTML += `
+                <div class="trending-topic" onclick="switchTab('feed', null); document.getElementById('post-content').value='${t.tag} '; document.getElementById('post-content').focus();" style="cursor:pointer;">
+                    <span>${t.rank} · Tendencia en Huila</span>
+                    <strong>${escapeHtml(t.tag)}</strong>
+                    <span>${t.count} post${t.count !== 1 ? 's' : ''}</span>
+                </div>
+            `;
+        });
+    })
+    .catch(() => {});
+}
+
 /* ── Init ─────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
     // Cerrar modals al hacer clic fuera
@@ -462,4 +586,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab inicial: feed
     switchTab('feed', document.querySelector('.nav-menu a.active'));
     loadPopularPlaces();
+    loadTendencias();
 });

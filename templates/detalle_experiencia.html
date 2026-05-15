@@ -3,6 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Detalles y reserva de experiencia en el Huila con StayHuila.">
+    <meta property="og:title" content="Experiencia | StayHuila">
+    <meta property="og:description" content="Detalles y reserva de experiencia en el Huila con StayHuila.">
+    <meta name="twitter:title" content="Experiencia | StayHuila">
+    <meta name="twitter:description" content="Detalles y reserva de experiencia en el Huila con StayHuila.">
+    <!-- Favicon & Metadatos SEO -->
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link rel="shortcut icon" href="/static/images/logo.png">
+    <link rel="apple-touch-icon" href="/static/images/logo.png">
+    <meta name="theme-color" content="#2C4A3B">
+    <meta name="author" content="StayHuila">
+    <meta name="robots" content="index, follow">
+    <meta property="og:site_name" content="StayHuila">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/images/logo.png">
+    <meta property="og:locale" content="es_CO">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="/static/images/logo.png">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ experiencia.nombre }} | StayHuila</title>
     <meta name="description" content="{{ experiencia.details }} - {{ experiencia.municipio ~ " , Huila" }}">
@@ -24,11 +43,11 @@
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
-            <a href="/experiencias">Experiencias</a>
+            <a href="/experiencias" data-i18n="nav.experiences">Experiencias</a>
             <a href="#">Experiencias</a>
 
-            <a href="/comunidad">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; ">Panel Anfitrion</a>
+            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;" data-i18n="nav.host_panel">Panel Anfitrión</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
@@ -79,14 +98,14 @@
                     <span class="meta-reviews"><u>{{ experiencia.total_resenas }} reseñas</u></span>
                     <span class="meta-sep">·</span>
                     {% if experiencia.super_anfitrion %}<span class="meta-super"><i class="ph-fill ph-medal"></i>
-                        SuperAnfitrión</span><span class="meta-sep">·</span>{% endif %}
+                        <span data-i18n="detail.super_host">SuperAnfitrión</span></span><span class="meta-sep">·</span>{% endif %}
                     <span class="meta-location"><i class="ph ph-map-pin"></i> {{ experiencia.municipio ~ ", Huila"
                         }}</span>
                 </div>
             </div>
             <div class="detalle-actions">
-                <button class="action-btn" id="btn-compartir"><i class="ph ph-share-network"></i> Compartir</button>
-                <button class="action-btn" id="btn-favorito"><i class="ph ph-heart"></i> Guardar</button>
+                <button class="action-btn" id="btn-compartir"><i class="ph ph-share-network"></i> <span data-i18n="detail.share">Compartir</span></button>
+                <button class="action-btn" id="btn-favorito"><i class="ph ph-heart"></i> <span data-i18n="detail.save">Guardar</span></button>
             </div>
         </div>
 
@@ -102,7 +121,7 @@
                     onclick="openLightbox({{ loop.index }})">
                     <img src="{{ img_obj.url }}" alt="Foto {{ loop.index + 1 }}">
                     {% if loop.last and imagenes|length > 4 %}
-                    <div class="galeria-more-overlay"><i class="ph ph-images"></i> Ver todas las fotos</div>
+                    <div class="galeria-more-overlay"><i class="ph ph-images"></i> <span data-i18n="detail.all_photos">Ver todas las fotos</span></div>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -142,9 +161,8 @@
                         </div>
                     </div>
                     <div class="host-avatar-wrap">
-                        <img src="{{ experiencia.anf_foto or "
-                            https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" }}"
-                            alt="{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}" class="host-avatar">
+                        <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}"
+                            alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="host-avatar">
                         {% if experiencia.super_anfitrion %}<div class="super-badge-avatar"><i
                                 class="ph-fill ph-medal"></i></div>{% endif %}
                     </div>
@@ -231,7 +249,7 @@
 
             <!-- MAPA -->
             <div class="detalle-card mapa-card">
-                <h2 class="section-title">¿Dónde está?</h2>
+                <h2 class="section-title" data-i18n="detail.offers">Lo que ofrece este lugar</h2>
                 <p class="mapa-subtitle"><i class="ph ph-map-pin"></i> {{ experiencia.municipio ~ ", Huila" }} — La
                     dirección exacta se comparte tras la reserva.</p>
                 <div id="detalle-map"></div>
@@ -260,7 +278,7 @@
                     {% for r in resenas %}
                     <div class="resena-card">
                         <div class="resena-header">
-                            <img src="{{ r.foto_perfil or 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60' }}"
+                            <img src="{{ r.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ r.nombre ~ '&background=random' }}"
                                 alt="{{ r.nombre }}" class="resena-avatar">
                             <div>
                                 <strong>{{ r.nombre }} {{ r.apellido }}</strong>
@@ -279,6 +297,42 @@
                     <p style="color:var(--text-muted)">Sé el primero en dejar una reseña.</p>
                     {% endif %}
                 </div>
+                
+                <!-- Formulario de reseña -->
+                {% if current_user.is_authenticated %}
+                <div class="new-review-form" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Deja tu reseña</h3>
+                    <form action="/resena/experiencia/{{ experiencia.id }}" method="POST">
+                        <div class="rating-section" style="margin-bottom: 1rem;">
+                            <label style="display:block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Calificación general:</label>
+                            <div class="stars-input-direct" style="display:flex; flex-direction:row-reverse; justify-content:flex-end; gap: 0.2rem;">
+                                <input type="radio" name="calificacion" id="star5" value="5" required style="display:none;"><label for="star5" style="cursor:pointer; font-size:1.8rem; color:#ddd; transition: color 0.2s;">★</label>
+                                <input type="radio" name="calificacion" id="star4" value="4" style="display:none;"><label for="star4" style="cursor:pointer; font-size:1.8rem; color:#ddd; transition: color 0.2s;">★</label>
+                                <input type="radio" name="calificacion" id="star3" value="3" style="display:none;"><label for="star3" style="cursor:pointer; font-size:1.8rem; color:#ddd; transition: color 0.2s;">★</label>
+                                <input type="radio" name="calificacion" id="star2" value="2" style="display:none;"><label for="star2" style="cursor:pointer; font-size:1.8rem; color:#ddd; transition: color 0.2s;">★</label>
+                                <input type="radio" name="calificacion" id="star1" value="1" style="display:none;"><label for="star1" style="cursor:pointer; font-size:1.8rem; color:#ddd; transition: color 0.2s;">★</label>
+                            </div>
+                            <style>
+                                .stars-input-direct label:hover,
+                                .stars-input-direct label:hover ~ label,
+                                .stars-input-direct input:checked ~ label {
+                                    color: #F59E0B !important;
+                                }
+                            </style>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display:block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Tu comentario:</label>
+                            <textarea name="comentario" rows="3" required style="width:100%; padding: 0.8rem; border: 1.5px solid var(--border); border-radius: 12px; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'" placeholder="¿Cómo fue tu experiencia en esta actividad?"></textarea>
+                        </div>
+                        <button type="submit" style="background: linear-gradient(135deg, var(--primary), #3d6b52); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Publicar reseña</button>
+                    </form>
+                </div>
+                {% else %}
+                <div style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem; text-align: center;">
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Inicia sesión para dejar una reseña.</p>
+                    <button onclick="window.location.href='/login'" style="background: white; border: 1.5px solid var(--primary); color: var(--primary); padding: 0.6rem 1.5rem; border-radius: 12px; font-weight: 600; cursor: pointer;">Iniciar sesión</button>
+                </div>
+                {% endif %}
             </div>
 
         </div><!-- end left -->
@@ -353,8 +407,15 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="bw-reserve-btn" id="bw-reserve-btn">Reservar</button>
-                    <p class="bw-note">No se te cobrará nada aún</p>
+                    {% if experiencia.estado == 'reparacion' %}
+                    <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #ffeeba; text-align:center; font-size: 0.9rem;">
+                        <i class="ph-fill ph-warning" style="font-size:1.1rem; vertical-align:middle;"></i> Esta experiencia se encuentra actualmente en reparación o mantenimiento. Las reservas están deshabilitadas temporalmente.
+                    </div>
+                    <button type="button" class="bw-reserve-btn" style="background:#ccc; cursor:not-allowed;">Reservar (Deshabilitado)</button>
+                    {% else %}
+                    <button type="submit" class="bw-reserve-btn" id="bw-reserve-btn" data-i18n="booking.reserve">Reservar</button>
+                    <p class="bw-note" data-i18n="booking.no_charge">No se te cobrará nada aún</p>
+                    {% endif %}
                 </form>
 
                 <!-- Método de pago preview -->
@@ -368,8 +429,7 @@
 
             <!-- Card anfitrión -->
             <div class="host-card">
-                <img src="{{ experiencia.anf_foto or " https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
-                    }}" alt="{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}" class="hc-avatar">
+                <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}" alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="hc-avatar">
                 <div class="hc-info">
                     <strong>{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</strong>
                     <p>Anfitrión desde {{ "2021" }}</p>
@@ -434,6 +494,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/detalle_experiencia.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 
 </html>

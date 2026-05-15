@@ -2,6 +2,25 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Consulta tus reservas en StayHuila.">
+    <meta property="og:title" content="Mis Reservas | StayHuila">
+    <meta property="og:description" content="Consulta tus reservas en StayHuila.">
+    <meta name="twitter:title" content="Mis Reservas | StayHuila">
+    <meta name="twitter:description" content="Consulta tus reservas en StayHuila.">
+    <!-- Favicon & Metadatos SEO -->
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link rel="shortcut icon" href="/static/images/logo.png">
+    <link rel="apple-touch-icon" href="/static/images/logo.png">
+    <meta name="theme-color" content="#2C4A3B">
+    <meta name="author" content="StayHuila">
+    <meta name="robots" content="index, follow">
+    <meta property="og:site_name" content="StayHuila">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/images/logo.png">
+    <meta property="og:locale" content="es_CO">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="/static/images/logo.png">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Reservas | StayHuila</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -17,11 +36,11 @@
         <span>StayHuila</span>
     </div>
             <nav class="nav-links">
-            <a href="/hospedajes">Hospedajes</a>
+            <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
             <a href="#">Experiencias</a>
 
-            <a href="/comunidad">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Pon tu espacio en StayHuila</a>
+            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);" data-i18n="nav.host_panel">Panel Anfitrión</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
@@ -39,13 +58,13 @@
                             <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
                             <span>{{ current_user.email }}</span>
                         </div>
-                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
-                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
-                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span data-i18n="nav.my_profile">Mi Perfil</span></a>
+                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span data-i18n="nav.my_bookings">Mis Reservas</span></a>
+                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span data-i18n="nav.my_favorites">Mis Favoritos</span></a>
                         <div class="dropdown-divider"></div>
-                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span data-i18n="nav.host_panel">Panel Anfitrión</span></a>
                         <div class="dropdown-divider"></div>
-                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span data-i18n="nav.logout">Cerrar Sesión</span></a>
                     </div>
                 </div>
             {% else %}
@@ -60,26 +79,26 @@
 <div class="mr-page">
     <div class="mr-header">
         <div>
-            <h1>Mis Reservas</h1>
+            <h1 data-i18n="reservas.title">Mis Reservas</h1>
             <p>Hola, <strong>{{ current_user.nombre }}</strong> · {{ reservas|length }} reserva{% if reservas|length != 1 %}s{% endif %} en total</p>
         </div>
-        <a href="/hospedajes" class="btn-explore">+ Nueva reserva</a>
+        <a href="/hospedajes" class="btn-explore"><span data-i18n="bookings.new">+ Nueva reserva</span></a>
     </div>
 
     <!-- Flash -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% for cat,msg in messages %}
-    <div style="padding:.9rem 1rem;border-radius:10px;margin-bottom:1rem;background:{% if cat=='error' %}#FEF2F2{% elif cat=='success' %}#F0FDF4{% else %}#EFF6FF{% endif %};color:{% if cat=='error' %}#DC2626{% elif cat=='success' %}#16A34A{% else %}#2563EB{% endif %};border:1px solid {% if cat=='error' %}#FECACA{% elif cat=='success' %}#BBF7D0{% else %}#BFDBFE{% endif %};">{{ msg }}</div>
+    <script>document.addEventListener('DOMContentLoaded',()=>showToast({{ msg|tojson }}, '{{ "success" if cat=="success" else "error" if cat=="error" else "info" }}'));</script>
     {% endfor %}
     {% endwith %}
 
     <!-- Filtros -->
     <div class="filters">
-        <button class="filter-btn active" onclick="filter('all',this)">Todas</button>
-        <button class="filter-btn" onclick="filter('confirmada',this)">Confirmadas</button>
-        <button class="filter-btn" onclick="filter('checkin',this)">En estadía</button>
-        <button class="filter-btn" onclick="filter('completada',this)">Completadas</button>
-        <button class="filter-btn" onclick="filter('cancelada',this)">Canceladas</button>
+        <button class="filter-btn active" onclick="filter('all',this)"><span data-i18n="filter.all">Todas</span></button>
+        <button class="filter-btn" onclick="filter('confirmada',this)"><span data-i18n="filter.confirmed">Confirmadas</span></button>
+        <button class="filter-btn" onclick="filter('checkin',this)"><span data-i18n="filter.checkin">En estadía</span></button>
+        <button class="filter-btn" onclick="filter('completada',this)"><span data-i18n="filter.completed">Completadas</span></button>
+        <button class="filter-btn" onclick="filter('cancelada',this)"><span data-i18n="filter.cancelled">Canceladas</span></button>
     </div>
 
     {% if reservas %}
@@ -96,11 +115,11 @@
                         </div>
                         <div>
                             <span class="estado-badge estado-{{ r.estado }}">
-                                {% if r.estado == 'confirmada' %}<i class="ph-fill ph-check-circle"></i> Confirmada
-                                {% elif r.estado == 'checkin' %}<i class="ph-fill ph-house"></i> En estadía
-                                {% elif r.estado == 'completada' %}<i class="ph-fill ph-star"></i> Completada
-                                {% elif r.estado == 'cancelada' %}<i class="ph-fill ph-x-circle"></i> Cancelada
-                                {% else %}<i class="ph-fill ph-clock"></i> Pendiente{% endif %}
+                                {% if r.estado == 'confirmada' %}<i class="ph-fill ph-check-circle"></i> <span data-i18n="status.confirmed">Confirmada</span>
+                                {% elif r.estado == 'checkin' %}<i class="ph-fill ph-house"></i> <span data-i18n="status.checkin">En estadía</span>
+                                {% elif r.estado == 'completada' %}<i class="ph-fill ph-star"></i> <span data-i18n="status.completed">Completada</span>
+                                {% elif r.estado == 'cancelada' %}<i class="ph-fill ph-x-circle"></i> <span data-i18n="status.cancelled">Cancelada</span>
+                                {% else %}<i class="ph-fill ph-clock"></i> <span data-i18n="status.pending">Pendiente</span>{% endif %}
                             </span>
                         </div>
                     </div>
@@ -110,7 +129,7 @@
                         <span><i class="ph ph-sign-out"></i> <strong>{{ r.fecha_checkout }}</strong></span>
                         <span><i class="ph ph-users"></i> {{ r.num_huespedes }} hués.</span>
                     </div>
-                    <div style="font-size:.82rem;color:var(--text-muted);">Código: <strong>{{ r.codigo_reserva }}</strong></div>
+                    <div style="font-size:.82rem;color:var(--text-muted);"><span data-i18n="bookings.code">Código</span>: <strong>{{ r.codigo_reserva }}</strong></div>
                     <div class="rc-actions">
                         <a href="/reserva/{{ r.id }}" class="rc-btn"><i class="ph ph-eye"></i> Ver detalle</a>
                         {% if r.estado == 'confirmada' %}
@@ -128,13 +147,15 @@
     {% else %}
     <div class="empty-state">
         <div class="empty-icon">🏕️</div>
-        <h2>Aún no tienes reservas</h2>
-        <p>Explora los hospedajes del Huila y vive una experiencia única</p>
-        <a href="/hospedajes" class="btn-explore">Explorar hospedajes</a>
+        <h2 data-i18n="bookings.empty_title">Aún no tienes reservas</h2>
+        <p data-i18n="bookings.empty_sub">Explora los hospedajes del Huila y vive una experiencia única</p>
+        <a href="/hospedajes" class="btn-explore"><span data-i18n="bookings.explore">Explorar hospedajes</span></a>
     </div>
     {% endif %}
 </div>
 
 <script src="{{ url_for('static', filename='js/mis_reservas.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 </html>

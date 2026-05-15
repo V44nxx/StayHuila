@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Tus hospedajes favoritos en StayHuila.">
+    <meta property="og:title" content="Mis Favoritos | StayHuila">
+    <meta property="og:description" content="Tus hospedajes favoritos en StayHuila.">
+    <meta name="twitter:title" content="Mis Favoritos | StayHuila">
+    <meta name="twitter:description" content="Tus hospedajes favoritos en StayHuila.">
+    <!-- Favicon & Metadatos SEO -->
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link rel="shortcut icon" href="/static/images/logo.png">
+    <link rel="apple-touch-icon" href="/static/images/logo.png">
+    <meta name="theme-color" content="#2C4A3B">
+    <meta name="author" content="StayHuila">
+    <meta name="robots" content="index, follow">
+    <meta property="og:site_name" content="StayHuila">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/images/logo.png">
+    <meta property="og:locale" content="es_CO">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="/static/images/logo.png">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StayHuila | Mis Favoritos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/hospedajes.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/asistente.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .favoritos-container {
+            padding: 120px 5% 50px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-title {
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            color: var(--text-main);
+        }
+        .grid-full {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .empty-state a {
+            display: inline-block;
+            margin-top: 1.5rem;
+            padding: 0.8rem 1.5rem;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        /* Override heart color for favorites */
+        .favorite-btn i.ph-fill {
+            color: #ff385c;
+        }
+    </style>
+</head>
+<body>
+    <header class="navbar navbar-hospedajes" id="navbar">
+        <div class="logo" onclick="window.location.href='/'" style="cursor: pointer;">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <span>StayHuila</span>
+        </div>
+        <nav class="nav-links">
+            <a href="/hospedajes">Hospedajes</a>
+            <a href="/experiencias">Experiencias</a>
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link">Panel Anfitrion</a>
+        </nav>
+        <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            {% if current_user.is_authenticated %}
+                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <i class="ph ph-list"></i>
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                    
+                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                        <div class="dropdown-header">
+                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                            <span>{{ current_user.email }}</span>
+                        </div>
+                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="profile-btn" onclick="window.location.href='/login'">
+                    <i class="ph ph-list"></i>
+                    <i class="ph-fill ph-user-circle"></i>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+    
+    <div class="favoritos-container">
+        <h1 class="section-title">Mis Favoritos</h1>
+        
+        {% if hospedajes|length == 0 and experiencias|length == 0 %}
+        <div class="empty-state">
+            <i class="ph ph-heart-break"></i>
+            <h3>Aún no tienes favoritos</h3>
+            <p style="color: var(--text-muted);">Empieza a explorar y guarda los lugares que más te gusten.</p>
+            <a href="/hospedajes">Explorar Hospedajes</a>
+        </div>
+        {% endif %}
+        
+        {% if hospedajes|length > 0 %}
+        <h2 style="margin-bottom: 1rem; font-size: 1.5rem;">Hospedajes Guardados</h2>
+        <main class="grid-full">
+            {% for h in hospedajes %}
+            <article class="listing-card" id="card-h-{{ h.id }}" style="margin:0;cursor:pointer;" onclick="window.location.href='/hospedaje/{{ h.id }}'">
+                <div class="image-wrapper">
+                    <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}" alt="{{ h.tipo }}">
+                    <button class="favorite-btn" data-id="{{ h.id }}" data-tipo="hospedaje" onclick="event.stopPropagation()"><i class="ph-fill ph-heart"></i></button>
+                </div>
+                <div class="listing-info">
+                    <div class="listing-header">
+                        <h3 style="font-size: 1rem;">{{ h.nombre }}</h3>
+                        <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ h.calificacion }}</span>
+                    </div>
+                    <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}, Huila</p>
+                    <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche</p>
+                </div>
+            </article>
+            {% endfor %}
+        </main>
+        {% endif %}
+
+        {% if experiencias|length > 0 %}
+        <h2 style="margin-bottom: 1rem; font-size: 1.5rem; margin-top: 2rem;">Experiencias Guardadas</h2>
+        <main class="grid-full">
+            {% for e in experiencias %}
+            <article class="listing-card" id="card-e-{{ e.id }}" style="margin:0;cursor:pointer;" onclick="window.location.href='/experiencia/{{ e.id }}'">
+                <div class="image-wrapper">
+                    <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600' }}" alt="{{ e.tipo }}">
+                    <button class="favorite-btn" data-id="{{ e.id }}" data-tipo="experiencia" onclick="event.stopPropagation()"><i class="ph-fill ph-heart"></i></button>
+                </div>
+                <div class="listing-info">
+                    <div class="listing-header">
+                        <h3 style="font-size: 1rem;">{{ e.nombre }}</h3>
+                        <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ e.calificacion }}</span>
+                    </div>
+                    <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}, Huila</p>
+                    <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> por persona</p>
+                </div>
+            </article>
+            {% endfor %}
+        </main>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/favoritos.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+</body>
+</html>

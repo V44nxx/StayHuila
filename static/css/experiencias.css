@@ -14,7 +14,7 @@
 /* Diseño de Split Screen (Mitad listado, mitad mapa) */
 .hospedajes-layout {
     display: flex;
-    margin-top: 90px; /* Espacio para el navbar */
+    margin-top: 130px; /* Espacio para el navbar */
     height: calc(100vh - 90px);
     overflow: hidden;
 }

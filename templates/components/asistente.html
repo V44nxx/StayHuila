@@ -1,0 +1,40 @@
+<!-- Botón Flotante del Asistente -->
+<div id="ai-assistant-btn" class="ai-assistant-btn" onclick="toggleAssistant()">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="IA" style="width: 40px; height: 40px; object-fit: contain;">
+</div>
+
+<!-- Panel del Asistente -->
+<div id="ai-assistant-panel" class="ai-assistant-panel hidden">
+    <div class="ai-header">
+        <div class="ai-header-info">
+            <div class="ai-avatar" style="background: transparent;">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila IA" style="width: 30px; height: 30px; object-fit: contain;">
+            </div>
+            <div>
+                <h3>StayHuila IA</h3>
+                <p>Tu asistente de viajes</p>
+            </div>
+        </div>
+        <button class="ai-close-btn" onclick="toggleAssistant()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div id="ai-messages" class="ai-messages">
+        <div class="ai-message bot">
+            <div class="msg-content">
+                ¡Hola! Soy la IA de StayHuila 🌿. ¿En qué te puedo ayudar? Puedes decirme cosas como "Busco una cabaña en San Agustín para 4 personas" o usar el micrófono.
+            </div>
+        </div>
+    </div>
+
+    <div class="ai-input-area">
+        <button id="ai-mic-btn" class="ai-mic-btn" onclick="toggleVoice()">
+            <i class="fas fa-microphone"></i>
+        </button>
+        <input type="text" id="ai-text-input" placeholder="Escribe tu búsqueda..." onkeypress="handleEnter(event)">
+        <button id="ai-send-btn" class="ai-send-btn" onclick="sendMessage()">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
