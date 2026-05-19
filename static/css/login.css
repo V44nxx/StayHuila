@@ -68,3 +68,16 @@
         .next-input{display:none;}
         @media(max-width:768px){.auth-hero{display:none;}.auth-panel{width:100%;padding:2rem 1.5rem;min-width:unset;}}
         @media(max-height:680px){.auth-panel{padding:1.5rem 3rem;}}
+
+        /* ── Toast notifications ── */
+        #toast-container{position:fixed;bottom:30px;right:30px;display:flex;flex-direction:column;gap:10px;z-index:99999;}
+        .toast{background:#fff;color:#333;padding:15px 20px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);display:flex;align-items:center;gap:10px;min-width:260px;max-width:380px;transform:translateX(120%);opacity:0;transition:all .4s cubic-bezier(.68,-.55,.265,1.55);border-left:4px solid var(--primary);}
+        .toast.show{transform:translateX(0);opacity:1;}
+        .toast.hide{transform:translateX(120%);opacity:0;}
+        .toast.error{border-left-color:#EF4444;}
+        .toast.success{border-left-color:#10B981;}
+        .toast.info{border-left-color:#3B82F6;}
+        .toast i{font-size:1.2rem;flex-shrink:0;}
+        .toast.error i{color:#EF4444;}
+        .toast.success i{color:#10B981;}
+        .toast.info i{color:#3B82F6;}

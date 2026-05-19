@@ -127,10 +127,74 @@
                     <button type="submit" class="btn-primary"><span data-i18n="login.btn">Iniciar Sesión</span> <i
                             class="ph ph-sign-in"></i></button>
                 </form>
+                <div style="text-align:center;margin-top:1rem;">
+                    <button type="button" onclick="showForgot()" style="background:none;border:none;color:var(--muted);font-family:inherit;font-size:.9rem;cursor:pointer;text-decoration:underline;padding:0;">¿Olvidaste tu contraseña?</button>
+                </div>
                 <div class="divider" data-i18n="login.no_acc">¿No tienes cuenta?</div>
                 <button class="btn-primary"
                     style="background:white;color:var(--primary);border:2px solid var(--primary);box-shadow:none;"
                     onclick="switchTab('register')"><span data-i18n="login.create">Crear cuenta gratis</span></button>
+            </div>
+
+            <!-- RECUPERAR CONTRASEÑA -->
+            <div class="tab-content" id="content-forgot">
+                <!-- Paso 1: ingresar email -->
+                <div id="forgot-step1">
+                    <button type="button" onclick="backToLogin()" style="background:none;border:none;color:var(--muted);font-family:inherit;font-size:.9rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;margin-bottom:1.5rem;padding:0;">
+                        <i class="ph ph-arrow-left"></i> Volver al inicio de sesión
+                    </button>
+                    <h1 class="form-title">Recuperar contraseña</h1>
+                    <p class="form-sub">Ingresa tu correo y te enviaremos un código de verificación</p>
+                    <div class="form-group">
+                        <label>Correo electrónico</label>
+                        <div class="input-icon">
+                            <i class="ph ph-envelope"></i>
+                            <input type="email" id="forgot-email" placeholder="tu@correo.com" autocomplete="email">
+                        </div>
+                    </div>
+                    <div id="forgot-error1" style="display:none;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;padding:.75rem 1rem;border-radius:10px;font-size:.88rem;margin-bottom:1rem;"></div>
+                    <button type="button" class="btn-primary" onclick="sendResetCode()" id="btn-send-code">
+                        <span>Enviar código</span> <i class="ph ph-paper-plane-right"></i>
+                    </button>
+                </div>
+
+                <!-- Paso 2: ingresar código + nueva contraseña -->
+                <div id="forgot-step2" style="display:none;">
+                    <button type="button" onclick="resetToStep1()" style="background:none;border:none;color:var(--muted);font-family:inherit;font-size:.9rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;margin-bottom:1.5rem;padding:0;">
+                        <i class="ph ph-arrow-left"></i> Cambiar correo
+                    </button>
+                    <h1 class="form-title">Verifica tu código</h1>
+                    <p class="form-sub" id="forgot-step2-sub">Ingresa el código de 6 dígitos que enviamos a tu correo</p>
+                    <div class="form-group">
+                        <label>Código de verificación</label>
+                        <input type="text" id="forgot-codigo" placeholder="000000" maxlength="6"
+                            style="text-align:center;font-size:1.6rem;font-weight:700;letter-spacing:.3em;"
+                            oninput="this.value=this.value.replace(/\D/g,'')">
+                    </div>
+                    <div class="form-group">
+                        <label>Nueva contraseña</label>
+                        <div class="input-icon" style="position:relative">
+                            <i class="ph ph-lock"></i>
+                            <input type="password" id="forgot-pw" placeholder="Mínimo 6 caracteres" minlength="6">
+                            <i class="ph ph-eye pw-toggle" onclick="togglePw('forgot-pw',this)"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar contraseña</label>
+                        <div class="input-icon" style="position:relative">
+                            <i class="ph ph-lock"></i>
+                            <input type="password" id="forgot-pw2" placeholder="Repite tu contraseña">
+                            <i class="ph ph-eye pw-toggle" onclick="togglePw('forgot-pw2',this)"></i>
+                        </div>
+                    </div>
+                    <div id="forgot-error2" style="display:none;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;padding:.75rem 1rem;border-radius:10px;font-size:.88rem;margin-bottom:1rem;"></div>
+                    <button type="button" class="btn-primary" onclick="verifyResetCode()" id="btn-verify-code">
+                        <span>Cambiar contraseña</span> <i class="ph ph-check-circle"></i>
+                    </button>
+                    <div style="text-align:center;margin-top:1rem;">
+                        <button type="button" onclick="sendResetCode(true)" style="background:none;border:none;color:var(--muted);font-family:inherit;font-size:.85rem;cursor:pointer;text-decoration:underline;padding:0;">¿No recibiste el código? Reenviar</button>
+                    </div>
+                </div>
             </div>
 
             <!-- REGISTRO -->

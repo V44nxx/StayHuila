@@ -21,8 +21,8 @@ import cv2
 # ── CONSTANTES DE VALIDACIÓN ────────────────────────────────────────────────
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}   # Formatos aceptados
 MAX_FILE_SIZE_MB   = 5                          # Tamaño máximo en megabytes
-MIN_WIDTH          = 1280                       # Resolución mínima: ancho
-MIN_HEIGHT         = 720                        # Resolución mínima: alto
+MIN_WIDTH          = 1000                       # Resolución mínima: ancho
+MIN_HEIGHT         = 500                        # Resolución mínima: alto
 BLUR_THRESHOLD     = 80.0                       # Varianza Laplaciana por debajo = borrosa
 TARGET_WIDTH       = 1280                       # Ancho objetivo tras redimensionar
 TARGET_QUALITY     = 82                         # Calidad JPEG de salida (0-95)

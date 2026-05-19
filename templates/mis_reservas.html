@@ -105,7 +105,7 @@
     {% if reservas %}
     <div id="reservas-list">
         {% for r in reservas %}
-        <div class="reserva-card" data-estado="{{ r.estado }}">
+        <div class="reserva-card" data-estado="{{ r.estado }}" data-checkin-ts="{{ r.checkin_ts }}" data-checkout-ts="{{ r.checkout_ts }}">
             <div class="rc-body">
                 <img src="{{ r.hosp_img or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=400' }}" class="rc-img" alt="{{ r.hosp_nombre }}">
                 <div class="rc-info">
@@ -135,11 +135,21 @@
                     <div class="rc-actions">
                         <a href="/reserva/{{ r.id }}" class="rc-btn"><i class="ph ph-eye"></i> Ver detalle</a>
                         {% if r.estado == 'pendiente_pago' %}
-                        <a href="/reserva/{{ r.id }}" class="rc-btn warning" style="background:#f59e0b;color:white;border:none;"><i class="ph ph-wallet"></i> Pagar ahora</a>
+                        <form method="POST" action="/simular-pago/{{ r.id }}" style="display:inline;">
+                            <button type="submit" class="rc-btn warning" style="background:#f59e0b;color:white;border:none;cursor:pointer;font-family:inherit;font-size:inherit;">
+                                <i class="ph ph-currency-circle-dollar"></i> Simular pago
+                            </button>
+                        </form>
                         {% elif r.estado == 'confirmada' %}
-                        <a href="/checkin/{{ r.id }}" class="rc-btn primary"><i class="ph ph-sign-in"></i> Check-in</a>
+                        <a href="/checkin/{{ r.id }}" class="rc-btn primary rc-checkin-btn"><i class="ph ph-sign-in"></i> Check-in</a>
+                        <span class="rc-btn rc-time-wait" style="display:none;background:#f0f7f4;color:#2C4A3B;border:1px solid #2C4A3B;font-size:.78rem;cursor:default;">
+                            <i class="ph ph-clock"></i> Check-in desde <strong class="rc-time-label"></strong>
+                        </span>
                         {% elif r.estado == 'check_in' %}
-                        <a href="/checkout/{{ r.id }}" class="rc-btn purple"><i class="ph ph-sign-out"></i> Check-out</a>
+                        <a href="/checkout/{{ r.id }}" class="rc-btn purple rc-checkout-btn"><i class="ph ph-sign-out"></i> Check-out</a>
+                        <span class="rc-btn rc-time-wait" style="display:none;background:#f5f3ff;color:#7c3aed;border:1px solid #8b5cf6;font-size:.78rem;cursor:default;">
+                            <i class="ph ph-clock"></i> Check-out desde <strong class="rc-time-label"></strong>
+                        </span>
                         {% endif %}
                         <span class="rc-price">${{ "{:,.0f}".format(r.total).replace(',','.') }} COP</span>
                     </div>
@@ -159,6 +169,32 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/mis_reservas.js') }}"></script>
+<script>
+document.querySelectorAll('.reserva-card').forEach(function(card) {
+    var ciTs = parseInt(card.dataset.checkinTs)  || 0;
+    var coTs = parseInt(card.dataset.checkoutTs) || 0;
+    function applyBlock(ts, btnClass, waitClass) {
+        var btn  = card.querySelector(btnClass);
+        var wait = card.querySelector(waitClass);
+        if (!btn || !ts) return;
+        var target = new Date(ts * 1000);
+        if (Date.now() < target.getTime()) {
+            btn.style.display = 'none';
+            if (wait) {
+                wait.style.display = '';
+                var lbl = wait.querySelector('.rc-time-label');
+                if (lbl) {
+                    lbl.textContent = String(target.getHours()).padStart(2,'0') + ':'
+                        + String(target.getMinutes()).padStart(2,'0') + ' h · '
+                        + target.toLocaleDateString('es-CO');
+                }
+            }
+        }
+    }
+    applyBlock(ciTs, '.rc-checkin-btn',  '.rc-time-wait');
+    applyBlock(coTs, '.rc-checkout-btn', '.rc-time-wait');
+});
+</script>
 
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>

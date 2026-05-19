@@ -4,6 +4,116 @@ function switchTab(t){
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
     document.getElementById('tab-'+t).classList.add('active');
     document.getElementById('content-'+t).classList.add('active');
+    document.querySelector('.tabs').style.display = '';
+}
+
+/* ── Recuperación de contraseña ── */
+let _resetEmail = '';
+
+function showForgot(){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    document.querySelector('.tabs').style.display = 'none';
+    document.getElementById('content-forgot').classList.add('active');
+    document.getElementById('forgot-step1').style.display = '';
+    document.getElementById('forgot-step2').style.display = 'none';
+    document.getElementById('forgot-email').value = '';
+    document.getElementById('forgot-error1').style.display = 'none';
+}
+
+function backToLogin(){
+    document.querySelector('.tabs').style.display = '';
+    switchTab('login');
+}
+
+function resetToStep1(){
+    document.getElementById('forgot-step2').style.display = 'none';
+    document.getElementById('forgot-step1').style.display = '';
+    document.getElementById('forgot-error1').style.display = 'none';
+}
+
+function setBtn(id, loading){
+    const btn = document.getElementById(id);
+    if(loading){
+        btn.disabled = true;
+        btn.style.opacity = '.65';
+        btn.style.cursor  = 'wait';
+    } else {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.cursor  = '';
+    }
+}
+
+async function sendResetCode(resend){
+    const emailEl = document.getElementById('forgot-email');
+    const errEl   = document.getElementById('forgot-error1');
+    errEl.style.display = 'none';
+
+    const email = resend ? _resetEmail : emailEl.value.trim();
+    if(!email){ errEl.textContent = 'Ingresa tu correo electrónico.'; errEl.style.display=''; return; }
+
+    setBtn('btn-send-code', true);
+    try {
+        const res  = await fetch('/api/recuperar-contrasena', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({email})
+        });
+        const data = await res.json();
+        if(!res.ok || !data.success){
+            errEl.textContent = data.error || 'Error al enviar el código.';
+            errEl.style.display = '';
+        } else {
+            _resetEmail = email;
+            document.getElementById('forgot-step2-sub').textContent =
+                `Ingresa el código de 6 dígitos enviado a ${email}`;
+            document.getElementById('forgot-codigo').value = '';
+            document.getElementById('forgot-pw').value     = '';
+            document.getElementById('forgot-pw2').value    = '';
+            document.getElementById('forgot-error2').style.display = 'none';
+            document.getElementById('forgot-step1').style.display = 'none';
+            document.getElementById('forgot-step2').style.display = '';
+            if(resend) showToast('Código reenviado a tu correo.', 'success');
+        }
+    } catch(e){
+        errEl.textContent = 'No se pudo conectar al servidor.';
+        errEl.style.display = '';
+    } finally {
+        setBtn('btn-send-code', false);
+    }
+}
+
+async function verifyResetCode(){
+    const codigo = document.getElementById('forgot-codigo').value.trim();
+    const pw     = document.getElementById('forgot-pw').value;
+    const pw2    = document.getElementById('forgot-pw2').value;
+    const errEl  = document.getElementById('forgot-error2');
+    errEl.style.display = 'none';
+
+    if(!codigo || codigo.length !== 6){ errEl.textContent='Ingresa el código de 6 dígitos.'; errEl.style.display=''; return; }
+    if(!pw || pw.length < 6)          { errEl.textContent='La contraseña debe tener al menos 6 caracteres.'; errEl.style.display=''; return; }
+    if(pw !== pw2)                     { errEl.textContent='Las contraseñas no coinciden.'; errEl.style.display=''; return; }
+
+    setBtn('btn-verify-code', true);
+    try {
+        const res  = await fetch('/api/verificar-reset', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({email: _resetEmail, codigo, password: pw})
+        });
+        const data = await res.json();
+        if(!res.ok || !data.success){
+            errEl.textContent = data.error || 'Error al cambiar la contraseña.';
+            errEl.style.display = '';
+        } else {
+            showToast('¡Contraseña actualizada! Ya puedes iniciar sesión.', 'success');
+            setTimeout(()=>{ backToLogin(); }, 1800);
+        }
+    } catch(e){
+        errEl.textContent = 'No se pudo conectar al servidor.';
+        errEl.style.display = '';
+    } finally {
+        setBtn('btn-verify-code', false);
+    }
 }
 function togglePw(id,icon){
     const inp=document.getElementById(id);

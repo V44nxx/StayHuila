@@ -2,9 +2,12 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 import pymysql
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time as dt_time
 from decimal import Decimal
-import random, string
+import random, string, os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 # Módulo de validación y optimización de imágenes (OpenCV + Pillow)
 from image_optimizer import process_image
 
@@ -15,6 +18,75 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar'
 login_manager.login_message_category = 'info'
+
+# ── CONFIGURACIÓN SMTP (Gmail) ────────────────────────────────────────────────
+# ↓ PON TU CORREO DE GMAIL Y TU APP PASSWORD AQUÍ ↓
+MAIL_USERNAME = 'murciacorredoremerson@gmail.com'   # Ejemplo: 'miCorreo@gmail.com'
+MAIL_PASSWORD = 'rdvhjcbzixjmumfv'   # App Password de 16 caracteres (ver instrucciones abajo)
+# ─────────────────────────────────────────────────────────────────────────────
+# Cómo obtener el App Password de Gmail:
+#   1. Ve a myaccount.google.com → Seguridad → Verificación en 2 pasos (actívala)
+#   2. Luego en myaccount.google.com → Seguridad → Contraseñas de aplicaciones
+#   3. Selecciona "Otra (nombre personalizado)" → escribe "StayHuila" → Generar
+#   4. Copia el código de 16 caracteres SIN espacios y pégalo en MAIL_PASSWORD
+# ─────────────────────────────────────────────────────────────────────────────
+MAIL_SERVER   = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+MAIL_PORT     = int(os.environ.get('MAIL_PORT', '587'))
+MAIL_FROM     = MAIL_USERNAME
+
+
+def combine_date_time(d, t, default=dt_time(15, 0)):
+    """Combina un date con un TIME de MySQL (timedelta) → datetime.
+    Si t es None usa default (dt_time). Soporta timedelta y dt_time."""
+    if d is None:
+        return None
+    if t is None:
+        return datetime.combine(d, default)
+    if isinstance(t, timedelta):
+        total = int(t.total_seconds())
+        return datetime.combine(d, dt_time(total // 3600, (total % 3600) // 60))
+    if isinstance(t, dt_time):
+        return datetime.combine(d, t)
+    return datetime.combine(d, default)
+
+
+def send_reset_email(to_email, codigo):
+    """Envía el código de recuperación de contraseña por correo."""
+    if not MAIL_USERNAME or not MAIL_PASSWORD:
+        raise RuntimeError('El servicio de correo no está configurado en el servidor.')
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'Código de recuperación — StayHuila'
+    msg['From']    = f'StayHuila <{MAIL_FROM}>'
+    msg['To']      = to_email
+    html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family:'Outfit',Arial,sans-serif;background:#f5f5f0;margin:0;padding:24px;">
+  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#2C4A3B,#3d6b52);padding:32px;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:1.6rem;letter-spacing:-.02em;">🌿 StayHuila</h1>
+      <p style="color:rgba(255,255,255,.8);margin:6px 0 0;font-size:.95rem;">Recuperación de contraseña</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="color:#333;font-size:1rem;margin-bottom:.6rem;">Hola,</p>
+      <p style="color:#555;font-size:.95rem;line-height:1.6;">Recibimos una solicitud para restablecer la contraseña de tu cuenta StayHuila. Usa el siguiente código de verificación:</p>
+      <div style="background:#f0f7f4;border:2px dashed #2C4A3B;border-radius:12px;padding:28px;text-align:center;margin:24px 0;">
+        <span style="font-size:2.6rem;font-weight:800;letter-spacing:.35em;color:#2C4A3B;">{codigo}</span>
+      </div>
+      <p style="color:#888;font-size:.85rem;">⏱ Este código expira en <strong>15 minutos</strong>.</p>
+      <p style="color:#888;font-size:.85rem;margin-top:.5rem;">Si no solicitaste este cambio, puedes ignorar este correo con seguridad.</p>
+    </div>
+    <div style="background:#f5f5f0;padding:16px;text-align:center;">
+      <p style="color:#aaa;font-size:.78rem;margin:0;">© 2024 StayHuila · Huila, Colombia</p>
+    </div>
+  </div>
+</body>
+</html>"""
+    msg.attach(MIMEText(html, 'html'))
+    with smtplib.SMTP(MAIL_SERVER, MAIL_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(MAIL_USERNAME, MAIL_PASSWORD)
+        server.sendmail(MAIL_FROM, to_email, msg.as_string())
 
 # --- INTEGRACIÓN ASISTENTE IA ---
 import sys
@@ -127,10 +199,13 @@ def home():
 # ── HOSPEDAJES ────────────────────────────────────────────────
 @app.route('/hospedajes')
 def hospedajes():
-    q = request.args.get('q', '').strip()
-    huespedes = request.args.get('huespedes')
-    precio_max = request.args.get('precio_max')
-    
+    q          = request.args.get('q',         '').strip()
+    huespedes  = request.args.get('huespedes',  '').strip()
+    precio_max = request.args.get('precio_max', '').strip()
+    checkin    = request.args.get('checkin',    '').strip()
+    checkout   = request.args.get('checkout',   '').strip()
+    cat        = request.args.get('cat',        '').strip()
+
     c = db()
     try:
         with c.cursor() as cur:
@@ -138,28 +213,60 @@ def hospedajes():
                 SELECT h.*, i.url as image
                 FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
-                -- Filtrar: activos, no eliminados (soft delete) y en estado abierta
                 WHERE h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
             """
             params = []
-            
+
             if q:
-                query += " AND (h.municipio LIKE %s OR h.nombre LIKE %s OR h.tipo LIKE %s)"
-                params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
-            
+                query += " AND (h.municipio LIKE %s OR h.nombre LIKE %s OR h.tipo LIKE %s OR h.descripcion LIKE %s)"
+                params.extend([f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"])
+
             if huespedes:
                 query += " AND h.capacidad_max >= %s"
                 params.append(huespedes)
-                
+
             if precio_max:
                 query += " AND h.precio_noche <= %s"
                 params.append(precio_max)
-                
-            query += " ORDER BY h.calificacion DESC"
-            
+
+            # Filtrar por disponibilidad de fechas
+            if checkin and checkout:
+                query += """ AND h.id NOT IN (
+                    SELECT hospedaje_id FROM reservas
+                    WHERE estado IN ('pendiente_pago','confirmada','check_in')
+                      AND fecha_checkin < %s AND fecha_checkout > %s
+                      AND hospedaje_id IS NOT NULL
+                )"""
+                params.extend([checkout, checkin])
+
+            # Filtrar por categoría
+            _cat_filters = {
+                'finca-cafetera': " AND (h.tipo LIKE %s OR h.nombre LIKE %s)",
+                'eco':            " AND h.es_eco = 1",
+                'desierto':       " AND (h.municipio LIKE %s OR h.nombre LIKE %s OR h.nombre LIKE %s)",
+                'romantico':      " AND (h.tipo LIKE %s OR h.nombre LIKE %s)",
+                'aventura':       " AND (h.tipo LIKE %s OR h.nombre LIKE %s)",
+                'descanso':       " AND (h.tipo LIKE %s OR h.nombre LIKE %s)",
+            }
+            _cat_params = {
+                'finca-cafetera': ['%cafetera%', '%café%'],
+                'desierto':       ['%villavieja%', '%tatacoa%', '%desierto%'],
+                'romantico':      ['%romántico%', '%romántico%'],
+                'aventura':       ['%aventura%', '%aventura%'],
+                'descanso':       ['%descanso%', '%cabaña%'],
+            }
+            if cat in _cat_filters:
+                query += _cat_filters[cat]
+                if cat in _cat_params:
+                    params.extend(_cat_params[cat])
+
+            query += " ORDER BY h.destacado DESC, h.calificacion DESC"
+
             cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
-        return render_template('hospedajes.html', hospedajes=data, search_query=q)
+        return render_template('hospedajes.html', hospedajes=data,
+            search_query=q, checkin=checkin, checkout=checkout,
+            huespedes=huespedes, cat=cat)
     finally:
         c.close()
 
@@ -540,7 +647,7 @@ def reservar():
                 
                 # 2. Bloquear la fila de hospedaje/experiencia con SELECT FOR UPDATE
                 if tipo_reserva == 'experiencia':
-                    cur.execute("SELECT id, anfitrion_id, precio_persona, descuento_porcentaje, activo, estado, capacidad_max FROM experiencias WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
+                    cur.execute("SELECT id, anfitrion_id, precio_persona, 0 as descuento_porcentaje, activo, estado, capacidad_max FROM experiencias WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
                     hosp = cur.fetchone()
                     if not hosp:
                         flash('Experiencia no encontrada.', 'error')
@@ -668,9 +775,21 @@ def reservar():
                     c.commit()
                     flash('¡Pago procesado con éxito! Tu reserva ha sido confirmada.', 'success')
                 elif metodo in ('nequi', 'daviplata', 'transferencia'):
-                    # Nequi/Daviplata/Transferencia: La reserva queda en 'pendiente_pago' bloqueando las fechas temporalmente
+                    # Simulación: pago digital aprobado automáticamente
+                    cur.execute("""
+                        UPDATE reservas 
+                        SET estado = 'confirmada', estado_pago = 'pagado', fecha_confirmacion = NOW() 
+                        WHERE id = %s
+                    """, (rid,))
+                    cur.execute("""
+                        UPDATE pagos 
+                        SET estado = 'aprobado' 
+                        WHERE reserva_id = %s AND estado = 'pendiente'
+                    """, (rid,))
+                    cur.execute("UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s", (current_user.id,))
                     c.commit()
-                    flash('Tu reserva está pre-confirmada. Completa el pago en los siguientes 10 minutos.', 'info')
+                    metodo_label = {'nequi': 'Nequi', 'daviplata': 'Daviplata', 'transferencia': 'Transferencia'}[metodo]
+                    flash(f'¡Pago por {metodo_label} procesado con éxito! Tu reserva ha sido confirmada.', 'success')
                 else:  # efectivo
                     # Efectivo: Se confirma directamente al momento de hacer la reserva
                     cur.execute("""
@@ -752,6 +871,42 @@ def reservar():
         c.close()
 
 
+# ── SIMULACIÓN DE PAGO ────────────────────────────────────────
+@app.route('/simular-pago/<int:id>', methods=['POST'])
+@login_required
+def simular_pago(id):
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""SELECT id, usuario_id, metodo_pago, total, estado 
+                FROM reservas WHERE id=%s AND usuario_id=%s""", (id, current_user.id))
+            r = cur.fetchone()
+        if not r:
+            flash('Reserva no encontrada.', 'error')
+            return redirect(url_for('mis_reservas'))
+        if r['estado'] != 'pendiente_pago':
+            flash('Esta reserva no requiere pago pendiente.', 'info')
+            return redirect(url_for('confirmacion', id=id))
+        metodo_label = {'tarjeta':'Tarjeta','nequi':'Nequi','daviplata':'Daviplata',
+                        'transferencia':'Transferencia','efectivo':'Efectivo'}.get(r['metodo_pago'], r['metodo_pago'])
+        with c.cursor() as cur:
+            cur.execute("""UPDATE reservas 
+                SET estado='confirmada', estado_pago='pagado', fecha_confirmacion=NOW() 
+                WHERE id=%s""", (id,))
+            cur.execute("""UPDATE pagos SET estado='aprobado' 
+                WHERE reserva_id=%s AND estado='pendiente'""", (id,))
+            cur.execute("UPDATE usuarios SET puntos_gamificacion=puntos_gamificacion+50 WHERE id=%s",
+                        (current_user.id,))
+            c.commit()
+        flash(f'¡Pago por {metodo_label} simulado con éxito! Tu reserva está confirmada.', 'success')
+        return redirect(url_for('confirmacion', id=id))
+    except Exception as e:
+        c.rollback()
+        flash('Error al simular el pago: ' + str(e), 'error')
+        return redirect(url_for('mis_reservas'))
+    finally:
+        c.close()
+
 # ── CONFIRMACIÓN ──────────────────────────────────────────────
 @app.route('/reserva/<int:id>')
 @login_required
@@ -780,7 +935,16 @@ def confirmacion(id):
             reserva = cur.fetchone()
         if not reserva:
             return redirect(url_for('mis_reservas'))
-        return render_template('confirmacion.html', reserva=reserva)
+        # Calcular timestamps de disponibilidad para check-in y check-out
+        ci_dt = combine_date_time(reserva.get('fecha_checkin'), reserva.get('hora_checkin'), dt_time(15, 0))
+        co_dt = combine_date_time(reserva.get('fecha_checkout'), reserva.get('hora_checkout'), dt_time(11, 0))
+        checkin_ts  = int(ci_dt.timestamp()) if ci_dt else None
+        checkout_ts = int(co_dt.timestamp()) if co_dt else None
+        checkin_hora_str  = ci_dt.strftime('%H:%M') if ci_dt else '15:00'
+        checkout_hora_str = co_dt.strftime('%H:%M') if co_dt else '11:00'
+        return render_template('confirmacion.html', reserva=reserva,
+            checkin_ts=checkin_ts, checkout_ts=checkout_ts,
+            checkin_hora_str=checkin_hora_str, checkout_hora_str=checkout_hora_str)
     finally:
         c.close()
 
@@ -804,6 +968,13 @@ def mis_reservas():
                 LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
                 WHERE r.usuario_id=%s ORDER BY r.fecha_reserva DESC""", (current_user.id,))
             reservas = cur.fetchall()
+        for r in reservas:
+            fi = r.get('fecha_checkin')
+            fo = r.get('fecha_checkout')
+            ci = combine_date_time(fi, r.get('hora_checkin'), dt_time(15, 0)) if fi else None
+            co = combine_date_time(fo, r.get('hora_checkout'), dt_time(11, 0)) if fo else None
+            r['checkin_ts']  = int(ci.timestamp()) if ci else 0
+            r['checkout_ts'] = int(co.timestamp()) if co else 0
         return render_template('mis_reservas.html', reservas=reservas)
     finally:
         c.close()
@@ -849,7 +1020,13 @@ def checkin(id):
         elif reserva['estado'] != 'confirmada':
             flash('Esta reserva no está disponible para check-in', 'error')
             return redirect(url_for('mis_reservas'))
-            
+
+        # Validar que ya es la hora programada de check-in
+        ci_dt = combine_date_time(reserva['fecha_checkin'], reserva.get('hora_checkin'), dt_time(15, 0))
+        if ci_dt and datetime.now() < ci_dt:
+            flash(f'El check-in estará disponible a partir de las {ci_dt.strftime("%H:%M")} h del {ci_dt.strftime("%d/%m/%Y")}.', 'info')
+            return redirect(url_for('confirmacion', id=id))
+
         if request.method == 'POST':
             c2 = db()
             try:
@@ -903,6 +1080,13 @@ def checkout(id):
         elif reserva['estado'] != 'check_in':
             flash('Solo puedes hacer check-out después del check-in', 'error')
             return redirect(url_for('mis_reservas'))
+
+        # Validar que ya es la hora programada de check-out
+        co_dt = combine_date_time(reserva['fecha_checkout'], reserva.get('hora_checkout'), dt_time(11, 0))
+        if co_dt and datetime.now() < co_dt:
+            flash(f'El check-out estará disponible a partir de las {co_dt.strftime("%H:%M")} h del {co_dt.strftime("%d/%m/%Y")}.', 'info')
+            return redirect(url_for('confirmacion', id=id))
+
         if request.method == 'POST':
             cal_gen = request.form.get('calificacion_general')
             cal_limp = request.form.get('calificacion_limpieza')
@@ -1578,6 +1762,96 @@ def dejar_resena_directa(tipo, id):
         c.close()
         
     return redirect(f"/{tipo}/{id}")
+
+@app.route('/api/recuperar-contrasena', methods=['POST'])
+def api_recuperar_contrasena():
+    """Genera un código de 6 dígitos y lo envía al correo del usuario."""
+    data  = request.get_json(silent=True) or {}
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'success': False, 'error': 'Correo requerido.'}), 400
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("SELECT id FROM usuarios WHERE email=%s AND activo=1", (email,))
+            user = cur.fetchone()
+
+        if not user:
+            # Por seguridad no revelamos si el email existe o no
+            return jsonify({'success': True})
+
+        codigo = ''.join(random.choices(string.digits, k=6))
+        expiry = int((datetime.now() + timedelta(minutes=15)).timestamp())
+        token  = f'RESET:{codigo}:{expiry}'
+
+        with c.cursor() as cur:
+            cur.execute("UPDATE usuarios SET token_verificacion=%s WHERE id=%s",
+                        (token, user['id']))
+            c.commit()
+
+        send_reset_email(email, codigo)
+        return jsonify({'success': True})
+
+    except RuntimeError as e:
+        return jsonify({'success': False, 'error': str(e)}), 503
+    except Exception as e:
+        c.rollback()
+        app.logger.error(f'[recuperar_contrasena] {e}')
+        return jsonify({'success': False, 'error': 'No se pudo enviar el correo. Intenta más tarde.'}), 500
+    finally:
+        c.close()
+
+
+@app.route('/api/verificar-reset', methods=['POST'])
+def api_verificar_reset():
+    """Verifica el código y actualiza la contraseña del usuario."""
+    data    = request.get_json(silent=True) or {}
+    email   = data.get('email',    '').strip().lower()
+    codigo  = data.get('codigo',   '').strip()
+    new_pw  = data.get('password', '').strip()
+
+    if not all([email, codigo, new_pw]):
+        return jsonify({'success': False, 'error': 'Todos los campos son requeridos.'}), 400
+    if len(new_pw) < 6:
+        return jsonify({'success': False, 'error': 'La contraseña debe tener al menos 6 caracteres.'}), 400
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("SELECT id, token_verificacion FROM usuarios WHERE email=%s AND activo=1", (email,))
+            user = cur.fetchone()
+
+        if not user or not (user.get('token_verificacion') or '').startswith('RESET:'):
+            return jsonify({'success': False, 'error': 'Solicitud inválida o expirada.'}), 400
+
+        parts = user['token_verificacion'].split(':')
+        if len(parts) != 3:
+            return jsonify({'success': False, 'error': 'Solicitud inválida.'}), 400
+
+        _, stored_code, expiry_ts = parts
+
+        if int(datetime.now().timestamp()) > int(expiry_ts):
+            return jsonify({'success': False, 'error': 'El código ha expirado. Solicita uno nuevo.'}), 400
+
+        if codigo != stored_code:
+            return jsonify({'success': False, 'error': 'Código incorrecto. Verifica e intenta de nuevo.'}), 400
+
+        pw_hash = bcrypt.generate_password_hash(new_pw).decode('utf-8')
+        with c.cursor() as cur:
+            cur.execute("UPDATE usuarios SET password_hash=%s, token_verificacion=NULL WHERE id=%s",
+                        (pw_hash, user['id']))
+            c.commit()
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        c.rollback()
+        app.logger.error(f'[verificar_reset] {e}')
+        return jsonify({'success': False, 'error': 'Error interno. Intenta más tarde.'}), 500
+    finally:
+        c.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True)

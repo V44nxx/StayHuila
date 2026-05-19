@@ -153,29 +153,29 @@
             <div class="search-bar">
                 <div class="search-field">
                     <label data-i18n="hero.loc">Ubicación / Experiencia</label>
-                    <input type="text" data-i18n="hero.loc_ph" data-i18n-attr="placeholder"
-                        placeholder="Ej. Aventura en Tatacoa...">
+                    <input type="text" id="sh-q" data-i18n="hero.loc_ph" data-i18n-attr="placeholder"
+                        placeholder="Ej. Aventura en Tatacoa..." autocomplete="off">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
                     <label data-i18n="hero.checkin">Llegada</label>
-                    <input type="date" placeholder="Agrega fechas">
+                    <input type="date" id="sh-checkin">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
                     <label data-i18n="hero.checkout">Salida</label>
-                    <input type="date" placeholder="Agrega fechas">
+                    <input type="date" id="sh-checkout">
                 </div>
                 <div class="search-divider"></div>
                 <div class="search-field">
                     <label data-i18n="hero.guests">Huéspedes</label>
-                    <input type="number" data-i18n="hero.guests_ph" data-i18n-attr="placeholder" placeholder="¿Cuántos?"
-                        min="1">
+                    <input type="number" id="sh-guests" data-i18n="hero.guests_ph" data-i18n-attr="placeholder"
+                        placeholder="¿Cuántos?" min="1">
                 </div>
-                <button class="voice-search-btn" title="Búsqueda por voz">
+                <button class="voice-search-btn" title="Búsqueda por voz" id="sh-voice-btn">
                     <i class="ph-fill ph-microphone"></i>
                 </button>
-                <button class="search-btn">
+                <button class="search-btn" id="sh-submit">
                     <i class="ph-bold ph-magnifying-glass"></i>
                 </button>
             </div>
@@ -184,33 +184,33 @@
 
     <!-- Categories -->
     <section class="categories">
-        <div class="category-item active">
+        <div class="category-item active" data-cat="">
+            <i class="ph ph-list"></i>
+            <span>Todos</span>
+        </div>
+        <div class="category-item" data-cat="finca-cafetera">
             <i class="ph ph-coffee"></i>
             <span data-i18n="cat.coffee">Fincas Cafeteras</span>
         </div>
-        <div class="category-item">
+        <div class="category-item" data-cat="eco">
             <i class="ph ph-leaf"></i>
             <span data-i18n="cat.eco">Sostenible &amp; Eco</span>
         </div>
-        <div class="category-item">
+        <div class="category-item" data-cat="desierto">
             <i class="ph ph-cactus"></i>
             <span data-i18n="cat.desert">Desierto</span>
         </div>
-        <div class="category-item">
+        <div class="category-item" data-cat="romantico">
             <i class="ph ph-heart"></i>
             <span data-i18n="cat.romantic">Romántico</span>
         </div>
-        <div class="category-item">
+        <div class="category-item" data-cat="aventura">
             <i class="ph ph-person-simple-walk"></i>
             <span data-i18n="cat.adventure">Aventura</span>
         </div>
-        <div class="category-item">
+        <div class="category-item" data-cat="descanso">
             <i class="ph ph-bed"></i>
             <span data-i18n="cat.rest">Descanso Profundo</span>
-        </div>
-        <div class="category-item">
-            <i class="ph ph-map-pin"></i>
-            <span data-i18n="cat.nearby">Cerca de ti</span>
         </div>
     </section>
 

@@ -253,13 +253,24 @@
     <!-- Acciones -->
     <div class="actions-row">
         {% if reserva.estado == 'confirmada' %}
-            <a href="/checkin/{{ reserva.id }}" class="btn-action btn-checkin">
+            <a href="/checkin/{{ reserva.id }}" class="btn-action btn-checkin" id="btn-checkin">
                 <i class="ph-fill ph-sign-in"></i> Realizar Check-in
             </a>
+            <div class="btn-action" id="checkin-wait"
+                 style="display:none;background:#f0f7f4;color:#2C4A3B;border:2px dashed #2C4A3B;cursor:default;flex-direction:column;align-items:center;gap:.25rem;">
+                <div><i class="ph ph-clock"></i> Check-in disponible el <strong>{{ reserva.fecha_checkin }}</strong> a las <strong>{{ checkin_hora_str }}</strong> h</div>
+                <div style="font-size:.82rem;">Faltan: <span id="ci-countdown" style="font-family:monospace;font-weight:700;"></span></div>
+            </div>
         {% elif reserva.estado == 'check_in' %}
-            <a href="/checkout/{{ reserva.id }}" class="btn-action" style="background:#8b5cf6;color:white;border:none;">
+            <a href="/checkout/{{ reserva.id }}" class="btn-action" id="btn-checkout"
+               style="background:#8b5cf6;color:white;border:none;">
                 <i class="ph-fill ph-sign-out"></i> Realizar Check-out
             </a>
+            <div class="btn-action" id="checkout-wait"
+                 style="display:none;background:#f5f3ff;color:#7c3aed;border:2px dashed #8b5cf6;cursor:default;flex-direction:column;align-items:center;gap:.25rem;">
+                <div><i class="ph ph-clock"></i> Check-out disponible el <strong>{{ reserva.fecha_checkout }}</strong> a las <strong>{{ checkout_hora_str }}</strong> h</div>
+                <div style="font-size:.82rem;">Faltan: <span id="co-countdown" style="font-family:monospace;font-weight:700;color:#7c3aed;"></span></div>
+            </div>
         {% elif reserva.estado == 'completada' %}
             <div class="btn-action" style="background:var(--bg-light);color:var(--text-dark);cursor:default;">
                 <i class="ph-fill ph-check-circle"></i> Reserva Finalizada
@@ -273,6 +284,39 @@
             <i class="ph ph-house"></i> Inicio
         </a>
     </div>
+
+    <script>
+    (function(){
+        function watchTime(ts, btnId, waitId, cdId) {
+            if (!ts) return;
+            var target = new Date(ts * 1000);
+            var btn  = document.getElementById(btnId);
+            var wait = document.getElementById(waitId);
+            if (!btn) return;
+            function tick() {
+                var diff = target - Date.now();
+                if (diff <= 0) {
+                    btn.style.display  = '';
+                    if (wait) wait.style.display = 'none';
+                } else {
+                    btn.style.display  = 'none';
+                    if (wait) wait.style.display = '';
+                    if (cdId) {
+                        var h = Math.floor(diff / 3600000);
+                        var m = Math.floor((diff % 3600000) / 60000);
+                        var s = Math.floor((diff % 60000) / 1000);
+                        document.getElementById(cdId).textContent =
+                            (h > 0 ? h + 'h ' : '') + String(m).padStart(2,'0') + 'm ' + String(s).padStart(2,'0') + 's';
+                    }
+                }
+            }
+            tick();
+            setInterval(tick, 1000);
+        }
+        watchTime({{ checkin_ts|tojson }},  'btn-checkin',  'checkin-wait',  'ci-countdown');
+        watchTime({{ checkout_ts|tojson }}, 'btn-checkout', 'checkout-wait', 'co-countdown');
+    })();
+    </script>
 </div>
 <script src="{{ url_for('static', filename='js/confirmacion.js') }}"></script>
 </body>
