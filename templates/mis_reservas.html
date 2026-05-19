@@ -95,8 +95,9 @@
     <!-- Filtros -->
     <div class="filters">
         <button class="filter-btn active" onclick="filter('all',this)"><span data-i18n="filter.all">Todas</span></button>
+        <button class="filter-btn" onclick="filter('pendiente_pago',this)"><span>Pendientes Pago</span></button>
         <button class="filter-btn" onclick="filter('confirmada',this)"><span data-i18n="filter.confirmed">Confirmadas</span></button>
-        <button class="filter-btn" onclick="filter('checkin',this)"><span data-i18n="filter.checkin">En estadía</span></button>
+        <button class="filter-btn" onclick="filter('check_in',this)"><span data-i18n="filter.checkin">En estadía</span></button>
         <button class="filter-btn" onclick="filter('completada',this)"><span data-i18n="filter.completed">Completadas</span></button>
         <button class="filter-btn" onclick="filter('cancelada',this)"><span data-i18n="filter.cancelled">Canceladas</span></button>
     </div>
@@ -116,9 +117,10 @@
                         <div>
                             <span class="estado-badge estado-{{ r.estado }}">
                                 {% if r.estado == 'confirmada' %}<i class="ph-fill ph-check-circle"></i> <span data-i18n="status.confirmed">Confirmada</span>
-                                {% elif r.estado == 'checkin' %}<i class="ph-fill ph-house"></i> <span data-i18n="status.checkin">En estadía</span>
+                                {% elif r.estado == 'check_in' %}<i class="ph-fill ph-house"></i> <span data-i18n="status.checkin">En estadía</span>
                                 {% elif r.estado == 'completada' %}<i class="ph-fill ph-star"></i> <span data-i18n="status.completed">Completada</span>
                                 {% elif r.estado == 'cancelada' %}<i class="ph-fill ph-x-circle"></i> <span data-i18n="status.cancelled">Cancelada</span>
+                                {% elif r.estado == 'pendiente_pago' %}<i class="ph-fill ph-clock"></i> <span>Pendiente Pago</span>
                                 {% else %}<i class="ph-fill ph-clock"></i> <span data-i18n="status.pending">Pendiente</span>{% endif %}
                             </span>
                         </div>
@@ -132,9 +134,11 @@
                     <div style="font-size:.82rem;color:var(--text-muted);"><span data-i18n="bookings.code">Código</span>: <strong>{{ r.codigo_reserva }}</strong></div>
                     <div class="rc-actions">
                         <a href="/reserva/{{ r.id }}" class="rc-btn"><i class="ph ph-eye"></i> Ver detalle</a>
-                        {% if r.estado == 'confirmada' %}
+                        {% if r.estado == 'pendiente_pago' %}
+                        <a href="/reserva/{{ r.id }}" class="rc-btn warning" style="background:#f59e0b;color:white;border:none;"><i class="ph ph-wallet"></i> Pagar ahora</a>
+                        {% elif r.estado == 'confirmada' %}
                         <a href="/checkin/{{ r.id }}" class="rc-btn primary"><i class="ph ph-sign-in"></i> Check-in</a>
-                        {% elif r.estado == 'checkin' %}
+                        {% elif r.estado == 'check_in' %}
                         <a href="/checkout/{{ r.id }}" class="rc-btn purple"><i class="ph ph-sign-out"></i> Check-out</a>
                         {% endif %}
                         <span class="rc-price">${{ "{:,.0f}".format(r.total).replace(',','.') }} COP</span>

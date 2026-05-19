@@ -66,6 +66,41 @@ def load_user(uid):
 def gen_code():
     return 'SH' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
+def liberar_reservas_expiradas(cur):
+    """
+    Cancela automáticamente las reservas en estado 'pendiente_pago' que superen el límite de 10 minutos
+    para completar el pago. No elimina registros físicamente.
+    """
+    limite = datetime.now() - timedelta(minutes=10)
+    
+    # 1. Buscar las reservas a expirar
+    cur.execute("""
+        SELECT id FROM reservas 
+        WHERE estado = 'pendiente_pago' AND fecha_reserva < %s
+    """, (limite,))
+    expiradas = cur.fetchall()
+    
+    if expiradas:
+        ids = [r['id'] for r in expiradas]
+        format_strings = ','.join(['%s'] * len(ids))
+        
+        # 2. Actualizar estado de las reservas a 'cancelada'
+        cur.execute(f"""
+            UPDATE reservas 
+            SET estado = 'cancelada', 
+                fecha_cancelacion = NOW(), 
+                motivo_cancelacion = 'Expiración automática por falta de pago (límite de 10 minutos superado).' 
+            WHERE id IN ({format_strings})
+        """, tuple(ids))
+        
+        # 3. Actualizar estado de los pagos asociados a 'rechazado'
+        cur.execute(f"""
+            UPDATE pagos 
+            SET estado = 'rechazado' 
+            WHERE reserva_id IN ({format_strings}) AND estado = 'pendiente'
+        """, tuple(ids))
+
+
 # ── HOME ──────────────────────────────────────────────────────
 @app.route('/')
 def home():
@@ -488,65 +523,165 @@ def favoritos():
 @login_required
 def reservar():
     if request.method == 'POST':
-        hid = request.form.get('hospedaje_id')
+        tipo_reserva = request.form.get('tipo', 'hospedaje')
+        hid = request.form.get('id')
         checkin = request.form.get('checkin')
         checkout = request.form.get('checkout')
         huespedes = int(request.form.get('huespedes', 1))
         metodo = request.form.get('metodo_pago', 'tarjeta')
-        notas = request.form.get('notas', '')
+        notes = request.form.get('notas', '')
         c = db()
         try:
+            c.autocommit(False)
             with c.cursor() as cur:
-                # Busca el hospedaje: no eliminado. Verificar activo y estado abierta por separado
-                # para dar mensajes específicos al usuario
-                cur.execute("SELECT * FROM hospedajes WHERE id=%s AND eliminado=0", (hid,))
-                hosp = cur.fetchone()
-                if not hosp:
-                    flash('Hospedaje no encontrado.', 'error')
-                    return redirect(url_for('hospedajes'))
-
-                # Bloquear nuevas reservas si la publicación está deshabilitada
-                if hosp.get('estado') == 'deshabilitada' or not hosp.get('activo'):
-                    flash('Este hospedaje no está disponible para nuevas reservas en este momento.', 'error')
-                    return redirect(url_for('detalle_hospedaje', id=hid))
+                # 1. Limpiar reservas expiradas para liberar fechas antes de verificar
+                liberar_reservas_expiradas(cur)
+                c.commit() # Confirmar liberación de expirados
                 
-                if hosp['anfitrion_id'] == current_user.id:
-                    flash('No puedes reservar tu propia publicación.', 'error')
-                    return redirect(url_for('detalle_hospedaje', id=hid))
+                # 2. Bloquear la fila de hospedaje/experiencia con SELECT FOR UPDATE
+                if tipo_reserva == 'experiencia':
+                    cur.execute("SELECT id, anfitrion_id, precio_persona, descuento_porcentaje, activo, estado, capacidad_max FROM experiencias WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
+                    hosp = cur.fetchone()
+                    if not hosp:
+                        flash('Experiencia no encontrada.', 'error')
+                        c.rollback()
+                        return redirect(url_for('experiencias'))
+                        
+                    if hosp.get('estado') == 'deshabilitada' or not hosp.get('activo'):
+                        flash('Esta experiencia no está disponible.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_experiencia', id=hid))
+                        
+                    if hosp['anfitrion_id'] == current_user.id:
+                        flash('No puedes reservar tu propia publicación.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_experiencia', id=hid))
+                        
+                    fi = datetime.strptime(checkin, '%Y-%m-%d').date()
+                    fo = datetime.strptime(checkout, '%Y-%m-%d').date()
+                    noches = max(1, (fo - fi).days)
+                    
+                    # Validar cupos/capacidad para la experiencia en la fecha seleccionada
+                    cur.execute("""
+                        SELECT COALESCE(SUM(num_huespedes), 0) as total_booked 
+                        FROM reservas 
+                        WHERE experiencia_id = %s 
+                          AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
+                          AND fecha_checkin = %s
+                    """, (hid, checkin))
+                    row_booked = cur.fetchone()
+                    total_booked = row_booked['total_booked'] if row_booked else 0
+                    
+                    if total_booked + huespedes > hosp['capacidad_max']:
+                        flash('Este hospedaje ya no está disponible para las fechas seleccionadas.', 'error')
+                        c.rollback()
+                        return redirect(request.referrer)
+                        
+                    precio_base = float(hosp['precio_persona']) * huespedes * noches
+                    descuento = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+                    tarifa = round((precio_base - descuento) * 0.14, 2)
+                    total = precio_base - descuento + tarifa
+                    codigo = gen_code()
+                    
+                    cur.execute("""
+                        INSERT INTO reservas(codigo_reserva, usuario_id, tipo, experiencia_id,
+                            fecha_checkin, fecha_checkout, num_huespedes, precio_base, tarifa_servicio,
+                            descuento, total, estado, metodo_pago, estado_pago, notas_huesped, fecha_reserva)
+                        VALUES(%s, %s, 'experiencia', %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente_pago', %s, 'pendiente', %s, NOW())
+                    """, (codigo, current_user.id, hid, checkin, checkout, huespedes,
+                          precio_base, tarifa, descuento, total, metodo, notes))
+                    rid = cur.lastrowid
+                else:
+                    cur.execute("SELECT id, anfitrion_id, precio_noche, descuento_porcentaje, activo, estado, capacidad_max FROM hospedajes WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
+                    hosp = cur.fetchone()
+                    if not hosp:
+                        flash('Hospedaje no encontrado.', 'error')
+                        c.rollback()
+                        return redirect(url_for('hospedajes'))
+    
+                    if hosp.get('estado') == 'deshabilitada' or not hosp.get('activo'):
+                        flash('Este hospedaje no está disponible para nuevas reservas en este momento.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_hospedaje', id=hid))
+                    
+                    if hosp['anfitrion_id'] == current_user.id:
+                        flash('No puedes reservar tu propia publicación.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_hospedaje', id=hid))
+                    
+                    fi = datetime.strptime(checkin, '%Y-%m-%d').date()
+                    fo = datetime.strptime(checkout, '%Y-%m-%d').date()
+                    noches = (fo - fi).days
+                    if noches < 1:
+                        flash('Las fechas no son válidas', 'error')
+                        c.rollback()
+                        return redirect(request.referrer)
+                        
+                    # Validar disponibilidad real de fechas (SELECT FOR UPDATE)
+                    cur.execute("""
+                        SELECT id FROM reservas 
+                        WHERE hospedaje_id = %s 
+                          AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
+                          AND fecha_checkin < %s 
+                          AND fecha_checkout > %s
+                    """, (hid, checkout, checkin))
+                    if cur.fetchone():
+                        flash('Este hospedaje ya no está disponible para las fechas seleccionadas.', 'error')
+                        c.rollback()
+                        return redirect(request.referrer)
+                        
+                    precio_base = float(hosp['precio_noche']) * noches
+                    descuento = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+                    tarifa = round((precio_base - descuento) * 0.14, 2)
+                    total = precio_base - descuento + tarifa
+                    codigo = gen_code()
+                    
+                    cur.execute("""
+                        INSERT INTO reservas(codigo_reserva, usuario_id, tipo, hospedaje_id,
+                            fecha_checkin, fecha_checkout, num_huespedes, precio_base, tarifa_servicio,
+                            descuento, total, estado, metodo_pago, estado_pago, notas_huesped, fecha_reserva)
+                        VALUES(%s, %s, 'hospedaje', %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente_pago', %s, 'pendiente', %s, NOW())
+                    """, (codigo, current_user.id, hid, checkin, checkout, huespedes,
+                          precio_base, tarifa, descuento, total, metodo, notes))
+                    rid = cur.lastrowid
                 
-                fi = datetime.strptime(checkin, '%Y-%m-%d').date()
-                fo = datetime.strptime(checkout, '%Y-%m-%d').date()
-                noches = (fo - fi).days
-                if noches < 1:
-                    flash('Las fechas no son válidas', 'error')
-                    return redirect(request.referrer)
-                # Verificar disponibilidad usando la fecha efectiva de checkout
-                cur.execute("""SELECT id FROM reservas WHERE hospedaje_id=%s AND estado NOT IN ('cancelada')
-                    AND NOT (
-                        IF(estado='completada', DATE(IFNULL(fecha_checkout_real, fecha_checkout)), fecha_checkout) <= %s 
-                        OR fecha_checkin >= %s
-                    )""", (hid, checkin, checkout))
-                if cur.fetchone():
-                    flash('Las fechas seleccionadas no están disponibles', 'error')
-                    return redirect(request.referrer)
-                precio_base = float(hosp['precio_noche']) * noches
-                descuento = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp['descuento_porcentaje'] else 0
-                tarifa = round((precio_base - descuento) * 0.14, 2)
-                total = precio_base - descuento + tarifa
-                codigo = gen_code()
-                cur.execute("""INSERT INTO reservas(codigo_reserva,usuario_id,tipo,hospedaje_id,
-                    fecha_checkin,fecha_checkout,num_huespedes,precio_base,tarifa_servicio,
-                    descuento,total,estado,metodo_pago,estado_pago,notas_huesped,fecha_confirmacion)
-                    VALUES(%s,%s,'hospedaje',%s,%s,%s,%s,%s,%s,%s,%s,'confirmada',%s,'pagado',%s,NOW())""",
-                    (codigo, current_user.id, hid, checkin, checkout, huespedes,
-                     precio_base, tarifa, descuento, total, metodo, notas))
-                rid = cur.lastrowid
-                # Bloquear disponibilidad
-                cur.execute("""INSERT INTO hospedaje_disponibilidad(hospedaje_id,fecha_inicio,fecha_fin,motivo)
-                    VALUES(%s,%s,%s,'reservado')""", (hid, checkin, checkout))
-                # Puntos gamificación
-                cur.execute("UPDATE usuarios SET puntos_gamificacion=puntos_gamificacion+50 WHERE id=%s", (current_user.id,))
-                c.commit()
+                # Registrar auditoría de pago inicial (estado = pendiente)
+                cur.execute("""
+                    INSERT INTO pagos(reserva_id, monto, tipo, metodo, estado, fecha_pago)
+                    VALUES(%s, %s, 'cobro', %s, 'pendiente', NOW())
+                """, (rid, total, metodo))
+                
+                # Procesar según método
+                if metodo == 'tarjeta':
+                    # Tarjeta de crédito/débito: Simular aprobación automática exitosa
+                    cur.execute("""
+                        UPDATE reservas 
+                        SET estado = 'confirmada', estado_pago = 'pagado', fecha_confirmacion = NOW() 
+                        WHERE id = %s
+                    """, (rid,))
+                    cur.execute("""
+                        UPDATE pagos 
+                        SET estado = 'aprobado' 
+                        WHERE reserva_id = %s AND estado = 'pendiente'
+                    """, (rid,))
+                    cur.execute("UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s", (current_user.id,))
+                    c.commit()
+                    flash('¡Pago procesado con éxito! Tu reserva ha sido confirmada.', 'success')
+                elif metodo in ('nequi', 'daviplata', 'transferencia'):
+                    # Nequi/Daviplata/Transferencia: La reserva queda en 'pendiente_pago' bloqueando las fechas temporalmente
+                    c.commit()
+                    flash('Tu reserva está pre-confirmada. Completa el pago en los siguientes 10 minutos.', 'info')
+                else:  # efectivo
+                    # Efectivo: Se confirma directamente al momento de hacer la reserva
+                    cur.execute("""
+                        UPDATE reservas 
+                        SET estado = 'confirmada', estado_pago = 'pendiente', fecha_confirmacion = NOW() 
+                        WHERE id = %s
+                    """, (rid,))
+                    cur.execute("UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s", (current_user.id,))
+                    c.commit()
+                    flash('Reserva confirmada. Realizarás el pago en efectivo al llegar.', 'success')
+            
             return redirect(url_for('confirmacion', id=rid))
         except Exception as e:
             c.rollback()
@@ -556,39 +691,66 @@ def reservar():
             c.close()
 
     # GET: mostrar formulario de pago
+    tipo_reserva = request.args.get('tipo', 'hospedaje')
     hid = request.args.get('id')
     checkin = request.args.get('checkin', '')
     checkout = request.args.get('checkout', '')
-    huespedes = int(request.args.get('huespedes', 1))
+    huespedes = int(request.form.get('huespedes', 1)) if request.method == 'POST' else int(request.args.get('huespedes', 1))
     now = date.today().isoformat()
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT h.*,i.url as image,u.nombre as anf_nombre,u.foto_perfil as anf_foto
-                FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                JOIN usuarios u ON h.anfitrion_id=u.id WHERE h.id=%s""", (hid,))
-            hosp = cur.fetchone()
-        if not hosp:
-            return redirect(url_for('hospedajes'))
+            # Ejecutar limpieza de expirados antes de verificar disponibilidad
+            liberar_reservas_expiradas(cur)
+            c.commit()
             
-        if hosp['anfitrion_id'] == current_user.id:
-            flash('No puedes reservar tu propia publicación.', 'error')
-            return redirect(url_for('detalle_hospedaje', id=hid))
-            
-        noches = 0
-        if checkin and checkout:
-            fi = datetime.strptime(checkin, '%Y-%m-%d').date()
-            fo = datetime.strptime(checkout, '%Y-%m-%d').date()
-            noches = (fo - fi).days
-        precio_base = float(hosp['precio_noche']) * noches if noches else 0
+            if tipo_reserva == 'experiencia':
+                cur.execute("""SELECT e.*,i.url as image,u.nombre as anf_nombre,u.foto_perfil as anf_foto
+                    FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
+                    JOIN usuarios u ON e.anfitrion_id=u.id WHERE e.id=%s""", (hid,))
+                hosp = cur.fetchone()
+                if not hosp:
+                    return redirect(url_for('experiencias'))
+                    
+                if hosp['anfitrion_id'] == current_user.id:
+                    flash('No puedes reservar tu propia publicación.', 'error')
+                    return redirect(url_for('detalle_experiencia', id=hid))
+                    
+                noches = 1
+                if checkin and checkout:
+                    fi = datetime.strptime(checkin, '%Y-%m-%d').date()
+                    fo = datetime.strptime(checkout, '%Y-%m-%d').date()
+                    noches = max(1, (fo - fi).days)
+                precio_base = float(hosp['precio_persona']) * huespedes * noches if noches else float(hosp['precio_persona']) * huespedes
+                
+            else:
+                cur.execute("""SELECT h.*,i.url as image,u.nombre as anf_nombre,u.foto_perfil as anf_foto
+                    FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
+                    JOIN usuarios u ON h.anfitrion_id=u.id WHERE h.id=%s""", (hid,))
+                hosp = cur.fetchone()
+                if not hosp:
+                    return redirect(url_for('hospedajes'))
+                    
+                if hosp['anfitrion_id'] == current_user.id:
+                    flash('No puedes reservar tu propia publicación.', 'error')
+                    return redirect(url_for('detalle_hospedaje', id=hid))
+                    
+                noches = 0
+                if checkin and checkout:
+                    fi = datetime.strptime(checkin, '%Y-%m-%d').date()
+                    fo = datetime.strptime(checkout, '%Y-%m-%d').date()
+                    noches = (fo - fi).days
+                precio_base = float(hosp['precio_noche']) * noches if noches else 0
+                
         descuento = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
         tarifa = round((precio_base - descuento) * 0.14, 2)
         total = precio_base - descuento + tarifa
-        return render_template('reservar.html', hosp=hosp, checkin=checkin, checkout=checkout,
-                               huespedes=huespedes, noches=noches, precio_base=precio_base,
-                               descuento=descuento, tarifa=tarifa, total=total, now=now)
+        
+        return render_template('reservar.html', hosp=hosp, checkin=checkin, checkout=checkout, 
+            huespedes=huespedes, noches=noches, precio_base=precio_base, descuento=descuento, tarifa=tarifa, total=total, now=now, tipo_reserva=tipo_reserva)
     finally:
         c.close()
+
 
 # ── CONFIRMACIÓN ──────────────────────────────────────────────
 @app.route('/reserva/<int:id>')
@@ -597,13 +759,24 @@ def confirmacion(id):
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT r.*,h.nombre as hosp_nombre,h.municipio,h.hora_checkin,h.hora_checkout,
+            cur.execute("""SELECT r.*,
+                COALESCE(h.nombre, e.nombre) as hosp_nombre,
+                COALESCE(h.municipio, e.municipio) as municipio,
+                COALESCE(h.hora_checkin, NULL) as hora_checkin,
+                COALESCE(h.hora_checkout, NULL) as hora_checkout,
                 h.instrucciones_llegada,h.wifi_nombre,h.wifi_password,
-                i.url as hosp_img, u.nombre as anf_nombre, u.foto_perfil as anf_foto
-                FROM reservas r JOIN hospedajes h ON r.hospedaje_id=h.id
+                COALESCE(i.url, ei.url) as hosp_img, 
+                COALESCE(u.nombre, ue.nombre) as anf_nombre, 
+                COALESCE(u.foto_perfil, ue.foto_perfil) as anf_foto
+                FROM reservas r 
+                LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                JOIN usuarios u ON h.anfitrion_id=u.id
-                WHERE r.id=%s AND r.usuario_id=%s""", (id, current_user.id))
+                LEFT JOIN usuarios u ON h.anfitrion_id=u.id
+                LEFT JOIN experiencias e ON r.experiencia_id=e.id
+                LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
+                LEFT JOIN usuarios ue ON e.anfitrion_id=ue.id
+                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""", 
+                (id, current_user.id, current_user.id, current_user.id))
             reserva = cur.fetchone()
         if not reserva:
             return redirect(url_for('mis_reservas'))
@@ -618,9 +791,17 @@ def mis_reservas():
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT r.*,h.nombre as hosp_nombre,h.municipio,h.hora_checkin,h.hora_checkout,
-                i.url as hosp_img FROM reservas r JOIN hospedajes h ON r.hospedaje_id=h.id
+            cur.execute("""SELECT r.*,
+                COALESCE(h.nombre, e.nombre) as hosp_nombre,
+                COALESCE(h.municipio, e.municipio) as municipio,
+                COALESCE(h.hora_checkin, NULL) as hora_checkin,
+                COALESCE(h.hora_checkout, NULL) as hora_checkout,
+                COALESCE(i.url, ei.url) as hosp_img 
+                FROM reservas r 
+                LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
+                LEFT JOIN experiencias e ON r.experiencia_id=e.id
+                LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
                 WHERE r.usuario_id=%s ORDER BY r.fecha_reserva DESC""", (current_user.id,))
             reservas = cur.fetchall()
         return render_template('mis_reservas.html', reservas=reservas)
@@ -634,13 +815,24 @@ def checkin(id):
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT r.*,h.nombre as hosp_nombre,h.municipio,h.hora_checkin,
-                h.instrucciones_llegada,h.wifi_nombre,h.wifi_password,h.direccion_detalle,
-                i.url as hosp_img,u.nombre as anf_nombre,u.telefono as anf_tel,u.foto_perfil as anf_foto
-                FROM reservas r JOIN hospedajes h ON r.hospedaje_id=h.id
+            cur.execute("""SELECT r.*,
+                COALESCE(h.nombre, e.nombre) as hosp_nombre,
+                COALESCE(h.municipio, e.municipio) as municipio,
+                COALESCE(h.hora_checkin, NULL) as hora_checkin,
+                h.instrucciones_llegada, h.wifi_nombre, h.wifi_password, h.direccion_detalle,
+                COALESCE(i.url, ei.url) as hosp_img, 
+                COALESCE(u.nombre, ue.nombre) as anf_nombre, 
+                COALESCE(u.telefono, ue.telefono) as anf_tel,
+                COALESCE(u.foto_perfil, ue.foto_perfil) as anf_foto
+                FROM reservas r 
+                LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                JOIN usuarios u ON h.anfitrion_id=u.id
-                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
+                LEFT JOIN usuarios u ON h.anfitrion_id=u.id
+                LEFT JOIN experiencias e ON r.experiencia_id=e.id
+                LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
+                LEFT JOIN usuarios ue ON e.anfitrion_id=ue.id
+                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""", 
+                (id, current_user.id, current_user.id, current_user.id))
             reserva = cur.fetchone()
             
         if not reserva:
@@ -648,7 +840,7 @@ def checkin(id):
             return redirect(url_for('mis_reservas'))
             
         # Solo se permite check-in si la reserva está confirmada
-        if reserva['estado'] == 'checkin':
+        if reserva['estado'] == 'check_in':
             flash('Ya realizaste el check-in para esta reserva', 'info')
             return redirect(url_for('confirmacion', id=id))
         elif reserva['estado'] == 'completada':
@@ -662,9 +854,12 @@ def checkin(id):
             c2 = db()
             try:
                 with c2.cursor() as cur2:
-                    cur2.execute("""UPDATE reservas r JOIN hospedajes h ON r.hospedaje_id=h.id 
-                        SET r.estado='checkin', r.fecha_checkin_real=NOW()
-                        WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
+                    cur2.execute("""UPDATE reservas r 
+                        LEFT JOIN hospedajes h ON r.hospedaje_id=h.id 
+                        LEFT JOIN experiencias e ON r.experiencia_id=e.id
+                        SET r.estado='check_in', r.fecha_checkin_real=NOW()
+                        WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""", 
+                        (id, current_user.id, current_user.id, current_user.id))
                     c2.commit()
                 flash('¡Check-in realizado con éxito! Disfruta tu estadía 🏡', 'success')
                 return redirect(url_for('confirmacion', id=id))
@@ -682,12 +877,22 @@ def checkout(id):
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT r.*,h.nombre as hosp_nombre,h.municipio,h.hora_checkout,
-                i.url as hosp_img,u.nombre as anf_nombre,u.foto_perfil as anf_foto
-                FROM reservas r JOIN hospedajes h ON r.hospedaje_id=h.id
+            cur.execute("""SELECT r.*,
+                COALESCE(h.nombre, e.nombre) as hosp_nombre,
+                COALESCE(h.municipio, e.municipio) as municipio,
+                COALESCE(h.hora_checkout, NULL) as hora_checkout,
+                COALESCE(i.url, ei.url) as hosp_img, 
+                COALESCE(u.nombre, ue.nombre) as anf_nombre, 
+                COALESCE(u.foto_perfil, ue.foto_perfil) as anf_foto
+                FROM reservas r 
+                LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                JOIN usuarios u ON h.anfitrion_id=u.id
-                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
+                LEFT JOIN usuarios u ON h.anfitrion_id=u.id
+                LEFT JOIN experiencias e ON r.experiencia_id=e.id
+                LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
+                LEFT JOIN usuarios ue ON e.anfitrion_id=ue.id
+                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""", 
+                (id, current_user.id, current_user.id, current_user.id))
             reserva = cur.fetchone()
         if not reserva:
             flash('Reserva no encontrada', 'error')
@@ -695,7 +900,7 @@ def checkout(id):
         if reserva['estado'] == 'completada':
             flash('Ya realizaste el check-out de esta reserva', 'info')
             return redirect(url_for('confirmacion', id=id))
-        elif reserva['estado'] != 'checkin':
+        elif reserva['estado'] != 'check_in':
             flash('Solo puedes hacer check-out después del check-in', 'error')
             return redirect(url_for('mis_reservas'))
         if request.method == 'POST':
@@ -708,23 +913,39 @@ def checkout(id):
             c2 = db()
             try:
                 with c2.cursor() as cur2:
-                    cur2.execute("""UPDATE reservas r JOIN hospedajes h ON r.hospedaje_id=h.id 
+                    cur2.execute("""UPDATE reservas r 
+                        LEFT JOIN hospedajes h ON r.hospedaje_id=h.id 
+                        LEFT JOIN experiencias e ON r.experiencia_id=e.id
                         SET r.estado='completada', r.fecha_checkout_real=NOW()
-                        WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s)""", (id, current_user.id, current_user.id))
+                        WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""", 
+                        (id, current_user.id, current_user.id, current_user.id))
                     if cal_gen and reserva['usuario_id'] == current_user.id:
-                        cur2.execute("""INSERT INTO resenas(reserva_id,usuario_id,tipo,hospedaje_id,
-                            calificacion_general,calificacion_limpieza,calificacion_ubicacion,
-                            calificacion_comunicacion,calificacion_valor,comentario)
-                            VALUES(%s,%s,'hospedaje',%s,%s,%s,%s,%s,%s,%s)
-                            ON DUPLICATE KEY UPDATE calificacion_general=%s,comentario=%s""",
-                            (id, current_user.id, reserva['hospedaje_id'],
-                             cal_gen, cal_limp, cal_ubi, cal_com, cal_val, comentario,
-                             cal_gen, comentario))
-                        # Actualizar calificación promedio del hospedaje
-                        cur2.execute("""UPDATE hospedajes SET
-                            calificacion=(SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=%s AND publicada=1),
-                            total_resenas=(SELECT COUNT(*) FROM resenas WHERE hospedaje_id=%s AND publicada=1)
-                            WHERE id=%s""", (reserva['hospedaje_id'], reserva['hospedaje_id'], reserva['hospedaje_id']))
+                        if reserva['tipo'] == 'experiencia':
+                            cur2.execute("""INSERT INTO resenas(reserva_id,usuario_id,tipo,experiencia_id,
+                                calificacion_general,comentario)
+                                VALUES(%s,%s,'experiencia',%s,%s,%s)
+                                ON DUPLICATE KEY UPDATE calificacion_general=%s,comentario=%s""",
+                                (id, current_user.id, reserva['experiencia_id'],
+                                 cal_gen, comentario, cal_gen, comentario))
+                        else:
+                            cur2.execute("""INSERT INTO resenas(reserva_id,usuario_id,tipo,hospedaje_id,
+                                calificacion_general,calificacion_limpieza,calificacion_ubicacion,
+                                calificacion_comunicacion,calificacion_valor,comentario)
+                                VALUES(%s,%s,'hospedaje',%s,%s,%s,%s,%s,%s,%s)
+                                ON DUPLICATE KEY UPDATE calificacion_general=%s,comentario=%s""",
+                                (id, current_user.id, reserva['hospedaje_id'],
+                                 cal_gen, cal_limp, cal_ubi, cal_com, cal_val, comentario,
+                                 cal_gen, comentario))
+                        if reserva['tipo'] == 'experiencia':
+                            cur2.execute("""UPDATE experiencias SET
+                                calificacion=(SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=%s AND publicada=1),
+                                total_resenas=(SELECT COUNT(*) FROM resenas WHERE experiencia_id=%s AND publicada=1)
+                                WHERE id=%s""", (reserva['experiencia_id'], reserva['experiencia_id'], reserva['experiencia_id']))
+                        else:
+                            cur2.execute("""UPDATE hospedajes SET
+                                calificacion=(SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=%s AND publicada=1),
+                                total_resenas=(SELECT COUNT(*) FROM resenas WHERE hospedaje_id=%s AND publicada=1)
+                                WHERE id=%s""", (reserva['hospedaje_id'], reserva['hospedaje_id'], reserva['hospedaje_id']))
                     # Puntos por completar estadía
                     cur2.execute("UPDATE usuarios SET puntos_gamificacion=puntos_gamificacion+100 WHERE id=%s", (current_user.id,))
                     c2.commit()
@@ -757,23 +978,47 @@ def panel_anfitrion():
                 ORDER BY e.fecha_creacion DESC""", (current_user.id,))
             mis_experiencias = cur.fetchall()
 
-            ids = [h['id'] for h in mis_hospedajes]
+            ids_hosp = [h['id'] for h in mis_hospedajes]
+            ids_exp = [e['id'] for e in mis_experiencias]
             reservas_recientes = []
             stats = {'ingresos': 0, 'total_res': 0, 'pendientes': 0}
-            if ids:
-                fmt = ','.join(['%s'] * len(ids))
-                cur.execute(f"""SELECT r.*,u.nombre,u.apellido,u.email,h.nombre as hosp_nombre,
-                    h.hora_checkin,h.hora_checkout FROM reservas r
+            
+            if ids_hosp or ids_exp:
+                # Query combine
+                conds = []
+                params = []
+                if ids_hosp:
+                    fmt_h = ','.join(['%s'] * len(ids_hosp))
+                    conds.append(f"(r.tipo='hospedaje' AND r.hospedaje_id IN ({fmt_h}))")
+                    params.extend(ids_hosp)
+                if ids_exp:
+                    fmt_e = ','.join(['%s'] * len(ids_exp))
+                    conds.append(f"(r.tipo='experiencia' AND r.experiencia_id IN ({fmt_e}))")
+                    params.extend(ids_exp)
+                
+                where_clause = " OR ".join(conds)
+                
+                cur.execute(f"""SELECT r.*,u.nombre,u.apellido,u.email,
+                    COALESCE(h.nombre, e.nombre) as hosp_nombre,
+                    COALESCE(h.hora_checkin, NULL) as hora_checkin,
+                    COALESCE(h.hora_checkout, NULL) as hora_checkout 
+                    FROM reservas r
                     JOIN usuarios u ON r.usuario_id=u.id
-                    JOIN hospedajes h ON r.hospedaje_id=h.id
-                    WHERE r.hospedaje_id IN ({fmt}) ORDER BY r.fecha_reserva DESC LIMIT 15""", ids)
+                    LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
+                    LEFT JOIN experiencias e ON r.experiencia_id=e.id
+                    WHERE {where_clause} ORDER BY r.fecha_reserva DESC LIMIT 15""", params)
                 reservas_recientes = cur.fetchall()
+                
                 cur.execute(f"""SELECT COALESCE(SUM(total),0) as ingresos,
                     COUNT(*) as total_res,
-                    SUM(CASE WHEN estado='confirmada' THEN 1 ELSE 0 END) as pendientes
-                    FROM reservas WHERE hospedaje_id IN ({fmt})
-                    AND estado NOT IN ('cancelada')""", ids)
-                stats = cur.fetchone()
+                    SUM(CASE WHEN estado IN ('pendiente_pago', 'confirmada') THEN 1 ELSE 0 END) as pendientes
+                    FROM reservas r WHERE ({where_clause})
+                    AND estado NOT IN ('cancelada')""", params)
+                
+                # Fetch row or use default
+                row = cur.fetchone()
+                if row:
+                    stats = row
         return render_template('panel_anfitrion.html', mis_hospedajes=mis_hospedajes,
                                mis_experiencias=mis_experiencias, reservas_recientes=reservas_recientes, stats=stats)
     finally:
@@ -1016,18 +1261,23 @@ def disponibilidad(id):
     c = db()
     try:
         with c.cursor() as cur:
-            # Fechas bloqueadas: Si la reserva está completada, usar fecha_checkout_real como fin
-            # para liberar el resto de los días.
-            cur.execute("""SELECT fecha_checkin, 
-                IF(estado='completada', DATE(IFNULL(fecha_checkout_real, fecha_checkout)), fecha_checkout) AS fecha_checkout_efectiva
+            # 1. Liberar reservas pendientes que ya expiraron
+            liberar_reservas_expiradas(cur)
+            c.commit()
+            
+            tipo = request.args.get('tipo', 'hospedaje')
+            id_col = 'hospedaje_id' if tipo == 'hospedaje' else 'experiencia_id'
+            
+            # 2. Consultar reservas activas que bloquean las fechas (pendiente_pago, confirmada, check_in)
+            cur.execute(f"""SELECT fecha_checkin, fecha_checkout
                 FROM reservas
-                WHERE hospedaje_id=%s AND estado NOT IN ('cancelada')
-                AND (fecha_checkout >= CURDATE() OR fecha_checkout_real >= CURDATE())""", (id,))
+                WHERE {id_col}=%s AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
+                AND fecha_checkout >= CURDATE()""", (id,))
             rows = cur.fetchall()
         bloqueadas = []
         for r in rows:
             fi = r['fecha_checkin']
-            fo = r['fecha_checkout_efectiva']
+            fo = r['fecha_checkout']
             if not fi or not fo: continue
             current = fi
             while current < fo:

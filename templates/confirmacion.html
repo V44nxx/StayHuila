@@ -60,9 +60,19 @@
 <div class="confirm-page">
     <!-- Header celebración -->
     <div class="confirm-header">
-        <div class="confirm-check"><i class="ph-fill ph-check-circle"></i></div>
-        <h1>¡Reserva Confirmada! 🎉</h1>
-        <p>Tu aventura en el Huila está a punto de comenzar</p>
+        {% if reserva.estado == 'pendiente_pago' %}
+            <div class="confirm-check" style="background:#f59e0b;"><i class="ph-fill ph-clock" style="color:white;"></i></div>
+            <h1 style="color:#d97706;">¡Reserva Pre-confirmada! ⏳</h1>
+            <p>Completa tu pago dentro de los próximos 10 minutos para asegurar tus fechas.</p>
+        {% elif reserva.estado == 'cancelada' %}
+            <div class="confirm-check" style="background:#ef4444;"><i class="ph-fill ph-x-circle" style="color:white;"></i></div>
+            <h1 style="color:#dc2626;">Reserva Cancelada o Expirada ❌</h1>
+            <p>Esta reserva ha expirado por falta de pago o ha sido cancelada.</p>
+        {% else %}
+            <div class="confirm-check"><i class="ph-fill ph-check-circle"></i></div>
+            <h1>¡Reserva Confirmada! 🎉</h1>
+            <p>Tu aventura en el Huila está a punto de comenzar</p>
+        {% endif %}
         <div class="confirm-code">Código: {{ reserva.codigo_reserva }}</div>
     </div>
 
@@ -71,7 +81,19 @@
         <div class="card-img-row">
             <img src="{{ reserva.hosp_img or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=400' }}" class="card-img" alt="{{ reserva.hosp_nombre }}">
             <div class="card-body">
-                <div style="margin-bottom:.4rem;"><span class="badge-estado"><i class="ph-fill ph-check-circle"></i> Confirmada y pagada</span></div>
+                <div style="margin-bottom:.4rem;">
+                    {% if reserva.estado == 'pendiente_pago' %}
+                        <span class="badge-estado" style="background:#fef3c7;color:#d97706;border-color:#fde68a;">
+                            <i class="ph-fill ph-clock"></i> Pendiente de Pago
+                        </span>
+                    {% elif reserva.estado == 'cancelada' %}
+                        <span class="badge-estado" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5;">
+                            <i class="ph-fill ph-x-circle"></i> Cancelada
+                        </span>
+                    {% else %}
+                        <span class="badge-estado"><i class="ph-fill ph-check-circle"></i> Confirmada y pagada</span>
+                    {% endif %}
+                </div>
                 <h2>{{ reserva.hosp_nombre }}</h2>
                 <div class="loc"><i class="ph ph-map-pin"></i> {{ reserva.municipio }}, Huila</div>
                 <div class="dates-pills">
@@ -82,6 +104,7 @@
             </div>
         </div>
         <!-- Instrucciones y WiFi -->
+        {% if reserva.estado != 'pendiente_pago' and reserva.estado != 'cancelada' %}
         <div class="info-box" style="margin:1rem;">
             {% if reserva.hora_checkin %}
             <div class="info-box-row">
@@ -106,7 +129,64 @@
                 <div><strong>TU ANFITRIÓN</strong><span>{{ reserva.anf_nombre }}</span></div>
             </div>
         </div>
+        {% endif %}
     </div>
+
+    <!-- Instrucciones de Pago para Nequi/Daviplata/Transferencia -->
+    {% if reserva.estado == 'pendiente_pago' and reserva.metodo_pago in ('nequi', 'daviplata', 'transferencia') %}
+    <div class="price-summary" style="border-left: 4px solid #f59e0b; background: #fffbeb; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+        <h2 style="color: #b45309; margin-bottom: 0.5rem;"><i class="ph ph-wallet" style="vertical-align: middle;"></i> Instrucciones de Pago</h2>
+        <p style="font-size: 0.95rem; line-height: 1.5; color: #78350f; margin-bottom: 1rem;">
+            Por favor, transfiere el valor total a una de las siguientes cuentas oficiales de StayHuila para confirmar tu reserva:
+        </p>
+        <div style="margin: 1rem 0; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #fef3c7; display: grid; gap: 0.8rem; font-size: 0.95rem;">
+            <div>
+                <strong>Nequi:</strong> <span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: #2C4A3B;">300 123 4567</span>
+            </div>
+            <div>
+                <strong>Daviplata:</strong> <span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: #2C4A3B;">300 123 4567</span>
+            </div>
+            <div>
+                <strong>Monto a transferir:</strong> <strong style="font-size: 1.1rem; color: #b45309;">${{ "{:,.0f}".format(reserva.total).replace(',','.') }} COP</strong>
+            </div>
+        </div>
+        <div style="background: #fef3c7; border-radius: 8px; padding: 0.8rem; text-align: center; font-size: 0.95rem; color: #78350f; font-weight: 600;">
+            <i class="ph ph-hourglass-high" style="vertical-align: middle; font-size: 1.1rem;"></i>
+            Tiempo restante para pagar: <span id="payment-countdown" style="font-family: monospace; font-size: 1.15rem; color: #dc2626; font-weight: 700;">10:00</span>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // fecha_reserva en formato ISO
+            const fechaReserva = new Date("{{ reserva.fecha_reserva.isoformat() }}");
+            const expirationTime = new Date(fechaReserva.getTime() + 10 * 60 * 1000);
+            
+            function updateTimer() {
+                const now = new Date();
+                const diff = expirationTime - now;
+                
+                if (diff <= 0) {
+                    document.getElementById('payment-countdown').textContent = "00:00 (Expirado)";
+                    // Recargar la página para activar la liberación de fechas
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                    return;
+                }
+                
+                const minutes = Math.floor(diff / 60000);
+                const seconds = Math.floor((diff % 60000) / 1000);
+                
+                document.getElementById('payment-countdown').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+            
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        });
+    </script>
+    {% endif %}
 
     <!-- Precio -->
     <div class="price-summary">
@@ -114,14 +194,37 @@
         <div class="ps-row"><span>Subtotal</span><span>${{ "{:,.0f}".format(reserva.precio_base).replace(',','.') }} COP</span></div>
         {% if reserva.descuento > 0 %}<div class="ps-row" style="color:#16a34a"><span>Descuento</span><span>-${{ "{:,.0f}".format(reserva.descuento).replace(',','.') }}</span></div>{% endif %}
         <div class="ps-row"><span>Tarifa de servicio</span><span>${{ "{:,.0f}".format(reserva.tarifa_servicio).replace(',','.') }} COP</span></div>
-        <div class="ps-row total"><strong>Total pagado</strong><strong>${{ "{:,.0f}".format(reserva.total).replace(',','.') }} COP</strong></div>
-        <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-check" style="color:#16a34a"></i> Pago procesado de forma segura · Método: {{ reserva.metodo_pago }}</div>
+        <div class="ps-row total">
+            <strong>{% if reserva.estado == 'pendiente_pago' %}Total a pagar{% else %}Total pagado{% endif %}</strong>
+            <strong>${{ "{:,.0f}".format(reserva.total).replace(',','.') }} COP</strong>
+        </div>
+        {% if reserva.estado == 'pendiente_pago' %}
+            <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-warning" style="color:#f59e0b"></i> Tu reserva está pre-reservada · Método: {{ reserva.metodo_pago }}</div>
+        {% else %}
+            <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-check" style="color:#16a34a"></i> Pago procesado de forma segura · Método: {{ reserva.metodo_pago }}</div>
+        {% endif %}
     </div>
 
     <!-- Pasos siguientes -->
     <div class="steps-card">
         <h2><i class="ph-fill ph-list-checks"></i> Próximos pasos</h2>
         <div class="steps">
+            {% if reserva.estado == 'pendiente_pago' %}
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <strong>Realiza la transferencia</strong>
+                    <p>Transfiere por Nequi o Daviplata en un plazo máximo de 10 minutos.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <strong>Verificación de pago</strong>
+                    <p>El sistema confirmará automáticamente tu reserva una vez se verifique la transacción.</p>
+                </div>
+            </div>
+            {% else %}
             <div class="step">
                 <div class="step-num">1</div>
                 <div class="step-content">
@@ -136,6 +239,7 @@
                     <p>Puedes enviarle un mensaje para coordinar detalles de tu llegada.</p>
                 </div>
             </div>
+            {% endif %}
             <div class="step">
                 <div class="step-num">3</div>
                 <div class="step-content">
@@ -152,7 +256,7 @@
             <a href="/checkin/{{ reserva.id }}" class="btn-action btn-checkin">
                 <i class="ph-fill ph-sign-in"></i> Realizar Check-in
             </a>
-        {% elif reserva.estado == 'checkin' %}
+        {% elif reserva.estado == 'check_in' %}
             <a href="/checkout/{{ reserva.id }}" class="btn-action" style="background:#8b5cf6;color:white;border:none;">
                 <i class="ph-fill ph-sign-out"></i> Realizar Check-out
             </a>

@@ -87,7 +87,8 @@
     {% endwith %}
 
     <form method="POST" action="/reservar" id="reserva-form">
-        <input type="hidden" name="hospedaje_id" value="{{ hosp.id }}">
+        <input type="hidden" name="id" value="{{ hosp.id }}">
+        <input type="hidden" name="tipo" value="{{ tipo_reserva }}">
         <div class="reserva-layout">
             <!-- LEFT -->
             <div class="reserva-left">
@@ -197,22 +198,26 @@
                         </div>
                         <div class="price-lines">
                             <div class="pl-row">
-                                <span>${{ "{:,.0f}".format(hosp.precio_noche).replace(',','.') }} × {{ noches }} noche{% if noches != 1 %}s{% endif %}</span>
-                                <span>${{ "{:,.0f}".format(precio_base).replace(',','.') }}</span>
+                                {% if tipo_reserva == 'experiencia' %}
+                                <span id="price-line-text">${{ "{:,.0f}".format(hosp.precio_persona).replace(',','.') }} × {{ huespedes }} persona{% if huespedes != 1 %}s{% endif %} × {{ noches }} día{% if noches != 1 %}s{% endif %}</span>
+                                {% else %}
+                                <span id="price-line-text">${{ "{:,.0f}".format(hosp.precio_noche).replace(',','.') }} × {{ noches }} noche{% if noches != 1 %}s{% endif %}</span>
+                                {% endif %}
+                                <span id="price-base-val">${{ "{:,.0f}".format(precio_base).replace(',','.') }}</span>
                             </div>
-                            {% if descuento > 0 %}
-                            <div class="pl-row discount-line">
+                            {% if descuento > 0 or hosp.descuento_porcentaje %}
+                            <div class="pl-row discount-line" id="discount-row" style="display: {{ 'flex' if descuento > 0 else 'none' }}">
                                 <span>Descuento {{ hosp.descuento_porcentaje }}%</span>
-                                <span>-${{ "{:,.0f}".format(descuento).replace(',','.') }}</span>
+                                <span id="discount-val">-${{ "{:,.0f}".format(descuento).replace(',','.') }}</span>
                             </div>
                             {% endif %}
                             <div class="pl-row">
                                 <span>Tarifa de servicio (14%)</span>
-                                <span>${{ "{:,.0f}".format(tarifa).replace(',','.') }}</span>
+                                <span id="tarifa-val">${{ "{:,.0f}".format(tarifa).replace(',','.') }}</span>
                             </div>
                             <div class="pl-row total">
                                 <strong>Total COP</strong>
-                                <strong>${{ "{:,.0f}".format(total).replace(',','.') }}</strong>
+                                <strong id="total-val">${{ "{:,.0f}".format(total).replace(',','.') }}</strong>
                             </div>
                         </div>
                     </div>
@@ -224,6 +229,10 @@
 
 <script>
 const MAX_GUESTS = {{ hosp.capacidad_max }};
+const TIPO_RESERVA = '{{ tipo_reserva }}';
+const PRECIO_UNITARIO = {{ hosp.precio_persona if tipo_reserva == 'experiencia' else hosp.precio_noche }};
+const NOCHES = {{ noches }};
+const DESCUENTO_PCT = {{ hosp.descuento_porcentaje or 0 }};
 let guests = {{ huespedes }};
 </script>
 <script src="{{ url_for('static', filename='js/reservar.js') }}"></script>

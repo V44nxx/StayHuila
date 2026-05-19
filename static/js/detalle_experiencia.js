@@ -129,6 +129,7 @@ document.getElementById('bw-form').addEventListener('submit', e => {
     }
     const params = new URLSearchParams({
         id: DATA.id,
+        tipo: 'experiencia',
         checkin: checkinInput.value,
         checkout: checkoutInput.value,
         huespedes: guestCount
@@ -176,7 +177,7 @@ let selEnd = null;
 let blockedDates = new Set();
 
 // Cargar fechas bloqueadas desde la API
-fetch(`/api/disponibilidad/${DATA.id}`)
+fetch(`/api/disponibilidad/${DATA.id}?tipo=experiencia`)
     .then(r => r.json())
     .then(data => {
         blockedDates = new Set(data.bloqueadas);
