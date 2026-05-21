@@ -68,31 +68,49 @@ const checkoutInput = document.getElementById('bw-checkout');
 // Fecha mínima = hoy
 const today = new Date();
 const todayStr = today.toISOString().split('T')[0];
-checkinInput.min = todayStr;
-checkoutInput.min = todayStr;
 
-checkinInput.addEventListener('change', () => {
-    if (checkinInput.value) {
-        const nextDay = new Date(checkinInput.value);
-        nextDay.setDate(nextDay.getDate() + 1);
-        checkoutInput.min = nextDay.toISOString().split('T')[0];
-        if (checkoutInput.value && checkoutInput.value <= checkinInput.value) {
-            checkoutInput.value = '';
+if (checkinInput && checkoutInput) {
+    checkinInput.min = todayStr;
+    checkoutInput.min = todayStr;
+
+    checkinInput.addEventListener('change', () => {
+        if (checkinInput.value) {
+            const nextDay = new Date(checkinInput.value);
+            nextDay.setDate(nextDay.getDate() + 1);
+            checkoutInput.min = nextDay.toISOString().split('T')[0];
+            if (checkoutInput.value && checkoutInput.value <= checkinInput.value) {
+                checkoutInput.value = '';
+            }
         }
-    }
-    calcPrice();
-    syncCalendar();
-});
+        calcPrice();
+        syncCalendar();
+    });
 
-checkoutInput.addEventListener('change', () => {
-    calcPrice();
-    syncCalendar();
-});
+    checkoutInput.addEventListener('change', () => {
+        calcPrice();
+        syncCalendar();
+    });
+}
+
+/** Muestra u oculta la alerta de estadía con un mensaje. */
+function setEstadiaAlert(msg) {
+    const alertEl = document.getElementById('estadia-alert');
+    const msgEl   = document.getElementById('estadia-alert-msg');
+    if (!alertEl || !msgEl) return;
+    if (msg) {
+        msgEl.textContent = msg;
+        alertEl.style.display = 'block';
+    } else {
+        alertEl.style.display = 'none';
+        msgEl.textContent = '';
+    }
+}
 
 function calcPrice() {
     const summary = document.getElementById('price-summary');
     if (!checkinInput.value || !checkoutInput.value) {
         summary.style.display = 'none';
+        setEstadiaAlert('');
         return;
     }
     const ci = new Date(checkinInput.value);
@@ -100,18 +118,34 @@ function calcPrice() {
     const nights = Math.round((co - ci) / (1000 * 60 * 60 * 24));
     if (nights <= 0) { summary.style.display = 'none'; return; }
 
+    // ── Validar estadía mínima y máxima (con reglas de temporada) ────────────
+    const regla = getReglaActiva(checkinInput.value, checkoutInput.value);
+    const minN = regla ? regla.estadia_minima : estadiaMin;
+    const maxN = regla ? regla.estadia_maxima : estadiaMax;
+    if (nights < minN) {
+        setEstadiaAlert(`La estadía mínima${regla ? ' en ' + regla.nombre : ''} es de ${minN} noche${minN !== 1 ? 's' : ''}.`);
+        summary.style.display = 'none';
+        return;
+    }
+    if (nights > maxN) {
+        setEstadiaAlert(`La estadía máxima permitida${regla ? ' en ' + regla.nombre : ''} es de ${maxN} noches.`);
+        summary.style.display = 'none';
+        return;
+    }
+    setEstadiaAlert('');  // Sin error — limpiar alerta
+
     // Detectar si es fin de semana (precio mayor)
     const isWeekend = ci.getDay() === 5 || ci.getDay() === 6;
     const pricePerNight = isWeekend ? DATA.price_weekend : DATA.price;
 
-    const base = pricePerNight * nights;
+    const base = pricePerNight * nights * guestCount;
     const discountAmt = DATA.discount ? Math.round(base * DATA.discount / 100) : 0;
     const fee = Math.round((base - discountAmt) * 0.14);
     const total = base - discountAmt + fee;
 
     const fmt = n => '$' + n.toLocaleString('es-CO') + ' COP';
 
-    document.getElementById('ps-nights').textContent = nights;
+    document.getElementById('ps-nights').textContent = `${nights} noche${nights !== 1 ? 's' : ''} × ${guestCount} persona${guestCount !== 1 ? 's' : ''}`;
     document.getElementById('ps-base').textContent = fmt(base);
     const discEl = document.getElementById('ps-disc');
     if (discEl) discEl.textContent = '-' + fmt(discountAmt);
@@ -121,33 +155,51 @@ function calcPrice() {
 }
 
 // Formulario → redireccionar a página de reserva (o login si no hay sesión)
-document.getElementById('bw-form').addEventListener('submit', e => {
-    e.preventDefault();
-    if (!checkinInput.value || !checkoutInput.value) {
-        showToast('Por favor selecciona las fechas de llegada y salida');
-        return;
-    }
-    const params = new URLSearchParams({
-        id: DATA.id,
-        checkin: checkinInput.value,
-        checkout: checkoutInput.value,
-        huespedes: guestCount
-    });
-    const reservarUrl = '/reservar?' + params.toString();
-    // Verificar si hay sesión activa
-    fetch('/api/auth-check')
-        .then(r => r.json())
-        .then(data => {
-            if (data.logged_in) {
-                window.location.href = reservarUrl;
-            } else {
-                window.location.href = '/login?next=' + encodeURIComponent(reservarUrl);
-            }
-        })
-        .catch(() => {
-            window.location.href = '/login?next=' + encodeURIComponent(reservarUrl);
+const bwForm = document.getElementById('bw-form');
+if (bwForm) {
+    bwForm.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!checkinInput.value || !checkoutInput.value) {
+            showToast('Por favor selecciona las fechas de llegada y salida');
+            return;
+        }
+        // Validar estadía antes de redirigir
+        const ci2 = new Date(checkinInput.value);
+        const co2 = new Date(checkoutInput.value);
+        const nights2 = Math.round((co2 - ci2) / (1000 * 60 * 60 * 24));
+        const regla2 = getReglaActiva(checkinInput.value, checkoutInput.value);
+        const minN2 = regla2 ? regla2.estadia_minima : estadiaMin;
+        const maxN2 = regla2 ? regla2.estadia_maxima : estadiaMax;
+        if (nights2 < minN2) {
+            showToast(`La estadía mínima${regla2 ? ' en ' + regla2.nombre : ''} es de ${minN2} noche${minN2 !== 1 ? 's' : ''}.`, 'error');
+            return;
+        }
+        if (nights2 > maxN2) {
+            showToast(`La estadía máxima permitida${regla2 ? ' en ' + regla2.nombre : ''} es de ${maxN2} noches.`, 'error');
+            return;
+        }
+        const params = new URLSearchParams({
+            id: DATA.id,
+            checkin: checkinInput.value,
+            checkout: checkoutInput.value,
+            huespedes: guestCount
         });
-});
+        const reservarUrl = '/reservar?' + params.toString();
+        // Verificar si hay sesión activa
+        fetch('/api/auth-check')
+            .then(r => r.json())
+            .then(data => {
+                if (data.logged_in) {
+                    window.location.href = reservarUrl;
+                } else {
+                    window.location.href = '/login?next=' + encodeURIComponent(reservarUrl);
+                }
+            })
+            .catch(() => {
+                window.location.href = '/login?next=' + encodeURIComponent(reservarUrl);
+            });
+    });
+}
 
 // Acciones rápidas
 document.getElementById('btn-compartir').addEventListener('click', () => {
@@ -175,14 +227,36 @@ let selStart = null;
 let selEnd = null;
 let blockedDates = new Set();
 
-// Cargar fechas bloqueadas desde la API
+// Estadía mínima y máxima — inicia desde DATA (Jinja), luego la API puede sobreescribirla
+// con reglas de temporada activas para las fechas seleccionadas.
+let estadiaMin = DATA.estadia_minima || 1;
+let estadiaMax = DATA.estadia_maxima || 365;
+let reglasTemporada = [];
+
+// Cargar fechas bloqueadas + reglas de estadía desde la API
 fetch(`/api/disponibilidad/${DATA.id}`)
     .then(r => r.json())
     .then(data => {
         blockedDates = new Set(data.bloqueadas);
+        // Estadía base (puede diferir si el backend tiene un valor distinto)
+        if (data.estadia_minima) estadiaMin = data.estadia_minima;
+        if (data.estadia_maxima) estadiaMax = data.estadia_maxima;
+        if (data.reglas_temporada) reglasTemporada = data.reglas_temporada;
         renderCalendars();
     })
     .catch(() => renderCalendars());
+
+/**
+ * Devuelve la regla de temporada aplicable a un rango de fechas dado (si existe).
+ * Prioriza la primera regla cuya ventana se superpone con checkin-checkout.
+ */
+function getReglaActiva(checkinStr, checkoutStr) {
+    if (!reglasTemporada.length || !checkinStr || !checkoutStr) return null;
+    for (const r of reglasTemporada) {
+        if (checkinStr <= r.fecha_fin && checkoutStr >= r.fecha_inicio) return r;
+    }
+    return null;
+}
 
 function renderCalendars() {
     const container = document.getElementById('calendar-container');
@@ -306,11 +380,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const map = L.map('detalle-map', { zoomControl: true }).setView([DATA.lat, DATA.lng], 13);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO',
-        subdomains: 'abcd',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(map);
+
+    // Forzar redibujado para evitar que el mapa salga gris
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 400);
 
     // Círculo de zona (sin revelar dirección exacta, estilo Airbnb)
     L.circle([DATA.lat, DATA.lng], {

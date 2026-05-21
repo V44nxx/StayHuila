@@ -14,11 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const map = L.map('interactive-map').setView([2.5, -75.5], 8);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
+    // Capa de mapa (OSM Estándar es más confiable)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
     }).addTo(map);
+
+    // Forzar redibujado después de un breve delay
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 500);
 
     let markers = [];
 
@@ -40,16 +45,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const rating = exp.calificacion || '5.0';
             const reviews = exp.total_resenas || 0;
 
-            const popupHTML = `
-                <div class="popup-card">
-                    <img src="${exp.image || 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500'}" class="popup-img" alt="${exp.nombre}">
-                    <div class="popup-info">
-                        <h4 class="popup-title">${exp.nombre}</h4>
-                        <div class="popup-rating"><i class="ph-fill ph-star" style="color: #F59E0B;"></i> ${rating} (${reviews} reseñas)</div>
-                        <div class="popup-price">$${parseFloat(price).toLocaleString('es-CO')} COP / persona</div>
-                    </div>
-                </div>
-            `;
+    const popupHTML = `
+        <div class="popup-card">
+            <img src="${exp.image || 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500'}" class="popup-img" alt="${exp.nombre}">
+            <div class="popup-info">
+                <h4 class="popup-title">${exp.nombre}</h4>
+                <div class="popup-rating"><i class="ph-fill ph-star" style="color: #F59E0B;"></i> ${rating} (${reviews} reseñas)</div>
+                <div class="popup-price">$${parseFloat(price).toLocaleString('es-CO')} COP / persona</div>
+                <a href="/experiencia/${exp.id}" style="display:block; margin-top:8px; text-align:center; background:var(--primary); color:white; text-decoration:none; padding:5px; border-radius:5px; font-size:0.8rem;">Ver detalles</a>
+            </div>
+        </div>
+    `;
 
             const marker = L.marker([lat, lng], { icon: customIcon })
                 .addTo(map)

@@ -142,19 +142,40 @@
 @media (max-width: 1024px) {
     .hospedajes-layout {
         flex-direction: column;
-        overflow: visible;
+        margin-top: 110px;
         height: auto;
+        overflow: visible;
     }
     
     .hospedajes-map {
-        height: 300px;
+        height: 250px;
         position: sticky;
-        top: 90px;
+        top: 80px;
         order: 1;
+        width: 100%;
+        flex: none;
+        z-index: 100;
     }
     
     .hospedajes-list {
         order: 2;
+        padding: 1.5rem 1rem;
+        width: 100%;
+        flex: none;
         overflow-y: visible;
+    }
+
+    .grid-half {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hospedajes-layout {
+        margin-top: 90px;
+    }
+    .hospedajes-map {
+        height: 200px;
     }
 }

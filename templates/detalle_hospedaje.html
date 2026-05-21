@@ -34,6 +34,7 @@
 </head>
 
 <body>
+{% include '_flash_toasts.html' %}
 
     <!-- NAVBAR -->
     <header class="navbar navbar-solid" id="navbar">
@@ -44,7 +45,7 @@
         </div>
         <nav class="nav-links">
             <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
-            <a href="#">Experiencias</a>
+            <a href="/experiencias">Experiencias</a>
 
             <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
             <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;" data-i18n="nav.host_panel">Panel Anfitrión</a>
@@ -56,7 +57,7 @@
             {% if current_user.is_authenticated %}
             <div class="profile-btn" style="position:relative;"
                 onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                 <i class="ph ph-list"></i>
                 <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
                     alt="Avatar"
@@ -222,16 +223,23 @@
                 <h2 class="section-title" data-i18n="detail.offers">Lo que ofrece este lugar</h2>
                 <div class="amenidades-grid">
                     {% set amenity_map = {
-                    'wifi': ('ph-wifi', 'WiFi'),
-                    'piscina': ('ph-pool', 'Piscina'),
+                    'wifi': ('ph-wifi-high', 'WiFi'),
+                    'Wifi': ('ph-wifi-high', 'WiFi'),
+                    'piscina': ('ph-swimming-pool', 'Piscina'),
+                    'Piscina': ('ph-swimming-pool', 'Piscina'),
                     'estacionamiento': ('ph-car', 'Estacionamiento'),
                     'cocina': ('ph-cooking-pot', 'Cocina equipada'),
-                    'aire_acondicionado': ('ph-thermometer-cold', 'Aire acondicionado'),
+                    'Cocina': ('ph-cooking-pot', 'Cocina equipada'),
+                    'Parqueadero gratuito': ('ph-car', 'Parqueadero gratuito'),
+                    'aire_acondicionado': ('ph-snowflake', 'Aire acondicionado'),
+                    'Aire acondicionado': ('ph-snowflake', 'Aire acondicionado'),
+                    'Se admiten mascotas': ('ph-paw-print', 'Se admiten mascotas'),
+                    'Zona de trabajo': ('ph-desktop', 'Zona de trabajo'),
                     'desayuno': ('ph-coffee', 'Desayuno incluido'),
                     'telescopio': ('ph-binoculars', 'Telescopio'),
                     'tours_cafe': ('ph-coffee', 'Tour del café'),
                     'kayak': ('ph-rowing', 'Kayak incluido'),
-                    'bbq': ('ph-flame', 'Parrilla / BBQ'),
+                    'bbq': ('ph-fire', 'Parrilla / BBQ'),
                     'termales': ('ph-thermometer-hot', 'Termales privados'),
                     'masajes': ('ph-hand-heart', 'Servicio de masajes'),
                     'yoga': ('ph-person-simple', 'Clases de yoga'),
@@ -239,15 +247,16 @@
                     'chimenea': ('ph-campfire', 'Chimenea'),
                     'senderismo': ('ph-person-simple-walk', 'Senderismo'),
                     'hamacas': ('ph-tree-palm', 'Hamacas'),
-                    'tv': ('ph-television', 'TV'),
+                    'tv': ('ph-television-simple', 'TV'),
+                    'TV': ('ph-television-simple', 'TV'),
                     'lavadora': ('ph-washing-machine', 'Lavadora'),
                     'patio': ('ph-tree', 'Patio interior'),
                     'tours_guiados': ('ph-map-trifold', 'Tours guiados'),
                     'vistas_montaña': ('ph-mountains', 'Vistas a la montaña')
                     } %}
                     {% for s in servicios %}
-                    {% set icon = amenity_map.get(s, ('ph-check', s))[0] %}
-                    {% set label = amenity_map.get(s, ('ph-check', s))[1] %}
+                    {% set icon = amenity_map.get(s, ('ph-check-circle', s))[0] %}
+                    {% set label = amenity_map.get(s, ('ph-check-circle', s))[1] %}
                     <div class="amenidad-item">
                         <i class="ph {{ icon }}"></i>
                         <span>{{ label }}</span>
@@ -322,7 +331,19 @@
                 </div>
                 
                 <!-- Formulario de reseña -->
-                {% if current_user.is_authenticated %}
+                {% if current_user.is_authenticated and hospedaje.anfitrion_id == current_user.id %}
+                <div style="margin-top:2rem;border-top:1px solid var(--border);padding-top:2rem;background:#f0fdf4;border-radius:14px;padding:1.2rem;text-align:center;">
+                    <i class="ph-fill ph-house-line" style="font-size:1.8rem;color:#15803d;"></i>
+                    <p style="font-weight:700;color:#15803d;margin:.5rem 0 .2rem;">Eres el anfitrión de esta publicación</p>
+                    <p style="font-size:.85rem;color:#166534;margin:0;">No puedes dejarte reseñas propias.</p>
+                </div>
+                {% elif current_user.is_authenticated and ya_reseno %}
+                <div style="margin-top:2rem;border-top:1px solid var(--border);padding-top:2rem;background:#eff6ff;border-radius:14px;padding:1.2rem;text-align:center;">
+                    <i class="ph-fill ph-check-circle" style="font-size:1.8rem;color:#2563eb;"></i>
+                    <p style="font-weight:700;color:#1d4ed8;margin:.5rem 0 .2rem;">Ya dejaste tu reseña</p>
+                    <p style="font-size:.85rem;color:#1e40af;margin:0;">Solo se permite una reseña por publicación. ¡Gracias por tu opinión!</p>
+                </div>
+                {% elif current_user.is_authenticated %}
                 <div class="new-review-form" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem;">
                     <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Deja tu reseña</h3>
                     <form action="/resena/hospedaje/{{ hospedaje.id }}" method="POST">
@@ -383,6 +404,14 @@
                 </div>
 
                 <!-- Formulario fechas + huéspedes -->
+                {% if current_user.is_authenticated and hospedaje.anfitrion_id == current_user.id %}
+                <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:14px;padding:1.4rem;text-align:center;margin-top:1rem;">
+                    <i class="ph-fill ph-house-line" style="font-size:2rem;color:#15803d;"></i>
+                    <p style="font-weight:700;color:#15803d;font-size:1rem;margin:.6rem 0 .3rem;">Esta es tu publicación</p>
+                    <p style="font-size:.85rem;color:#166534;margin:0;">Los anfitriones no pueden reservar sus propios hospedajes.</p>
+                    <a href="/panel-anfitrion" style="display:inline-block;margin-top:.9rem;background:var(--primary);color:white;border-radius:50px;padding:.5rem 1.3rem;font-size:.85rem;font-weight:700;text-decoration:none;"><i class="ph ph-chart-bar"></i> Ir al panel</a>
+                </div>
+                {% else %}
                 <form class="bw-form" id="bw-form" action="#" method="get">
                     <div class="bw-dates">
                         <div class="bw-field bw-checkin">
@@ -404,7 +433,25 @@
                                 <button type="button" onclick="changeGuests(1)"><i class="ph ph-plus"></i></button>
                             </div>
                         </div>
-                        <p class="bw-max" data-i18n="booking.max_guests">Máx. {{ hospedaje.capacidad_max }} huéspedes</p>
+                        <p class="bw-max"><span data-i18n="booking.max_prefix">Máx.</span> {{ hospedaje.capacidad_max }} <span data-i18n="booking.guests_lower">huéspedes</span></p>
+                    </div>
+
+                    <!-- Información de estadía mínima / máxima -->
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.6rem 0;">
+                        {% if hospedaje.estadia_minima and hospedaje.estadia_minima > 1 %}
+                        <span style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:50px;padding:.2rem .7rem;font-size:.78rem;font-weight:600;">
+                            <i class="ph ph-clock"></i> Mínimo {{ hospedaje.estadia_minima }} noche{{ 's' if hospedaje.estadia_minima != 1 else '' }}
+                        </span>
+                        {% endif %}
+                        {% if hospedaje.estadia_maxima and hospedaje.estadia_maxima < 365 %}
+                        <span style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:50px;padding:.2rem .7rem;font-size:.78rem;font-weight:600;">
+                            <i class="ph ph-calendar-x"></i> Máximo {{ hospedaje.estadia_maxima }} noches
+                        </span>
+                        {% endif %}
+                    </div>
+                    <!-- Alerta dinámica de estadía (JS la muestra/oculta) -->
+                    <div id="estadia-alert" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:.6rem .9rem;font-size:.82rem;color:#b91c1c;margin-bottom:.5rem;">
+                        <i class="ph ph-warning"></i> <span id="estadia-alert-msg"></span>
                     </div>
 
                     <!-- Resumen de precios -->
@@ -440,6 +487,7 @@
                     {% endif %}
                     <p class="bw-note" data-i18n="booking.no_charge">No se te cobrará nada aún</p>
                 </form>
+                {% endif %}
 
                 <!-- Método de pago preview -->
                 <div class="bw-payment-icons">
@@ -455,7 +503,7 @@
                 <img src="{{ hospedaje.anf_foto or 'https://ui-avatars.com/api/?name=' ~ hospedaje.anf_nombre ~ '&background=random' }}" alt="{{ hospedaje.anf_nombre ~ ' ' ~ hospedaje.anf_apellido }}" class="hc-avatar">
                 <div class="hc-info">
                     <strong>{{ hospedaje.anf_nombre ~ " " ~ hospedaje.anf_apellido }}</strong>
-                    <p>Anfitrión desde {{ "2021" }}</p>
+                    <p>Anfitrión desde {{ hospedaje.anf_desde[:4] if hospedaje.anf_desde else '' }}</p>
                     <div class="hc-stats">
                         <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ hospedaje.anf_cal or
                             hospedaje.calificacion }}</span>
@@ -511,7 +559,9 @@
     "discount": {{ hospedaje.descuento_porcentaje or 0 }},
     "images": {{ imagenes | map(attribute="url") | list | tojson | safe }},
     "name": {{ hospedaje.nombre | tojson | safe }},
-    "max_guests": {{ hospedaje.capacidad_max }}
+    "max_guests": {{ hospedaje.capacidad_max }},
+    "estadia_minima": {{ hospedaje.estadia_minima or 1 }},
+    "estadia_maxima": {{ hospedaje.estadia_maxima or 30 }}
 }
 </script>
 

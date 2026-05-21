@@ -11,6 +11,7 @@
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </head>
 <body>
+{% include '_flash_toasts.html' %}
 <header class="navbar navbar-solid">
     <div class="logo" onclick="window.location.href='/'">
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
@@ -25,7 +26,7 @@
                 <a href="/panel-anfitrion" class="host-btn" style="text-decoration:none;">Panel Anfitrión</a>
                 {% endif %}
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     

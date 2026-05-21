@@ -37,7 +37,7 @@
     </div>
             <nav class="nav-links">
             <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
-            <a href="#">Experiencias</a>
+            <a href="/experiencias">Experiencias</a>
 
             <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
             <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);" data-i18n="nav.host_panel">Panel Anfitrión</a>
@@ -48,7 +48,7 @@
             </div>
             {% if current_user.is_authenticated %}
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     
@@ -173,6 +173,23 @@
 document.querySelectorAll('.reserva-card').forEach(function(card) {
     var ciTs = parseInt(card.dataset.checkinTs)  || 0;
     var coTs = parseInt(card.dataset.checkoutTs) || 0;
+    function formatAvailabilityLabel(target) {
+        var diff = target.getTime() - Date.now();
+        var time = String(target.getHours()).padStart(2,'0') + ':'
+            + String(target.getMinutes()).padStart(2,'0') + ' h';
+        var date = target.toLocaleDateString('es-CO');
+
+        if (diff > 24 * 3600000) {
+            var totalHours = Math.floor(diff / 3600000);
+            var days = Math.floor(totalHours / 24);
+            var hours = totalHours % 24;
+            var label = 'en ' + days + ' día' + (days === 1 ? '' : 's');
+            if (hours > 0) label += ' ' + hours + 'h';
+            return label + ' · ' + date;
+        }
+
+        return time + ' · ' + date;
+    }
     function applyBlock(ts, btnClass, waitClass) {
         var btn  = card.querySelector(btnClass);
         var wait = card.querySelector(waitClass);
@@ -184,9 +201,7 @@ document.querySelectorAll('.reserva-card').forEach(function(card) {
                 wait.style.display = '';
                 var lbl = wait.querySelector('.rc-time-label');
                 if (lbl) {
-                    lbl.textContent = String(target.getHours()).padStart(2,'0') + ':'
-                        + String(target.getMinutes()).padStart(2,'0') + ' h · '
-                        + target.toLocaleDateString('es-CO');
+                    lbl.textContent = formatAvailabilityLabel(target);
                 }
             }
         }

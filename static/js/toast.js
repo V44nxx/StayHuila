@@ -13,7 +13,11 @@ window.showToast = function(message, type = 'info') {
     if (type === 'error') iconClass = 'ph-warning-circle';
     if (type === 'success') iconClass = 'ph-check-circle';
     
-    toast.innerHTML = `<i class="ph ${iconClass}"></i> <span>${message}</span>`;
+    const icon = document.createElement('i');
+    icon.className = `ph ${iconClass}`;
+    const text = document.createElement('span');
+    text.textContent = message;
+    toast.append(icon, text);
     container.appendChild(toast);
     
     // Trigger animation

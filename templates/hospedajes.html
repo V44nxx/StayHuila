@@ -37,6 +37,7 @@
 </head>
 
 <body>
+{% include '_flash_toasts.html' %}
     <!-- Navbar (Solid) -->
     <header class="navbar navbar-hospedajes" id="navbar">
         <div class="logo" onclick="window.location.href='/'" style="cursor: pointer;">
@@ -56,7 +57,7 @@
             </div>
             {% if current_user.is_authenticated %}
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     
@@ -95,21 +96,57 @@
         <!-- Mitad Derecha: Listado -->
         <section class="hospedajes-list">
             <div class="hospedajes-header">
+                {% set has_filter = search_query or checkin or checkout or huespedes or cat %}
+
+                <!-- Breadcrumb -->
+                <div class="hosp-breadcrumb">
+                    <a href="/"><i class="ph ph-house"></i> Inicio</a>
+                    <span>›</span>
+                    <a href="/hospedajes">Hospedajes</a>
+                    {% if has_filter %}<span>›</span><span>Resultados de búsqueda</span>{% endif %}
+                </div>
+
+                <!-- Título -->
                 {% if search_query %}
-                    <div class="search-indicator">
-                        <a href="/hospedajes" class="clear-search"><i class="ph ph-x-circle"></i> <span data-i18n="search.clear">Limpiar filtros</span></a>
-                        <h1>Resultados para "{{ search_query }}"</h1>
-                    </div>
+                    <h1><i class="ph ph-magnifying-glass" style="font-size:1.4rem;"></i> Resultados para "{{ search_query }}"</h1>
+                {% elif cat %}
+                    <h1><i class="ph ph-tag" style="font-size:1.4rem;"></i> {{ cat|replace('-',' ')|title }}</h1>
+                {% elif has_filter %}
+                    <h1><i class="ph ph-funnel" style="font-size:1.4rem;"></i> Búsqueda con filtros</h1>
                 {% else %}
-                    <h1 data-i18n="page.lodgings.h1">Hospedajes en el Huila</h1>
+                    <h1><i class="ph ph-map-pin" style="font-size:1.4rem;"></i> Hospedajes en el Huila</h1>
                 {% endif %}
-                <p style="color: var(--text-muted); font-size: 1.05rem;">
+
+                <!-- Chips de filtros activos -->
+                {% if has_filter %}
+                <div class="filter-chips">
+                    {% if checkin %}<span class="filter-chip"><i class="ph ph-sign-in"></i> Llegada: {{ checkin }}</span>{% endif %}
+                    {% if checkout %}<span class="filter-chip"><i class="ph ph-sign-out"></i> Salida: {{ checkout }}</span>{% endif %}
+                    {% if huespedes %}<span class="filter-chip"><i class="ph ph-users"></i> {{ huespedes }} huéspedes</span>{% endif %}
+                    {% if cat %}<span class="filter-chip"><i class="ph ph-tag"></i> {{ cat|replace('-',' ')|title }}</span>{% endif %}
+                    <a href="/hospedajes" class="clear-search"><i class="ph ph-x"></i> Limpiar</a>
+                </div>
+                {% endif %}
+
+                <!-- Resumen -->
+                <p class="result-summary">
                     {% if hospedajes|length > 0 %}
-                        Se han encontrado {{ hospedajes|length }} opciones para tu búsqueda.
+                        <strong>{{ hospedajes|length }}</strong> hospedaje{{ 's' if hospedajes|length != 1 }} encontrado{{ 's' if hospedajes|length != 1 }}{% if has_filter %} con los filtros aplicados{% endif %}
                     {% else %}
-                        No se han encontrado resultados exactos, pero mira estas otras opciones mágicas.
+                        <span style="color:#ef4444;"><i class="ph ph-warning"></i> Sin resultados con esos filtros.</span>
+                        <a href="/hospedajes" style="color:var(--primary);font-weight:600;margin-left:.4rem;">Ver todos</a>
                     {% endif %}
                 </p>
+
+                <!-- Búsqueda rápida -->
+                <form class="quick-search-bar" action="/hospedajes" method="GET">
+                    {% if checkin %}<input type="hidden" name="checkin" value="{{ checkin }}">{% endif %}
+                    {% if checkout %}<input type="hidden" name="checkout" value="{{ checkout }}">{% endif %}
+                    {% if huespedes %}<input type="hidden" name="huespedes" value="{{ huespedes }}">{% endif %}
+                    {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="🔍  Municipio, nombre o tipo...">
+                    <button type="submit"><i class="ph ph-magnifying-glass"></i> Buscar</button>
+                </form>
             </div>
 
             <main class="grid-half" id="hospedajes-grid">

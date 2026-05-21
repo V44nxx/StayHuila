@@ -19,6 +19,20 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar'
 login_manager.login_message_category = 'info'
 
+@app.after_request
+def add_header(response):
+    """
+    Desactiva el caché del navegador para proteger la privacidad del usuario.
+    Esto evita que al cerrar sesión se pueda 'volver atrás' y ver datos sensibles.
+    También añade headers básicos de seguridad.
+    """
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return response
+
 # ── CONFIGURACIÓN SMTP (Gmail) ────────────────────────────────────────────────
 # ↓ PON TU CORREO DE GMAIL Y TU APP PASSWORD AQUÍ ↓
 MAIL_USERNAME = 'murciacorredoremerson@gmail.com'   # Ejemplo: 'miCorreo@gmail.com'
@@ -103,6 +117,70 @@ DB = dict(host='localhost', user='root', password='', database='StayHuila',
 def db():
     return pymysql.connect(**DB)
 
+def _ensure_columns():
+    """Auto-migra columnas opcionales y tablas nuevas (seguro ejecutar varias veces)."""
+    try:
+        c = db()
+        with c.cursor() as cur:
+            # ── Crédito de descuento en usuarios ─────────────────────────────
+            cur.execute("SHOW COLUMNS FROM usuarios LIKE 'credito_descuento'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE usuarios ADD COLUMN credito_descuento DECIMAL(5,2) DEFAULT 0")
+
+            # ── Estadía mínima y máxima en hospedajes ────────────────────────
+            # estadia_minima: cantidad mínima de noches requerida (default 1)
+            cur.execute("SHOW COLUMNS FROM hospedajes LIKE 'estadia_minima'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE hospedajes ADD COLUMN estadia_minima TINYINT UNSIGNED NOT NULL DEFAULT 1")
+
+            # estadia_maxima: cantidad máxima de noches permitida (default 30)
+            cur.execute("SHOW COLUMNS FROM hospedajes LIKE 'estadia_maxima'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE hospedajes ADD COLUMN estadia_maxima TINYINT UNSIGNED NOT NULL DEFAULT 30")
+
+            # ── Tabla de sesiones de experiencias ────────────────────────────
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS experiencia_sesiones (
+                    id            INT AUTO_INCREMENT PRIMARY KEY,
+                    experiencia_id INT NOT NULL,
+                    fecha         DATE NOT NULL,
+                    hora_inicio   TIME NOT NULL,
+                    hora_fin      TIME NOT NULL,
+                    cupos_totales INT NOT NULL,
+                    cupos_disponibles INT NOT NULL,
+                    estado        ENUM('disponible', 'lleno', 'cancelado', 'suspendido_por_clima') DEFAULT 'disponible',
+                    creado_en     DATETIME DEFAULT NOW(),
+                    FOREIGN KEY (experiencia_id) REFERENCES experiencias(id) ON DELETE CASCADE,
+                    INDEX idx_exp_fecha (experiencia_id, fecha)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            # ── Columna sesion_id en reservas ────────────────────────────────
+            cur.execute("SHOW COLUMNS FROM reservas LIKE 'sesion_id'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE reservas ADD COLUMN sesion_id INT NULL AFTER experiencia_id")
+                cur.execute("ALTER TABLE reservas ADD FOREIGN KEY (sesion_id) REFERENCES experiencia_sesiones(id) ON DELETE SET NULL")
+
+            # ── Tabla de Lista de Espera ─────────────────────────────────────
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS lista_espera (
+                    id            INT AUTO_INCREMENT PRIMARY KEY,
+                    usuario_id    INT NOT NULL,
+                    sesion_id     INT NOT NULL,
+                    huespedes     INT NOT NULL DEFAULT 1,
+                    creado_en     DATETIME DEFAULT NOW(),
+                    notificado    TINYINT(1) DEFAULT 0,
+                    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                    FOREIGN KEY (sesion_id) REFERENCES experiencia_sesiones(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+        c.commit()
+        c.close()
+    except Exception:
+        pass
+_ensure_columns()
+
 def serialize(obj):
     """Convert MySQL types to JSON-safe Python types."""
     if isinstance(obj, dict):
@@ -114,15 +192,28 @@ def serialize(obj):
         return f"{total//3600:02d}:{(total%3600)//60:02d}"
     if isinstance(obj, (date, datetime)):
         return obj.isoformat()
+    if isinstance(obj, (dt_time,)):
+        return obj.strftime('%H:%M')
     if isinstance(obj, Decimal):
         return float(obj)
     return obj
+
+def digits_only(value, max_length):
+    return ''.join(c for c in str(value or '') if c.isdigit())[:max_length]
+
+def bounded_int(value, default, minimum, maximum):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        number = default
+    return max(minimum, min(maximum, number))
 
 class User(UserMixin):
     def __init__(self, d):
         self.id = d['id']; self.nombre = d['nombre']; self.apellido = d['apellido']
         self.email = d['email']; self.tipo = d['tipo']; self.puntos = d['puntos_gamificacion']
         self.foto_perfil = d.get('foto_perfil')
+        self.credito_descuento = float(d.get('credito_descuento') or 0)
 
 @login_manager.user_loader
 def load_user(uid):
@@ -138,6 +229,14 @@ def load_user(uid):
 def gen_code():
     return 'SH' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
+DESCUENTO_CANTIDAD_MIN_HUESPEDES = 5
+DESCUENTO_CANTIDAD_PCT = 5
+
+def descuento_por_cantidad(precio_base, huespedes):
+    if int(huespedes or 0) >= DESCUENTO_CANTIDAD_MIN_HUESPEDES:
+        return round(float(precio_base) * DESCUENTO_CANTIDAD_PCT / 100, 2)
+    return 0
+
 def liberar_reservas_expiradas(cur):
     """
     Cancela automáticamente las reservas en estado 'pendiente_pago' que superen el límite de 10 minutos
@@ -147,7 +246,7 @@ def liberar_reservas_expiradas(cur):
     
     # 1. Buscar las reservas a expirar
     cur.execute("""
-        SELECT id FROM reservas 
+        SELECT id, sesion_id, num_huespedes FROM reservas 
         WHERE estado = 'pendiente_pago' AND fecha_reserva < %s
     """, (limite,))
     expiradas = cur.fetchall()
@@ -156,7 +255,17 @@ def liberar_reservas_expiradas(cur):
         ids = [r['id'] for r in expiradas]
         format_strings = ','.join(['%s'] * len(ids))
         
-        # 2. Actualizar estado de las reservas a 'cancelada'
+        # 2. Si hay experiencias con sesiones, liberar cupos
+        for r in expiradas:
+            if r['sesion_id']:
+                cur.execute("""
+                    UPDATE experiencia_sesiones 
+                    SET cupos_disponibles = cupos_disponibles + %s, 
+                        estado = 'disponible' 
+                    WHERE id = %s
+                """, (r['num_huespedes'], r['sesion_id']))
+        
+        # 3. Actualizar estado de las reservas a 'cancelada'
         cur.execute(f"""
             UPDATE reservas 
             SET estado = 'cancelada', 
@@ -249,11 +358,11 @@ def hospedajes():
                 'descanso':       " AND (h.tipo LIKE %s OR h.nombre LIKE %s)",
             }
             _cat_params = {
-                'finca-cafetera': ['%cafetera%', '%café%'],
+                'finca-cafetera': ['%cafetera%', '%cafe%'],
                 'desierto':       ['%villavieja%', '%tatacoa%', '%desierto%'],
-                'romantico':      ['%romántico%', '%romántico%'],
+                'romantico':      ['%romantico%', '%romantico%'],
                 'aventura':       ['%aventura%', '%aventura%'],
-                'descanso':       ['%descanso%', '%cabaña%'],
+                'descanso':       ['%descanso%', '%cabana%'],
             }
             if cat in _cat_filters:
                 query += _cat_filters[cat]
@@ -300,21 +409,30 @@ def detalle_hospedaje(id):
                 WHERE h.id!=%s AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
                 ORDER BY RAND() LIMIT 3""", (id,))
             sugerencias = cur.fetchall()
+            ya_reseno = False
+            if current_user.is_authenticated:
+                cur.execute("SELECT id FROM resenas WHERE hospedaje_id=%s AND usuario_id=%s LIMIT 1",
+                            (id, current_user.id))
+                ya_reseno = cur.fetchone() is not None
             hosp = serialize(hosp)
             imgs = serialize(cur.fetchall()) if False else serialize(imgs)
             sugerencias = serialize(sugerencias)
         return render_template('detalle_hospedaje.html', hospedaje=hosp,
                                imagenes=imgs, servicios=servicios,
-                               resenas=resenas, sugerencias=sugerencias)
+                               resenas=resenas, sugerencias=sugerencias,
+                               ya_reseno=ya_reseno)
     finally:
         c.close()
 
 # ── EXPERIENCIAS ──────────────────────────────────────────────
 @app.route('/experiencias')
 def experiencias():
-    q = request.args.get('q', '').strip()
-    precio_max = request.args.get('precio_max')
-    
+    q          = request.args.get('q',         '').strip()
+    precio_max = request.args.get('precio_max', '').strip()
+    huespedes  = request.args.get('huespedes',  '').strip()
+    checkin    = request.args.get('checkin',    '').strip()
+    checkout   = request.args.get('checkout',   '').strip()
+
     c = db()
     try:
         with c.cursor() as cur:
@@ -322,24 +440,38 @@ def experiencias():
                 SELECT e.*, i.url as image
                 FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
-                -- Filtrar: activas, no eliminadas y disponibles
                 WHERE e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
             """
             params = []
-            
+
             if q:
-                query += " AND (e.municipio LIKE %s OR e.nombre LIKE %s OR e.tipo LIKE %s)"
-                params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
-            
+                query += " AND (e.municipio LIKE %s OR e.nombre LIKE %s OR e.tipo LIKE %s OR e.descripcion LIKE %s)"
+                params.extend([f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"])
+
             if precio_max:
                 query += " AND e.precio_persona <= %s"
                 params.append(precio_max)
-                
-            query += " ORDER BY e.calificacion DESC"
-            
+
+            if huespedes:
+                query += " AND e.capacidad_max >= %s"
+                params.append(huespedes)
+
+            if checkin and checkout:
+                query += """ AND e.id NOT IN (
+                    SELECT experiencia_id FROM reservas
+                    WHERE estado IN ('pendiente_pago','confirmada','check_in')
+                      AND fecha_checkin < %s AND fecha_checkout > %s
+                      AND experiencia_id IS NOT NULL
+                )"""
+                params.extend([checkout, checkin])
+
+            query += " ORDER BY e.destacado DESC, e.calificacion DESC"
+
             cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
-        return render_template('experiencias.html', experiencias=data, search_query=q)
+        return render_template('experiencias.html', experiencias=data,
+            search_query=q, checkin=checkin, checkout=checkout,
+            huespedes=huespedes)
     finally:
         c.close()
 
@@ -368,11 +500,17 @@ def detalle_experiencia(id):
                 WHERE e.id!=%s AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
                 ORDER BY RAND() LIMIT 3""", (id,))
             sugerencias = cur.fetchall()
+            ya_reseno = False
+            if current_user.is_authenticated:
+                cur.execute("SELECT id FROM resenas WHERE experiencia_id=%s AND usuario_id=%s LIMIT 1",
+                            (id, current_user.id))
+                ya_reseno = cur.fetchone() is not None
             exp = serialize(exp)
             imgs = serialize(imgs)
             sugerencias = serialize(sugerencias)
         return render_template('detalle_experiencia.html', experiencia=exp,
-                               imagenes=imgs, resenas=resenas, sugerencias=sugerencias)
+                               imagenes=imgs, resenas=resenas, sugerencias=sugerencias,
+                               ya_reseno=ya_reseno)
     finally:
         c.close()
 
@@ -387,6 +525,12 @@ def registro():
     nxt = request.form.get('next', '')
     if not all([nombre, apellido, email, pw]):
         flash('Completa todos los campos', 'error')
+        return redirect(url_for('login', tab='register', next=nxt))
+    if len(nombre) > 40 or len(apellido) > 40:
+        flash('El nombre y apellido no pueden superar 40 caracteres.', 'error')
+        return redirect(url_for('login', tab='register', next=nxt))
+    if len(pw) < 6 or len(pw) > 128:
+        flash('La contraseña debe tener entre 6 y 128 caracteres.', 'error')
         return redirect(url_for('login', tab='register', next=nxt))
     pw_hash = bcrypt.generate_password_hash(pw).decode('utf-8')
     c = db()
@@ -481,22 +625,29 @@ def logout():
     flash('Sesión cerrada', 'info')
     return redirect(url_for('home'))
 
+@app.route('/mis-puntos')
+@login_required
+def mis_puntos():
+    return render_template('mis_puntos.html')
+
 @app.route('/perfil', methods=['GET', 'POST'])
 @login_required
 def perfil():
     if request.method == 'POST':
-        nombre = request.form.get('nombre', '').strip()
-        apellido = request.form.get('apellido', '').strip()
+        nombre = request.form.get('nombre', '').strip()[:40]
+        apellido = request.form.get('apellido', '').strip()[:40]
         telefono = request.form.get('telefono', '').strip()
+        telefono = ''.join(c for c in telefono if c.isdigit())[:10]
         new_pw = request.form.get('new_password', '')
         conf_pw = request.form.get('confirm_password', '')
         
         foto = request.files.get('foto')
         foto_url = None
         if foto and foto.filename != '':
-            import os
+            import os, uuid
             from werkzeug.utils import secure_filename
-            filename = secure_filename(foto.filename)
+            ext = os.path.splitext(secure_filename(foto.filename))[1].lower() or '.jpg'
+            filename = f"perfil_{current_user.id}_{uuid.uuid4().hex[:8]}{ext}"
             os.makedirs(os.path.join(app.root_path, 'static', 'uploads'), exist_ok=True)
             path = os.path.join(app.root_path, 'static', 'uploads', filename)
             foto.save(path)
@@ -632,6 +783,12 @@ def reservar():
     if request.method == 'POST':
         tipo_reserva = request.form.get('tipo', 'hospedaje')
         hid = request.form.get('id')
+        sesion_id = request.form.get('sesion_id')
+        if sesion_id and str(sesion_id).isdigit():
+            sesion_id = int(sesion_id)
+        else:
+            sesion_id = None
+
         checkin = request.form.get('checkin')
         checkout = request.form.get('checkout')
         huespedes = int(request.form.get('huespedes', 1))
@@ -668,38 +825,80 @@ def reservar():
                     fo = datetime.strptime(checkout, '%Y-%m-%d').date()
                     noches = max(1, (fo - fi).days)
                     
-                    # Validar cupos/capacidad para la experiencia en la fecha seleccionada
-                    cur.execute("""
-                        SELECT COALESCE(SUM(num_huespedes), 0) as total_booked 
-                        FROM reservas 
-                        WHERE experiencia_id = %s 
-                          AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
-                          AND fecha_checkin = %s
-                    """, (hid, checkin))
-                    row_booked = cur.fetchone()
-                    total_booked = row_booked['total_booked'] if row_booked else 0
-                    
-                    if total_booked + huespedes > hosp['capacidad_max']:
-                        flash('Este hospedaje ya no está disponible para las fechas seleccionadas.', 'error')
-                        c.rollback()
-                        return redirect(request.referrer)
+                    # ── NUEVA LÓGICA DE DISPONIBILIDAD POR SESIONES ──────────────────
+                    if sesion_id:
+                        # Bloquear sesión para evitar overbooking (SELECT FOR UPDATE)
+                        cur.execute("SELECT * FROM experiencia_sesiones WHERE id=%s FOR UPDATE", (sesion_id,))
+                        sesion = cur.fetchone()
                         
+                        if not sesion or sesion['estado'] != 'disponible':
+                            flash('La sesión seleccionada ya no está disponible o ha sido cancelada.', 'error')
+                            c.rollback()
+                            return redirect(url_for('detalle_experiencia', id=hid))
+                            
+                        if sesion['cupos_disponibles'] < huespedes:
+                            flash(f'Lo sentimos, solo quedan {sesion["cupos_disponibles"]} cupos para este horario.', 'error')
+                            c.rollback()
+                            return redirect(url_for('detalle_experiencia', id=hid))
+                            
+                        # Actualizar cupos disponibles (Resta atómica)
+                        cur.execute("""
+                            UPDATE experiencia_sesiones 
+                            SET cupos_disponibles = cupos_disponibles - %s 
+                            WHERE id = %s AND cupos_disponibles >= %s
+                        """, (huespedes, sesion_id, huespedes))
+                        
+                        # Si no se afectó ninguna fila, significa que los cupos cambiaron justo antes
+                        if cur.rowcount == 0:
+                            flash('Los cupos se agotaron justo ahora. Por favor intenta con otro horario.', 'error')
+                            c.rollback()
+                            return redirect(url_for('detalle_experiencia', id=hid))
+
+                        # Si se llenó, actualizar estado
+                        if sesion['cupos_disponibles'] - huespedes <= 0:
+                            cur.execute("UPDATE experiencia_sesiones SET estado = 'lleno' WHERE id = %s", (sesion_id,))
+                    else:
+                        # Lógica antigua (backwards compatibility)
+                        cur.execute("""
+                            SELECT COALESCE(SUM(num_huespedes), 0) as total_booked 
+                            FROM reservas 
+                            WHERE experiencia_id = %s 
+                              AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
+                              AND fecha_checkin = %s
+                        """, (hid, checkin))
+                        row_booked = cur.fetchone()
+                        total_booked = row_booked['total_booked'] if row_booked else 0
+                        
+                        if total_booked + huespedes > hosp['capacidad_max']:
+                            flash('Esta experiencia ya no tiene cupos suficientes para esta fecha.', 'error')
+                            c.rollback()
+                            return redirect(request.referrer)
+                    # ─────────────────────────────────────────────────────────────
+                    
                     precio_base = float(hosp['precio_persona']) * huespedes * noches
-                    descuento = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+                    descuento_publicacion = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+                    descuento_cantidad = descuento_por_cantidad(precio_base, huespedes)
+                    descuento = descuento_publicacion + descuento_cantidad
                     tarifa = round((precio_base - descuento) * 0.14, 2)
                     total = precio_base - descuento + tarifa
+                    credito_pct = float(getattr(current_user, 'credito_descuento', 0) or 0)
+                    credito_amount = round(total * credito_pct / 100, 2) if credito_pct > 0 else 0
+                    total = max(0, total - credito_amount)
+                    # Sumar el crédito de puntos al descuento total para el registro en la reserva
+                    descuento = float(descuento) + credito_amount
                     codigo = gen_code()
                     
                     cur.execute("""
-                        INSERT INTO reservas(codigo_reserva, usuario_id, tipo, experiencia_id,
+                        INSERT INTO reservas(codigo_reserva, usuario_id, tipo, experiencia_id, sesion_id,
                             fecha_checkin, fecha_checkout, num_huespedes, precio_base, tarifa_servicio,
                             descuento, total, estado, metodo_pago, estado_pago, notas_huesped, fecha_reserva)
-                        VALUES(%s, %s, 'experiencia', %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente_pago', %s, 'pendiente', %s, NOW())
-                    """, (codigo, current_user.id, hid, checkin, checkout, huespedes,
+                        VALUES(%s, %s, 'experiencia', %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente_pago', %s, 'pendiente', %s, NOW())
+                    """, (codigo, current_user.id, hid, sesion_id, checkin, checkout, huespedes,
                           precio_base, tarifa, descuento, total, metodo, notes))
                     rid = cur.lastrowid
                 else:
-                    cur.execute("SELECT id, anfitrion_id, precio_noche, descuento_porcentaje, activo, estado, capacidad_max FROM hospedajes WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
+                    # Incluir estadia_minima/maxima para validar rango de noches
+                    cur.execute("SELECT id, anfitrion_id, precio_noche, descuento_porcentaje, activo, estado, capacidad_max, estadia_minima, estadia_maxima FROM hospedajes WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
                     hosp = cur.fetchone()
                     if not hosp:
                         flash('Hospedaje no encontrado.', 'error')
@@ -723,7 +922,19 @@ def reservar():
                         flash('Las fechas no son válidas', 'error')
                         c.rollback()
                         return redirect(request.referrer)
-                        
+
+                    # ── Validar estadía mínima y máxima ──────────────────────
+                    min_n = int(hosp.get('estadia_minima') or 1)
+                    max_n = int(hosp.get('estadia_maxima') or 365)
+                    if noches < min_n:
+                        flash(f'La estadía mínima para este hospedaje es de {min_n} noche{"s" if min_n != 1 else ""}.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_hospedaje', id=hid))
+                    if noches > max_n:
+                        flash(f'La estadía máxima permitida es de {max_n} noches.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_hospedaje', id=hid))
+
                     # Validar disponibilidad real de fechas (SELECT FOR UPDATE)
                     cur.execute("""
                         SELECT id FROM reservas 
@@ -737,10 +948,17 @@ def reservar():
                         c.rollback()
                         return redirect(request.referrer)
                         
-                    precio_base = float(hosp['precio_noche']) * noches
-                    descuento = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+                    precio_base = float(hosp['precio_noche']) * noches * huespedes
+                    descuento_publicacion = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+                    descuento_cantidad = descuento_por_cantidad(precio_base, huespedes)
+                    descuento = descuento_publicacion + descuento_cantidad
                     tarifa = round((precio_base - descuento) * 0.14, 2)
                     total = precio_base - descuento + tarifa
+                    credito_pct = float(getattr(current_user, 'credito_descuento', 0) or 0)
+                    credito_amount = round(total * credito_pct / 100, 2) if credito_pct > 0 else 0
+                    total = max(0, total - credito_amount)
+                    # Sumar el crédito de puntos al descuento total para el registro en la reserva
+                    descuento = float(descuento) + credito_amount
                     codigo = gen_code()
                     
                     cur.execute("""
@@ -800,6 +1018,12 @@ def reservar():
                     cur.execute("UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s", (current_user.id,))
                     c.commit()
                     flash('Reserva confirmada. Realizarás el pago en efectivo al llegar.', 'success')
+                
+                # Aplicar crédito de puntos canjeados si existe
+                if credito_pct > 0:
+                    cur.execute("UPDATE usuarios SET credito_descuento=0 WHERE id=%s", (current_user.id,))
+                    current_user.credito_descuento = 0
+                    c.commit()
             
             return redirect(url_for('confirmacion', id=rid))
         except Exception as e:
@@ -812,10 +1036,12 @@ def reservar():
     # GET: mostrar formulario de pago
     tipo_reserva = request.args.get('tipo', 'hospedaje')
     hid = request.args.get('id')
+    sesion_id = request.args.get('sesion_id') # Nuevo param para experiencias
     checkin = request.args.get('checkin', '')
     checkout = request.args.get('checkout', '')
     huespedes = int(request.form.get('huespedes', 1)) if request.method == 'POST' else int(request.args.get('huespedes', 1))
     now = date.today().isoformat()
+    sesion = None
     c = db()
     try:
         with c.cursor() as cur:
@@ -830,6 +1056,10 @@ def reservar():
                 hosp = cur.fetchone()
                 if not hosp:
                     return redirect(url_for('experiencias'))
+                
+                if sesion_id:
+                    cur.execute("SELECT * FROM experiencia_sesiones WHERE id=%s", (sesion_id,))
+                    sesion = cur.fetchone()
                     
                 if hosp['anfitrion_id'] == current_user.id:
                     flash('No puedes reservar tu propia publicación.', 'error')
@@ -859,14 +1089,36 @@ def reservar():
                     fi = datetime.strptime(checkin, '%Y-%m-%d').date()
                     fo = datetime.strptime(checkout, '%Y-%m-%d').date()
                     noches = (fo - fi).days
-                precio_base = float(hosp['precio_noche']) * noches if noches else 0
+                    # ── Validar estadía en GET (antes de mostrar formulario de pago) ──
+                    min_n = int(hosp.get('estadia_minima') or 1)
+                    max_n = int(hosp.get('estadia_maxima') or 365)
+                    if noches < min_n:
+                        flash(f'La estadía mínima para este hospedaje es de {min_n} noche{"s" if min_n != 1 else ""}.', 'error')
+                        return redirect(url_for('detalle_hospedaje', id=hid))
+                    if noches > max_n:
+                        flash(f'La estadía máxima permitida es de {max_n} noches.', 'error')
+                        return redirect(url_for('detalle_hospedaje', id=hid))
+                precio_base = float(hosp['precio_noche']) * noches * huespedes if noches else 0
                 
-        descuento = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+        descuento_publicacion = round(precio_base * hosp['descuento_porcentaje'] / 100, 2) if hosp.get('descuento_porcentaje') else 0
+        descuento_cantidad = descuento_por_cantidad(precio_base, huespedes)
+        descuento = descuento_publicacion + descuento_cantidad
         tarifa = round((precio_base - descuento) * 0.14, 2)
         total = precio_base - descuento + tarifa
+        credito_pct = float(getattr(current_user, 'credito_descuento', 0) or 0)
+        credito_amount = round(total * credito_pct / 100, 2) if credito_pct > 0 else 0
+        total_final = max(0, total - credito_amount)
         
-        return render_template('reservar.html', hosp=hosp, checkin=checkin, checkout=checkout, 
-            huespedes=huespedes, noches=noches, precio_base=precio_base, descuento=descuento, tarifa=tarifa, total=total, now=now, tipo_reserva=tipo_reserva)
+        # Pasar estadia_minima/maxima al template para validación JS y display
+        estadia_minima = int(hosp.get('estadia_minima') or 1) if tipo_reserva == 'hospedaje' else 1
+        estadia_maxima = int(hosp.get('estadia_maxima') or 365) if tipo_reserva == 'hospedaje' else 365
+        return render_template('reservar.html', hosp=hosp, checkin=checkin, checkout=checkout,
+            huespedes=huespedes, noches=noches, precio_base=precio_base, descuento=descuento, tarifa=tarifa,
+            descuento_publicacion=descuento_publicacion, descuento_cantidad=descuento_cantidad,
+            descuento_cantidad_pct=DESCUENTO_CANTIDAD_PCT,
+            descuento_cantidad_min_huespedes=DESCUENTO_CANTIDAD_MIN_HUESPEDES,
+            total=total_final, credito_pct=credito_pct, credito_amount=credito_amount, now=now, tipo_reserva=tipo_reserva,
+            estadia_minima=estadia_minima, estadia_maxima=estadia_maxima, sesion=sesion)
     finally:
         c.close()
 
@@ -1249,22 +1501,34 @@ def publicar():
     lng = request.form.get('lng')
     precio = request.form.get('precio')
     
-    max_huespedes = request.form.get('max_huespedes', 2)
-    habitaciones = request.form.get('habitaciones', 1)
-    banos = request.form.get('banos', 1)
+    max_huespedes = bounded_int(request.form.get('max_huespedes'), 2, 1, 30)
+    habitaciones = bounded_int(request.form.get('habitaciones'), 1, 1, 20)
+    banos = bounded_int(request.form.get('banos'), 1, 1, 20)
     checkin = request.form.get('checkin', '15:00')
     checkout = request.form.get('checkout', '11:00')
+    # Estadía mínima y máxima — configurable por el anfitrión
+    estadia_minima = bounded_int(request.form.get('estadia_minima'), 1, 1, 365)
+    estadia_maxima = bounded_int(request.form.get('estadia_maxima'), 30, 1, 365)
+    if estadia_minima > estadia_maxima:
+        return jsonify({"success": False, "error": "La estadia minima no puede ser mayor que la maxima."})
 
     # Specific to Experiencias
-    e_cap_min = request.form.get('e_cap_min', 1)
-    e_duracion = request.form.get('e_duracion', 4)
+    e_cap_min = bounded_int(request.form.get('e_cap_min'), 1, 1, 50)
+    e_duracion = bounded_int(request.form.get('e_duracion'), 4, 1, 24)
     e_nivel = request.form.get('e_nivel', 'moderado')
     e_incluye = request.form.get('e_incluye', '')
     e_traer = request.form.get('e_traer', '')
     # Verification info
     v_tipo_doc = request.form.get('v_tipo_doc')
-    v_documento = request.form.get('v_documento')
-    v_telefono = request.form.get('v_telefono')
+    v_documento = digits_only(request.form.get('v_documento'), 10)
+    v_telefono = digits_only(request.form.get('v_telefono'), 10)
+
+    if tipo == 'experiencia':
+        max_huespedes = bounded_int(request.form.get('max_huespedes'), 10, 1, 50)
+        e_cap_min = min(e_cap_min, max_huespedes)
+
+    if not v_documento or not v_telefono:
+        return jsonify({"success": False, "error": "El documento y telefono deben contener solo numeros."})
 
     # Amenities (JSON array string)
     import json
@@ -1283,9 +1547,11 @@ def publicar():
         with c.cursor() as cur:
             if tipo == 'hospedaje':
                 cur.execute("""INSERT INTO hospedajes(anfitrion_id, tipo, nombre, municipio, direccion_detalle, latitud, longitud,
-                    descripcion, precio_noche, capacidad_max, num_habitaciones, num_banos, hora_checkin, hora_checkout, activo, verificado)
-                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 1)""",
-                    (current_user.id, categoria, nombre, municipio, direccion, lat, lng, descripcion, precio, max_huespedes, habitaciones, banos, checkin, checkout))
+                    descripcion, precio_noche, capacidad_max, num_habitaciones, num_banos, hora_checkin, hora_checkout,
+                    estadia_minima, estadia_maxima, activo, verificado)
+                    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, 1)""",
+                    (current_user.id, categoria, nombre, municipio, direccion, lat, lng, descripcion, precio,
+                     max_huespedes, habitaciones, banos, checkin, checkout, estadia_minima, estadia_maxima))
                 pub_id = cur.lastrowid
 
                 if fotos_urls:
@@ -1337,6 +1603,142 @@ def publicar():
         return jsonify({"success": False, "error": str(e)})
     finally:
         c.close()
+# ── API OBTENER DATOS DE PUBLICACIÓN (para wizard edición) ────
+@app.route('/api/publicacion/<tipo>/<int:id>')
+@login_required
+def api_get_publicacion(tipo, id):
+    """Devuelve todos los campos de una publicación propia para pre-llenar el wizard de edición."""
+    c = db()
+    try:
+        with c.cursor() as cur:
+            if tipo == 'hospedaje':
+                cur.execute("""SELECT h.*, GROUP_CONCAT(DISTINCT i.url ORDER BY i.orden SEPARATOR '|') as fotos
+                    FROM hospedajes h
+                    LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id
+                    WHERE h.id=%s AND h.anfitrion_id=%s AND h.eliminado=0
+                    GROUP BY h.id""", (id, current_user.id))
+                pub = cur.fetchone()
+                if not pub:
+                    return jsonify({'error': 'No encontrado o sin permiso'}), 404
+                cur.execute("SELECT servicio FROM hospedaje_servicios WHERE hospedaje_id=%s", (id,))
+                servicios = [r['servicio'] for r in cur.fetchall()]
+                data = serialize(pub)
+                data['servicios'] = servicios
+            elif tipo == 'experiencia':
+                cur.execute("""SELECT e.*, GROUP_CONCAT(DISTINCT i.url ORDER BY i.orden SEPARATOR '|') as fotos
+                    FROM experiencias e
+                    LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id
+                    WHERE e.id=%s AND e.anfitrion_id=%s AND e.eliminado=0
+                    GROUP BY e.id""", (id, current_user.id))
+                pub = cur.fetchone()
+                if not pub:
+                    return jsonify({'error': 'No encontrado o sin permiso'}), 404
+                data = serialize(pub)
+                data['servicios'] = []
+            else:
+                return jsonify({'error': 'Tipo inválido'}), 400
+        return jsonify(data)
+    finally:
+        c.close()
+
+
+# ── ACTUALIZAR PUBLICACIÓN ────────────────────────────────────
+@app.route('/actualizar', methods=['POST'])
+@login_required
+def actualizar_publicacion():
+    """Actualiza los datos de un hospedaje o experiencia existente del anfitrión."""
+    import json
+    pub_id   = request.form.get('pub_id', type=int)
+    tipo     = request.form.get('pub-tipo')
+    categoria = request.form.get('pub-categoria')
+    nombre   = request.form.get('nombre')
+    descripcion = request.form.get('descripcion')
+    municipio = request.form.get('municipio')
+    direccion = request.form.get('direccion', '')
+    lat      = request.form.get('lat')
+    lng      = request.form.get('lng')
+    precio   = request.form.get('precio')
+
+    if not pub_id or tipo not in ('hospedaje', 'experiencia'):
+        return jsonify({'success': False, 'error': 'Datos incompletos.'})
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # Verificar propiedad antes de actualizar
+            tabla = 'hospedajes' if tipo == 'hospedaje' else 'experiencias'
+            cur.execute(f"SELECT id FROM {tabla} WHERE id=%s AND anfitrion_id=%s AND eliminado=0",
+                        (pub_id, current_user.id))
+            if not cur.fetchone():
+                return jsonify({'success': False, 'error': 'Sin permiso para editar esta publicación.'})
+
+            if tipo == 'hospedaje':
+                max_huespedes = bounded_int(request.form.get('max_huespedes'), 2, 1, 30)
+                habitaciones  = bounded_int(request.form.get('habitaciones'), 1, 1, 20)
+                banos         = bounded_int(request.form.get('banos'), 1, 1, 20)
+                checkin       = request.form.get('checkin', '15:00')
+                checkout      = request.form.get('checkout', '11:00')
+                estadia_min   = bounded_int(request.form.get('estadia_minima'), 1, 1, 365)
+                estadia_max   = bounded_int(request.form.get('estadia_maxima'), 30, 1, 365)
+                if estadia_min > estadia_max:
+                    return jsonify({'success': False, 'error': 'La estadia minima no puede ser mayor que la maxima.'})
+
+                cur.execute("""UPDATE hospedajes SET tipo=%s, nombre=%s, municipio=%s,
+                    direccion_detalle=%s, latitud=%s, longitud=%s, descripcion=%s,
+                    precio_noche=%s, capacidad_max=%s, num_habitaciones=%s, num_banos=%s,
+                    hora_checkin=%s, hora_checkout=%s, estadia_minima=%s, estadia_maxima=%s
+                    WHERE id=%s AND anfitrion_id=%s""",
+                    (categoria, nombre, municipio, direccion, lat, lng, descripcion,
+                     precio, max_huespedes, habitaciones, banos, checkin, checkout,
+                     estadia_min, estadia_max, pub_id, current_user.id))
+
+                # Servicios: reemplazar completamente
+                cur.execute("DELETE FROM hospedaje_servicios WHERE hospedaje_id=%s", (pub_id,))
+                for srv in json.loads(request.form.get('servicios', '[]')):
+                    cur.execute("INSERT INTO hospedaje_servicios(hospedaje_id, servicio) VALUES(%s,%s)", (pub_id, srv))
+
+                # Imágenes: solo reemplazar si el anfitrión subió nuevas
+                fotos_urls = request.form.getlist('fotos_urls')
+                if fotos_urls:
+                    cur.execute("DELETE FROM hospedaje_imagenes WHERE hospedaje_id=%s", (pub_id,))
+                    for idx, url in enumerate(fotos_urls):
+                        cur.execute("""INSERT INTO hospedaje_imagenes(hospedaje_id, url, es_portada, orden)
+                            VALUES(%s,%s,%s,%s)""", (pub_id, url, 1 if idx == 0 else 0, idx))
+
+            else:  # experiencia
+                e_cap_min  = bounded_int(request.form.get('e_cap_min'), 1, 1, 50)
+                e_duracion = bounded_int(request.form.get('e_duracion'), 4, 1, 24)
+                e_nivel    = request.form.get('e_nivel', 'moderado')
+                e_incluye  = request.form.get('e_incluye', '')
+                e_traer    = request.form.get('e_traer', '')
+                max_huespedes = bounded_int(request.form.get('max_huespedes'), 10, 1, 50)
+                e_cap_min = min(e_cap_min, max_huespedes)
+
+                cur.execute("""UPDATE experiencias SET tipo=%s, nombre=%s, municipio=%s,
+                    latitud=%s, longitud=%s, descripcion=%s, precio_persona=%s,
+                    capacidad_min=%s, capacidad_max=%s, duracion_horas=%s,
+                    nivel_dificultad=%s, que_incluye=%s, que_traer=%s
+                    WHERE id=%s AND anfitrion_id=%s""",
+                    (categoria, nombre, municipio, lat, lng, descripcion, precio,
+                     e_cap_min, max_huespedes, e_duracion, e_nivel, e_incluye, e_traer,
+                     pub_id, current_user.id))
+
+                fotos_urls = request.form.getlist('fotos_urls')
+                if fotos_urls:
+                    cur.execute("DELETE FROM experiencia_imagenes WHERE experiencia_id=%s", (pub_id,))
+                    for idx, url in enumerate(fotos_urls):
+                        cur.execute("""INSERT INTO experiencia_imagenes(experiencia_id, url, es_portada, orden)
+                            VALUES(%s,%s,%s,%s)""", (pub_id, url, 1 if idx == 0 else 0, idx))
+
+            c.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        c.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        c.close()
+
+
 @app.route('/api/publicacion/estado', methods=['POST'])
 @login_required
 def cambiar_estado_publicacion():
@@ -1439,6 +1841,137 @@ def cambiar_estado_publicacion():
         return jsonify({'success': False, 'message': 'Error interno del servidor.'})
     finally:
         c.close()
+# ── API DISPONIBILIDAD EXPERIENCIAS (SESIONES) ───────────────
+@app.route('/api/experiencias/sesiones/<int:id>')
+def api_experiencia_sesiones(id):
+    """
+    Devuelve las sesiones de una experiencia para una fecha específica o a futuro.
+    """
+    fecha = request.args.get('fecha')
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # Liberar expiradas antes de consultar disponibilidad
+            liberar_reservas_expiradas(cur)
+            c.commit()
+
+            query = """
+                SELECT id, fecha, hora_inicio, hora_fin, cupos_totales, cupos_disponibles, estado 
+                FROM experiencia_sesiones 
+                WHERE experiencia_id = %s AND estado IN ('disponible', 'lleno')
+            """
+            params = [id]
+            
+            if fecha:
+                query += " AND fecha = %s"
+                params.append(fecha)
+            else:
+                query += " AND fecha >= CURDATE()"
+            
+            query += " ORDER BY fecha ASC, hora_inicio ASC"
+            
+            cur.execute(query, params)
+            sesiones = cur.fetchall()
+            
+            return jsonify({
+                'success': True,
+                'sesiones': serialize(sesiones)
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        c.close()
+
+@app.route('/api/experiencias/sesiones/crear', methods=['POST'])
+@login_required
+def api_crear_sesion():
+    data = request.get_json()
+    exp_id = data.get('experiencia_id')
+    fecha = data.get('fecha')
+    h_inicio = data.get('hora_inicio')
+    h_fin = data.get('hora_fin')
+    cupos = data.get('cupos_totales')
+
+    if not all([exp_id, fecha, h_inicio, h_fin, cupos]):
+        return jsonify({'success': False, 'error': 'Datos incompletos'}), 400
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # Verificar permiso
+            cur.execute("SELECT id FROM experiencias WHERE id=%s AND anfitrion_id=%s", (exp_id, current_user.id))
+            if not cur.fetchone():
+                return jsonify({'success': False, 'error': 'Sin permiso'}), 403
+
+            cur.execute("""
+                INSERT INTO experiencia_sesiones (experiencia_id, fecha, hora_inicio, hora_fin, cupos_totales, cupos_disponibles)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (exp_id, fecha, h_inicio, h_fin, cupos, cupos))
+            c.commit()
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        c.close()
+
+@app.route('/api/experiencias/sesiones/cancelar/<int:id>', methods=['POST'])
+@login_required
+def api_cancelar_sesion(id):
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # Verificar permiso y estado
+            cur.execute("""
+                SELECT s.id, e.anfitrion_id 
+                FROM experiencia_sesiones s 
+                JOIN experiencias e ON s.experiencia_id = e.id 
+                WHERE s.id=%s
+            """, (id,))
+            row = cur.fetchone()
+            if not row or row['anfitrion_id'] != current_user.id:
+                return jsonify({'success': False, 'error': 'Sin permiso'}), 403
+
+            # Actualizar estado a cancelado
+            cur.execute("UPDATE experiencia_sesiones SET estado = 'cancelado' WHERE id = %s", (id,))
+            
+            # TODO: Aquí se debería notificar a los usuarios que tienen reservas en esta sesión
+            
+            c.commit()
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        c.close()
+
+@app.route('/api/experiencias/lista-espera/unirse', methods=['POST'])
+@login_required
+def api_unirse_lista_espera():
+    data = request.get_json()
+    sesion_id = data.get('sesion_id')
+    huespedes = int(data.get('huespedes', 1))
+
+    if not sesion_id:
+        return jsonify({'success': False, 'error': 'Sesión no válida'}), 400
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # Verificar que no esté ya en la lista
+            cur.execute("SELECT id FROM lista_espera WHERE usuario_id=%s AND sesion_id=%s", (current_user.id, sesion_id))
+            if cur.fetchone():
+                return jsonify({'success': False, 'error': 'Ya estás en la lista de espera para este horario.'}), 400
+
+            cur.execute("""
+                INSERT INTO lista_espera (usuario_id, sesion_id, huespedes)
+                VALUES (%s, %s, %s)
+            """, (current_user.id, sesion_id, huespedes))
+            c.commit()
+            return jsonify({'success': True, 'msg': 'Te has unido a la lista de espera. Te notificaremos si se liberan cupos.'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        c.close()
+
 # ── API DISPONIBILIDAD ────────────────────────────────────────
 @app.route('/api/disponibilidad/<int:id>')
 def disponibilidad(id):
@@ -1448,27 +1981,78 @@ def disponibilidad(id):
             # 1. Liberar reservas pendientes que ya expiraron
             liberar_reservas_expiradas(cur)
             c.commit()
-            
+
             tipo = request.args.get('tipo', 'hospedaje')
             id_col = 'hospedaje_id' if tipo == 'hospedaje' else 'experiencia_id'
-            
-            # 2. Consultar reservas activas que bloquean las fechas (pendiente_pago, confirmada, check_in)
+
+            # --- SI ES EXPERIENCIA, DEVOLVER DÍAS QUE TIENEN SESIONES DISPONIBLES ---
+            if tipo == 'experiencia':
+                cur.execute("""
+                    SELECT DISTINCT fecha 
+                    FROM experiencia_sesiones 
+                    WHERE experiencia_id = %s AND fecha >= CURDATE() AND estado IN ('disponible', 'lleno')
+                """, (id,))
+                dias_con_sesion = [r['fecha'].isoformat() for r in cur.fetchall()]
+                
+                return jsonify({
+                    'success': True,
+                    'tipo': 'experiencia',
+                    'dias_disponibles': dias_con_sesion
+                })
+
+            # 2. Para hospedajes: obtener estadía mínima/máxima base y reglas de temporada
+            estadia_minima = 1
+            estadia_maxima = 365
+            reglas_temporada = []
+            if tipo == 'hospedaje':
+                cur.execute(
+                    "SELECT estadia_minima, estadia_maxima FROM hospedajes WHERE id=%s", (id,)
+                )
+                row = cur.fetchone()
+                if row:
+                    estadia_minima = int(row['estadia_minima'] or 1)
+                    estadia_maxima = int(row['estadia_maxima'] or 365)
+
+                # Reglas especiales de temporada activas a futuro
+                cur.execute("""
+                    SELECT nombre, fecha_inicio, fecha_fin, estadia_minima, estadia_maxima
+                    FROM estadia_reglas_temporada
+                    WHERE hospedaje_id=%s AND activo=1 AND fecha_fin >= CURDATE()
+                    ORDER BY fecha_inicio
+                """, (id,))
+                for reg in cur.fetchall():
+                    reglas_temporada.append({
+                        'nombre':        reg['nombre'],
+                        'fecha_inicio':  reg['fecha_inicio'].isoformat(),
+                        'fecha_fin':     reg['fecha_fin'].isoformat(),
+                        'estadia_minima': int(reg['estadia_minima']),
+                        'estadia_maxima': int(reg['estadia_maxima']),
+                    })
+
+            # 3. Consultar reservas activas que bloquean las fechas (pendiente_pago, confirmada, check_in)
             cur.execute(f"""SELECT fecha_checkin, fecha_checkout
                 FROM reservas
                 WHERE {id_col}=%s AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
                 AND fecha_checkout >= CURDATE()""", (id,))
             rows = cur.fetchall()
+
         bloqueadas = []
         for r in rows:
             fi = r['fecha_checkin']
             fo = r['fecha_checkout']
-            if not fi or not fo: continue
+            if not fi or not fo:
+                continue
             current = fi
             while current < fo:
                 bloqueadas.append(current.isoformat())
-                from datetime import timedelta
                 current += timedelta(days=1)
-        return jsonify({'bloqueadas': bloqueadas})
+
+        return jsonify({
+            'bloqueadas':      bloqueadas,
+            'estadia_minima':  estadia_minima,
+            'estadia_maxima':  estadia_maxima,
+            'reglas_temporada': reglas_temporada,
+        })
     finally:
         c.close()
 
@@ -1725,10 +2309,29 @@ def dejar_resena_directa(tipo, id):
     if not calificacion or not comentario:
         flash('Debe llenar todos los campos de la reseña.', 'error')
         return redirect(f"/{tipo}/{id}")
-        
+
     c = db()
     try:
         with c.cursor() as cur:
+            # Verificar que el usuario no sea el dueño de la publicación
+            if tipo == 'hospedaje':
+                cur.execute("SELECT anfitrion_id FROM hospedajes WHERE id=%s", (id,))
+            else:
+                cur.execute("SELECT anfitrion_id FROM experiencias WHERE id=%s", (id,))
+            listing = cur.fetchone()
+            if listing and listing['anfitrion_id'] == current_user.id:
+                flash('No puedes dejar reseñas en tu propia publicación.', 'error')
+                return redirect(f"/{tipo}/{id}")
+
+            # Verificar que el usuario no haya reseñado ya esta publicación
+            if tipo == 'hospedaje':
+                cur.execute("SELECT id FROM resenas WHERE hospedaje_id=%s AND usuario_id=%s LIMIT 1", (id, current_user.id))
+            else:
+                cur.execute("SELECT id FROM resenas WHERE experiencia_id=%s AND usuario_id=%s LIMIT 1", (id, current_user.id))
+            if cur.fetchone():
+                flash('Ya dejaste una reseña en esta publicación.', 'error')
+                return redirect(f"/{tipo}/{id}")
+
             cur.execute("""
                 INSERT INTO resenas (hospedaje_id, experiencia_id, usuario_id, calificacion_general, comentario, tipo)
                 VALUES (%s, %s, %s, %s, %s, %s)
@@ -1752,7 +2355,8 @@ def dejar_resena_directa(tipo, id):
                     calificacion=(SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=%s AND publicada=1),
                     total_resenas=(SELECT COUNT(*) FROM resenas WHERE experiencia_id=%s AND publicada=1)
                     WHERE id=%s""", (id, id, id))
-                    
+            # +25 pts por dejar reseña
+            cur.execute("UPDATE usuarios SET puntos_gamificacion=puntos_gamificacion+25 WHERE id=%s", (current_user.id,))
             c.commit()
             flash('¡Gracias por tu reseña!', 'success')
     except Exception as e:
@@ -1762,6 +2366,39 @@ def dejar_resena_directa(tipo, id):
         c.close()
         
     return redirect(f"/{tipo}/{id}")
+
+@app.route('/api/canjear-puntos', methods=['POST'])
+@login_required
+def api_canjear_puntos():
+    data = request.get_json(silent=True) or {}
+    tier = int(data.get('tier', 0))
+    tiers = {200: 5, 500: 10, 1000: 20}  # pts → % descuento
+    if tier not in tiers:
+        return jsonify({'ok': False, 'msg': 'Opción no válida'})
+    if current_user.puntos < tier:
+        return jsonify({'ok': False, 'msg': f'Necesitas al menos {tier} puntos (tienes {current_user.puntos})'})
+    pct = tiers[tier]
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""UPDATE usuarios
+                SET puntos_gamificacion = puntos_gamificacion - %s,
+                    credito_descuento = COALESCE(credito_descuento, 0) + %s
+                WHERE id = %s""", (tier, pct, current_user.id))
+            c.commit()
+        current_user.puntos -= tier
+        current_user.credito_descuento = float(current_user.credito_descuento or 0) + pct
+        return jsonify({
+            'ok': True,
+            'msg': f'¡Canjeaste {tier} pts! Tienes {int(current_user.credito_descuento)}% de descuento para tu próxima reserva.',
+            'nuevos_pts': current_user.puntos,
+            'credito': int(current_user.credito_descuento)
+        })
+    except Exception as e:
+        c.rollback()
+        return jsonify({'ok': False, 'msg': 'Error: ' + str(e)})
+    finally:
+        c.close()
 
 @app.route('/api/recuperar-contrasena', methods=['POST'])
 def api_recuperar_contrasena():

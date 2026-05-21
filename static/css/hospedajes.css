@@ -35,7 +35,113 @@
     font-size: 2rem;
     color: var(--primary);
     margin-bottom: 0.5rem;
+    font-weight: 700;
+    line-height: 1.2;
 }
+
+.hospedajes-header h1 i,
+.hosp-breadcrumb,
+.filter-chips,
+.quick-search-bar {
+    display: none !important;
+}
+
+/* Breadcrumb */
+.hosp-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .8rem;
+    color: var(--text-muted);
+    margin-bottom: .25rem;
+}
+.hosp-breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+.hosp-breadcrumb a:hover { text-decoration: underline; }
+.hosp-breadcrumb span { color: var(--text-muted); }
+
+/* Chips de filtros activos */
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin: .6rem 0 .4rem;
+}
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    background: #e8f5e9;
+    color: #2C4A3B;
+    border: 1px solid #c8e6c9;
+    border-radius: 50px;
+    padding: .22rem .75rem;
+    font-size: .78rem;
+    font-weight: 600;
+}
+.filter-chip i { font-size: .85rem; }
+
+/* Botón limpiar filtros */
+.clear-search {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+    border-radius: 50px;
+    padding: .22rem .75rem;
+    font-size: .78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .15s;
+}
+.clear-search:hover { background: #fecaca; }
+
+/* Barra de búsqueda rápida */
+.quick-search-bar {
+    display: flex;
+    gap: .5rem;
+    margin-top: .9rem;
+    flex-wrap: wrap;
+}
+.quick-search-bar input {
+    flex: 1;
+    min-width: 140px;
+    padding: .45rem .85rem;
+    border: 1.5px solid #d1fae5;
+    border-radius: 50px;
+    font-size: .85rem;
+    font-family: inherit;
+    outline: none;
+    background: #f9fafb;
+    transition: border-color .15s;
+}
+.quick-search-bar input:focus { border-color: var(--primary); background: #fff; }
+.quick-search-bar button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: .45rem 1.1rem;
+    font-size: .85rem;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+.quick-search-bar button:hover { background: #1a3329; }
+
+/* Resumen de resultados */
+.result-summary {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    margin-top: 0;
+}
+.result-summary strong { color: var(--primary); }
 
 /* Ajustamos el grid para la mitad de la pantalla */
 .grid-half {
@@ -142,19 +248,47 @@
 @media (max-width: 1024px) {
     .hospedajes-layout {
         flex-direction: column;
-        overflow: visible;
+        margin-top: 110px;
         height: auto;
+        overflow: visible;
     }
     
     .hospedajes-map {
-        height: 300px;
+        height: 250px;
         position: sticky;
-        top: 90px;
-        order: 1; /* Mapa arriba en móviles */
+        top: 80px;
+        order: 1;
+        width: 100%;
+        flex: none;
+        z-index: 100;
     }
     
     .hospedajes-list {
-        order: 2; /* Listado abajo en móviles */
+        order: 2;
+        padding: 1.5rem 1rem;
+        width: 100%;
+        flex: none;
         overflow-y: visible;
+    }
+
+    .hospedajes-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .grid-half {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hospedajes-layout {
+        margin-top: 90px;
+    }
+    .hospedajes-map {
+        height: 200px;
+    }
+    .hospedajes-header h1 {
+        font-size: 1.4rem;
     }
 }

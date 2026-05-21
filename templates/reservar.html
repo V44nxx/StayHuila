@@ -37,10 +37,10 @@
     </div>
             <nav class="nav-links">
             <a href="/hospedajes">Hospedajes</a>
-            <a href="#">Experiencias</a>
+            <a href="/experiencias">Experiencias</a>
 
             <a href="/comunidad">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Pon tu espacio en StayHuila</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Panel Anfitrion</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
@@ -48,7 +48,7 @@
             </div>
             {% if current_user.is_authenticated %}
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     
@@ -89,6 +89,9 @@
     <form method="POST" action="/reservar" id="reserva-form">
         <input type="hidden" name="id" value="{{ hosp.id }}">
         <input type="hidden" name="tipo" value="{{ tipo_reserva }}">
+        {% if sesion %}
+        <input type="hidden" name="sesion_id" value="{{ sesion.id }}">
+        {% endif %}
         <div class="reserva-layout">
             <!-- LEFT -->
             <div class="reserva-left">
@@ -114,9 +117,33 @@
                                 </div>
                             </div>
                             <input type="hidden" name="huespedes" id="inp-huespedes" value="{{ huespedes }}">
-                            <span style="font-size:.85rem;color:var(--text-muted)">Máx. {{ hosp.capacidad_max }}</span>
+                            <div style="display:flex; flex-direction:column;">
+                                <span style="font-size:.85rem;color:var(--text-muted)">Máx. {{ hosp.capacidad_max }}</span>
+                                {% if sesion %}
+                                <span style="font-size:.8rem; color:#b91c1c; font-weight:700;">{{ sesion.cupos_disponibles }} cupos restantes</span>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
+                    {% if tipo_reserva == 'hospedaje' %}
+                    <!-- Badges de estadía mínima/máxima -->
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem;">
+                        {% if estadia_minima > 1 %}
+                        <span style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:50px;padding:.2rem .8rem;font-size:.78rem;font-weight:600;">
+                            <i class="ph ph-clock"></i> Mínimo {{ estadia_minima }} noche{{ 's' if estadia_minima != 1 else '' }}
+                        </span>
+                        {% endif %}
+                        {% if estadia_maxima < 365 %}
+                        <span style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;border-radius:50px;padding:.2rem .8rem;font-size:.78rem;font-weight:600;">
+                            <i class="ph ph-calendar-x"></i> Máximo {{ estadia_maxima }} noches
+                        </span>
+                        {% endif %}
+                    </div>
+                    <!-- Alerta dinámica de estadía (reservar.js la activa si detecta violación) -->
+                    <div id="estadia-reserva-alert" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:.6rem .9rem;font-size:.82rem;color:#b91c1c;margin-top:.5rem;">
+                        <i class="ph ph-warning"></i> <span id="estadia-reserva-msg"></span>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- PAGO -->
@@ -201,20 +228,30 @@
                                 {% if tipo_reserva == 'experiencia' %}
                                 <span id="price-line-text">${{ "{:,.0f}".format(hosp.precio_persona).replace(',','.') }} × {{ huespedes }} persona{% if huespedes != 1 %}s{% endif %} × {{ noches }} día{% if noches != 1 %}s{% endif %}</span>
                                 {% else %}
-                                <span id="price-line-text">${{ "{:,.0f}".format(hosp.precio_noche).replace(',','.') }} × {{ noches }} noche{% if noches != 1 %}s{% endif %}</span>
+                                <span id="price-line-text">${{ "{:,.0f}".format(hosp.precio_noche).replace(',','.') }} × {{ huespedes }} persona{% if huespedes != 1 %}s{% endif %} × {{ noches }} noche{% if noches != 1 %}s{% endif %}</span>
                                 {% endif %}
                                 <span id="price-base-val">${{ "{:,.0f}".format(precio_base).replace(',','.') }}</span>
                             </div>
-                            {% if descuento > 0 or hosp.descuento_porcentaje %}
-                            <div class="pl-row discount-line" id="discount-row" style="display: {{ 'flex' if descuento > 0 else 'none' }}">
+                            {% if descuento_publicacion > 0 or hosp.descuento_porcentaje %}
+                            <div class="pl-row discount-line" id="discount-row" style="display: {{ 'flex' if descuento_publicacion > 0 else 'none' }}">
                                 <span>Descuento {{ hosp.descuento_porcentaje }}%</span>
-                                <span id="discount-val">-${{ "{:,.0f}".format(descuento).replace(',','.') }}</span>
+                                <span id="discount-val">-${{ "{:,.0f}".format(descuento_publicacion).replace(',','.') }}</span>
                             </div>
                             {% endif %}
+                            <div class="pl-row discount-line" id="quantity-discount-row" style="display: {{ 'flex' if descuento_cantidad > 0 else 'none' }}">
+                                <span>Descuento por cantidad ({{ descuento_cantidad_pct|int }}%)</span>
+                                <span id="quantity-discount-val">-${{ "{:,.0f}".format(descuento_cantidad).replace(',','.') }}</span>
+                            </div>
                             <div class="pl-row">
                                 <span>Tarifa de servicio (14%)</span>
                                 <span id="tarifa-val">${{ "{:,.0f}".format(tarifa).replace(',','.') }}</span>
                             </div>
+                            {% if credito_pct and credito_pct > 0 %}
+                            <div class="pl-row" style="color:#059669;font-weight:600;">
+                                <span><i class="ph-fill ph-coin"></i> Crédito puntos StayHuila ({{ credito_pct|int }}%)</span>
+                                <span id="credito-puntos-val">-${{ "{:,.0f}".format(credito_amount).replace(',','.') }}</span>
+                            </div>
+                            {% endif %}
                             <div class="pl-row total">
                                 <strong>Total COP</strong>
                                 <strong id="total-val">${{ "{:,.0f}".format(total).replace(',','.') }}</strong>
@@ -228,12 +265,18 @@
 </div>
 
 <script>
-const MAX_GUESTS = {{ hosp.capacidad_max }};
+const MAX_GUESTS = {{ sesion.cupos_disponibles if (tipo_reserva == 'experiencia' and sesion) else hosp.capacidad_max }};
 const TIPO_RESERVA = '{{ tipo_reserva }}';
 const PRECIO_UNITARIO = {{ hosp.precio_persona if tipo_reserva == 'experiencia' else hosp.precio_noche }};
 const NOCHES = {{ noches }};
 const DESCUENTO_PCT = {{ hosp.descuento_porcentaje or 0 }};
+const DESCUENTO_CANTIDAD_PCT = {{ descuento_cantidad_pct or 0 }};
+const DESCUENTO_CANTIDAD_MIN_HUESPEDES = {{ descuento_cantidad_min_huespedes or 5 }};
+const CREDITO_PCT = {{ credito_pct or 0 }};
 let guests = {{ huespedes }};
+// Estadía mínima y máxima para validación en la página de pago
+const ESTADIA_MIN = {{ estadia_minima }};
+const ESTADIA_MAX = {{ estadia_maxima }};
 </script>
 <script src="{{ url_for('static', filename='js/reservar.js') }}"></script>
 

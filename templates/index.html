@@ -105,7 +105,7 @@
             {% if current_user.is_authenticated %}
             <div class="profile-btn" style="position:relative;"
                 onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                 <i class="ph ph-list"></i>
                 <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
                     alt="Avatar"
@@ -149,20 +149,32 @@
             <p class="hero-subtitle" data-i18n="hero.subtitle">Hospedajes rurales, fincas y cabañas mágicas recomendadas
                 para ti</p>
 
+            <!-- Tipo Toggle -->
+            <div style="display:flex;gap:.5rem;justify-content:center;margin-bottom:.85rem;">
+                <button type="button" class="sh-tipo" data-tipo="hospedaje"
+                    style="background:white;color:#2C4A3B;border:none;border-radius:50px;padding:.45rem 1.3rem;font-weight:700;cursor:pointer;font-size:.92rem;font-family:inherit;display:flex;align-items:center;gap:.4rem;box-shadow:0 2px 8px rgba(0,0,0,.15);">
+                    <i class="ph ph-house-line"></i> Hospedaje
+                </button>
+                <button type="button" class="sh-tipo" data-tipo="experiencia"
+                    style="background:rgba(255,255,255,.18);color:white;border:2px solid rgba(255,255,255,.6);border-radius:50px;padding:.45rem 1.3rem;font-weight:600;cursor:pointer;font-size:.92rem;font-family:inherit;display:flex;align-items:center;gap:.4rem;">
+                    <i class="ph ph-shooting-star"></i> Experiencia
+                </button>
+            </div>
+
             <!-- Search Bar -->
             <div class="search-bar">
                 <div class="search-field">
-                    <label data-i18n="hero.loc">Ubicación / Experiencia</label>
+                    <label data-i18n="hero.loc">Ubicación / Nombre</label>
                     <input type="text" id="sh-q" data-i18n="hero.loc_ph" data-i18n-attr="placeholder"
                         placeholder="Ej. Aventura en Tatacoa..." autocomplete="off">
                 </div>
-                <div class="search-divider"></div>
-                <div class="search-field">
+                <div class="search-divider sh-date-divider"></div>
+                <div class="search-field sh-date-field">
                     <label data-i18n="hero.checkin">Llegada</label>
                     <input type="date" id="sh-checkin">
                 </div>
-                <div class="search-divider"></div>
-                <div class="search-field">
+                <div class="search-divider sh-date-divider"></div>
+                <div class="search-field sh-date-field">
                     <label data-i18n="hero.checkout">Salida</label>
                     <input type="date" id="sh-checkout">
                 </div>
@@ -182,45 +194,88 @@
         </div>
     </section>
 
-    <!-- Categories -->
-    <section class="categories">
-        <div class="category-item active" data-cat="">
-            <i class="ph ph-list"></i>
-            <span>Todos</span>
-        </div>
-        <div class="category-item" data-cat="finca-cafetera">
-            <i class="ph ph-coffee"></i>
-            <span data-i18n="cat.coffee">Fincas Cafeteras</span>
-        </div>
-        <div class="category-item" data-cat="eco">
-            <i class="ph ph-leaf"></i>
-            <span data-i18n="cat.eco">Sostenible &amp; Eco</span>
-        </div>
-        <div class="category-item" data-cat="desierto">
-            <i class="ph ph-cactus"></i>
-            <span data-i18n="cat.desert">Desierto</span>
-        </div>
-        <div class="category-item" data-cat="romantico">
-            <i class="ph ph-heart"></i>
-            <span data-i18n="cat.romantic">Romántico</span>
-        </div>
-        <div class="category-item" data-cat="aventura">
-            <i class="ph ph-person-simple-walk"></i>
-            <span data-i18n="cat.adventure">Aventura</span>
-        </div>
-        <div class="category-item" data-cat="descanso">
-            <i class="ph ph-bed"></i>
-            <span data-i18n="cat.rest">Descanso Profundo</span>
-        </div>
-    </section>
+    <!-- Layout principal: sidebar de categorias + grid de publicaciones -->
+    <div class="listings-wrapper">
 
-    <!-- Recomendaciones -->
-    <div style="text-align: center; padding: 2rem 4rem 0;">
-        <h2 style="font-size: 2rem; color: var(--primary);" data-i18n="listings.title">Recomendaciones para ti</h2>
-        <p style="color: var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus gustos
-        </p>
-    </div>
-    <main class="listings-container" id="hospedajes">
+        <!-- SIDEBAR DE CATEGORÍAS -->
+        <aside class="cat-sidebar">
+            <p class="cat-sidebar-title">Categorías</p>
+            <div class="category-item active" data-cat="">
+                <i class="ph ph-list"></i>
+                <span>Todos</span>
+            </div>
+            <p class="cat-sidebar-group">Hospedajes</p>
+            <div class="category-item" data-cat="Finca">
+                <i class="ph ph-tree"></i>
+                <span>Finca</span>
+            </div>
+            <div class="category-item" data-cat="Cabaña">
+                <i class="ph ph-house"></i>
+                <span>Cabaña</span>
+            </div>
+            <div class="category-item" data-cat="Glamping">
+                <i class="ph ph-tent"></i>
+                <span>Glamping</span>
+            </div>
+            <div class="category-item" data-cat="Habitación privada">
+                <i class="ph ph-door"></i>
+                <span>Habitación privada</span>
+            </div>
+            <div class="category-item" data-cat="Hotel boutique">
+                <i class="ph ph-buildings"></i>
+                <span>Hotel boutique</span>
+            </div>
+            <div class="category-item" data-cat="Casa entera">
+                <i class="ph ph-house-line"></i>
+                <span>Casa entera</span>
+            </div>
+            <p class="cat-sidebar-group">Experiencias</p>
+            <div class="category-item" data-cat="Aventura">
+                <i class="ph ph-person-simple-run"></i>
+                <span>Aventura</span>
+            </div>
+            <div class="category-item" data-cat="Cultural">
+                <i class="ph ph-book-open"></i>
+                <span>Cultural</span>
+            </div>
+            <div class="category-item" data-cat="Gastronomía">
+                <i class="ph ph-fork-knife"></i>
+                <span>Gastronomía</span>
+            </div>
+            <div class="category-item" data-cat="Naturaleza">
+                <i class="ph ph-leaf"></i>
+                <span>Naturaleza</span>
+            </div>
+            <div class="category-item" data-cat="Deportes">
+                <i class="ph ph-basketball"></i>
+                <span>Deportes</span>
+            </div>
+            <div class="category-item" data-cat="Bienestar">
+                <i class="ph ph-heartbeat"></i>
+                <span>Bienestar</span>
+            </div>
+            <div class="category-item" data-cat="Arte">
+                <i class="ph ph-paint-brush"></i>
+                <span>Arte</span>
+            </div>
+            <div class="category-item" data-cat="Noche">
+                <i class="ph ph-moon"></i>
+                <span>Noche</span>
+            </div>
+            <p class="cat-sidebar-group">Ubicación</p>
+            <div class="category-item" data-cat="Cerca de ti">
+                <i class="ph ph-map-pin"></i>
+                <span>Cerca de ti</span>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="listings-main">
+            <div style="text-align:center; padding: 2rem 2rem 0;">
+                <h2 style="font-size:1.8rem; color:var(--primary);" data-i18n="listings.title">Recomendaciones para ti</h2>
+                <p style="color:var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus gustos</p>
+            </div>
+            <main class="listings-container" id="hospedajes">
         {% for h in hospedajes %}
         <!-- Card {{ h.id }} -->
         <article class="listing-card" onclick="window.location.href='/hospedaje/{{ h.id }}'" style="cursor:pointer;">
@@ -250,7 +305,9 @@
             </div>
         </article>
         {% endfor %}
-    </main>
+            </main>
+        </div><!-- /.listings-main -->
+    </div><!-- /.listings-wrapper -->
 
     <!-- Floating Map Button -->
     <button class="floating-map-btn" onclick="openHomeMap()">
@@ -426,19 +483,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(document.getElementById('map-data').textContent);
             allItems = [...data.hospedajes, ...data.experiencias];
-
-            const categories = document.querySelectorAll('.category-item');
-            categories.forEach(category => {
-                category.addEventListener('click', () => {
-                    // Remove active class from all
-                    categories.forEach(c => c.classList.remove('active'));
-                    // Add active class to clicked
-                    category.classList.add('active');
-
-                    const catName = category.querySelector('span').textContent.trim();
-                    filterCategory(catName);
-                });
-            });
+            // Los click handlers de categorías los gestiona index.js para evitar duplicados
         });
 
         function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -458,19 +503,7 @@
 
             let filtered = [];
 
-            if (catName === 'Fincas Cafeteras') {
-                filtered = allItems.filter(i => i.tipo_publicacion === 'hospedaje' && i.categoria === 'Finca');
-            } else if (catName === 'Sostenible & Eco') {
-                filtered = allItems.filter(i => i.es_eco === 1 || i.categoria === 'Lodge' || i.categoria === 'Glamping' || i.categoria === 'Naturaleza');
-            } else if (catName === 'Desierto') {
-                filtered = allItems.filter(i => (i.municipio || '').toLowerCase().includes('villavieja') || (i.descripcion_corta || '').toLowerCase().includes('desierto'));
-            } else if (catName === 'Romántico') {
-                filtered = allItems.filter(i => i.categoria === 'Glamping' || i.categoria === 'Cabaña' || i.categoria === 'Arte');
-            } else if (catName === 'Aventura') {
-                filtered = allItems.filter(i => i.tipo_publicacion === 'experiencia' && (i.categoria === 'Aventura' || i.categoria === 'Deportes'));
-            } else if (catName === 'Descanso Profundo') {
-                filtered = allItems.filter(i => i.categoria === 'Lodge' || i.categoria === 'Bienestar' || i.categoria === 'Casa');
-            } else if (catName === 'Cerca de ti') {
+            if (catName === 'Cerca de ti') {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(position => {
                         const userLat = position.coords.latitude;
@@ -496,8 +529,12 @@
                     alert("Geolocalización no es soportada por este navegador.");
                     filtered = allItems;
                 }
+            } else if (!catName || catName === 'Todos') {
+                // "Todos": mostrar todo sin filtro
+                filtered = allItems;
             } else {
-                filtered = allItems.filter(i => i.tipo_publicacion === 'hospedaje'); // default behavior
+                // Filtrar por categoría exacta (coincide con los valores del campo `categoria` en BD)
+                filtered = allItems.filter(i => i.categoria === catName);
             }
 
             renderListings(filtered);
@@ -588,11 +625,15 @@
             if (!homeMap) {
                 // Initialize map centered on Huila
                 homeMap = L.map('home-map', { zoomControl: true }).setView([2.5, -75.5], 8);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    attribution: '© OpenStreetMap © CARTO',
-                    subdomains: 'abcd',
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                     maxZoom: 19
                 }).addTo(homeMap);
+
+                // Forzar redibujado
+                setTimeout(() => {
+                    homeMap.invalidateSize();
+                }, 400);
 
                 // Try to get user's real location
                 if (navigator.geolocation) {

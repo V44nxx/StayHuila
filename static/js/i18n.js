@@ -72,6 +72,7 @@ const T = {
         'booking.reserve':'Reservar','booking.reserve_disabled':'Reservar (Deshabilitado)',
         'booking.no_charge':'No se te cobrará nada aún','booking.nights':'noches','booking.service_fee':'Tarifa de servicio',
         'booking.total':'Total','booking.max_guests':'Máx. {n} huéspedes',
+        'booking.max_prefix':'Máx.','booking.guests_lower':'huéspedes',
         'booking.repair_msg':'Este hospedaje se encuentra actualmente en reparación o mantenimiento. Las reservas están deshabilitadas temporalmente.',
         'ai.sub':'Tu asistente de viajes','ai.ph':'Escribe tu búsqueda...',
     },
@@ -135,6 +136,7 @@ const T = {
         'booking.reserve':'Reserve','booking.reserve_disabled':'Reserve (Disabled)',
         'booking.no_charge':"You won't be charged yet",'booking.nights':'nights','booking.service_fee':'Service fee',
         'booking.total':'Total','booking.max_guests':'Max. {n} guests',
+        'booking.max_prefix':'Max.','booking.guests_lower':'guests',
         'booking.repair_msg':'This lodging is currently under repair or maintenance. Bookings are temporarily disabled.',
         'ai.sub':'Your travel assistant','ai.ph':'Type your search...',
     },
@@ -198,6 +200,7 @@ const T = {
         'booking.reserve':'Reservar','booking.reserve_disabled':'Reservar (Desabilitado)',
         'booking.no_charge':'Nada será cobrado ainda','booking.nights':'noites','booking.service_fee':'Taxa de serviço',
         'booking.total':'Total','booking.max_guests':'Máx. {n} hóspedes',
+        'booking.max_prefix':'Máx.','booking.guests_lower':'hóspedes',
         'booking.repair_msg':'Esta hospedagem está em manutenção. As reservas estão temporariamente desativadas.',
         'ai.sub':'Seu assistente de viagens','ai.ph':'Digite sua busca...',
     },
@@ -261,6 +264,7 @@ const T = {
         'booking.reserve':'Réserver','booking.reserve_disabled':'Réserver (Désactivé)',
         'booking.no_charge':'Aucun frais pour le moment','booking.nights':'nuits','booking.service_fee':'Frais de service',
         'booking.total':'Total','booking.max_guests':'Max. {n} voyageurs',
+        'booking.max_prefix':'Max.','booking.guests_lower':'voyageurs',
         'booking.repair_msg':'Ce logement est en cours de réparation. Les réservations sont temporairement désactivées.',
         'ai.sub':'Votre assistant voyage','ai.ph':'Tapez votre recherche...',
     },
@@ -324,6 +328,7 @@ const T = {
         'booking.reserve':'Prenota','booking.reserve_disabled':'Prenota (Disabilitato)',
         'booking.no_charge':'Non ti verrà addebitato nulla ancora','booking.nights':'notti','booking.service_fee':'Commissioni di servizio',
         'booking.total':'Totale','booking.max_guests':'Max. {n} ospiti',
+        'booking.max_prefix':'Max.','booking.guests_lower':'ospiti',
         'booking.repair_msg':'Questo alloggio è attualmente in manutenzione. Le prenotazioni sono temporaneamente disabilitate.',
         'ai.sub':'Il tuo assistente di viaggio','ai.ph':'Scrivi la tua ricerca...',
     }
@@ -484,3 +489,298 @@ document.addEventListener('DOMContentLoaded', () => {
     buildLangDropdown();
     I18n.init();
 });
+
+/* Extra coverage for legacy templates that still have hard-coded Spanish text. */
+(function enhanceLegacyI18n() {
+    const TEXT = {
+        en: {
+            'Hospedajes':'Lodgings','Experiencias':'Experiences','Comunidad':'Community','Panel Anfitrion':'Host Panel','Panel Anfitrión':'Host Panel',
+            'Mi Perfil':'My Profile','Mis Reservas':'My Bookings','Mis Favoritos':'My Favorites','Cerrar Sesión':'Log Out','Iniciar Sesión':'Log In',
+            'Limpiar filtros':'Clear filters','Ver detalles':'See details','Ver todos':'See all','Buscar':'Search','Guardar':'Save','Compartir':'Share',
+            'Hospedajes en el Huila':'Lodgings in Huila','Experiencias en el Huila':'Experiences in Huila','Resultados de búsqueda':'Search results','Inicio':'Home',
+            'Categorías':'Categories','Todos':'All','Hospedajes':'Lodgings','Finca':'Farm','Cabaña':'Cabin','Glamping':'Glamping','Habitación privada':'Private room',
+            'Hotel boutique':'Boutique hotel','Casa entera':'Entire house','Aventura':'Adventure','Cultural':'Cultural','Gastronomía':'Gastronomy','Naturaleza':'Nature',
+            'Deportes':'Sports','Bienestar':'Wellness','Arte':'Art','Noche':'Night','Ubicación':'Location','Cerca de ti':'Near you',
+            'Mis Puntos':'My Points','Puntos StayHuila':'StayHuila Points','Clic para ver tus puntos':'Click to view your points',
+            'Información Personal':'Personal Information','Datos Básicos':'Basic Info','Cambiar Contraseña':'Change Password','Nombre(s)':'First name',
+            'Apellidos':'Last name','Correo Electrónico':'Email Address','Teléfono':'Phone','Nueva Contraseña':'New Password','Confirmar Contraseña':'Confirm Password',
+            'Guardar Cambios':'Save Changes','Cambiar foto':'Change photo','Eliminar foto':'Delete photo','Cerrar':'Close','Canjear':'Redeem','Canjear puntos':'Redeem points',
+            'Cómo ganar puntos':'How to earn points','Niveles':'Levels','Tu nivel actual':'Your current level','Registrarse':'Sign up','Confirmar reserva':'Confirm booking',
+            'Completar estadía':'Complete stay','Dejar reseña':'Leave review','Descuento básico':'Basic discount','Descuento avanzado':'Advanced discount',
+            'Descuento premium':'Premium discount','Válido en próxima reserva':'Valid on next booking','MEJOR VALOR':'BEST VALUE','descuento disponible':'discount available',
+            'Confirma y paga':'Confirm and pay','Revisa los detalles antes de confirmar tu reserva':'Review the details before confirming your booking','Tu viaje':'Your trip',
+            'LLEGADA':'CHECK-IN','SALIDA':'CHECK-OUT','HUÉSPEDES':'GUESTS','Método de pago':'Payment method','Tarjeta':'Card','Efectivo':'Cash',
+            'Débito/Crédito':'Debit/Credit','Transferencia':'Transfer','Al llegar':'On arrival','NÚMERO DE TARJETA':'CARD NUMBER','NOMBRE EN LA TARJETA':'NAME ON CARD',
+            'VENCIMIENTO':'EXPIRY','Notas para el anfitrión':'Notes for host','Pago 100% seguro y cifrado':'100% secure encrypted payment',
+            'Tarifa de servicio':'Service fee','Total COP':'Total COP','Resumen de pago':'Payment summary','Subtotal':'Subtotal','Descuento':'Discount',
+            '¡Reserva Confirmada! 🎉':'Booking confirmed! 🎉','¡Reserva Pre-confirmada! ⏳':'Booking pre-confirmed! ⏳','Reserva Cancelada o Expirada ❌':'Booking cancelled or expired ❌',
+            'Tu aventura en el Huila está a punto de comenzar':'Your Huila adventure is about to begin',
+            'Completa tu pago dentro de los próximos 10 minutos para asegurar tus fechas.':'Complete your payment within the next 10 minutes to secure your dates.',
+            'Esta reserva ha expirado por falta de pago o ha sido cancelada.':'This booking expired due to missing payment or was cancelled.',
+            'HORA CHECK-IN':'CHECK-IN TIME','HORA ENTRADA':'ENTRY TIME','INSTRUCCIONES DE LLEGADA':'ARRIVAL INSTRUCTIONS','TU ANFITRIÓN':'YOUR HOST',
+            'Realiza la transferencia':'Make the transfer','Verificación de pago':'Payment verification','Guarda tu código de reserva':'Save your booking code',
+            'Contacta al anfitrión (opcional)':'Contact the host (optional)','Haz check-in el día de llegada':'Check in on arrival day',
+            'Comunidad StayHuila':'StayHuila Community','Comparte tus aventuras':'Share your adventures','¡Únete a la charla!':'Join the conversation!',
+            'Comparte fotos y recomendaciones del Huila con viajeros como tú.':'Share photos and recommendations from Huila with travelers like you.',
+            'Publicar':'Post','Cargando publicaciones...':'Loading posts...','Tendencias':'Trending','reseñas':'reviews',
+            'Lo que ofrece este lugar':'What this place offers','Mostrar más':'Show more','Mostrar menos':'Show less','Ver todas las fotos':'See all photos',
+            'SuperAnfitrión':'SuperHost','Reservar':'Reserve','Reservar (Deshabilitado)':'Reserve (Disabled)','No se te cobrará nada aún':'You will not be charged yet',
+            'noche':'night','noches':'nights','por persona':'per person','Sostenible':'Sustainable','En reparación':'Under maintenance',
+            'No se encontraron resultados para esta categoría.':'No results were found for this category.'
+        },
+        pt: {
+            'Hospedajes':'Hospedagens','Experiencias':'Experiências','Comunidad':'Comunidade','Panel Anfitrion':'Painel do Anfitrião','Panel Anfitrión':'Painel do Anfitrião',
+            'Mi Perfil':'Meu Perfil','Mis Reservas':'Minhas Reservas','Mis Favoritos':'Meus Favoritos','Cerrar Sesión':'Sair','Iniciar Sesión':'Entrar',
+            'Limpiar filtros':'Limpar filtros','Ver detalles':'Ver detalhes','Ver todos':'Ver todos','Buscar':'Buscar','Guardar':'Salvar','Compartir':'Compartilhar',
+            'Hospedajes en el Huila':'Hospedagens no Huila','Experiencias en el Huila':'Experiências no Huila','Resultados de búsqueda':'Resultados da busca','Inicio':'Início',
+            'Categorías':'Categorias','Todos':'Todos','Mis Puntos':'Meus Pontos','Información Personal':'Informações Pessoais','Datos Básicos':'Dados Básicos',
+            'Cambiar Contraseña':'Alterar Senha','Nombre(s)':'Nome','Apellidos':'Sobrenome','Correo Electrónico':'E-mail','Teléfono':'Telefone',
+            'Nueva Contraseña':'Nova Senha','Confirmar Contraseña':'Confirmar Senha','Guardar Cambios':'Salvar Alterações','Cambiar foto':'Alterar foto',
+            'Eliminar foto':'Excluir foto','Cerrar':'Fechar','Canjear':'Resgatar','Canjear puntos':'Resgatar pontos','Confirma y paga':'Confirme e pague',
+            'Tu viaje':'Sua viagem','LLEGADA':'CHEGADA','SALIDA':'SAÍDA','HUÉSPEDES':'HÓSPEDES','Método de pago':'Método de pagamento',
+            'Tarjeta':'Cartão','Efectivo':'Dinheiro','Débito/Crédito':'Débito/Crédito','Transferencia':'Transferência','Al llegar':'Ao chegar',
+            'Notas para el anfitrión':'Notas para o anfitrião','Tarifa de servicio':'Taxa de serviço','Resumen de pago':'Resumo do pagamento',
+            'Comunidad StayHuila':'Comunidade StayHuila','Publicar':'Publicar','Cargando publicaciones...':'Carregando publicações...',
+            'Lo que ofrece este lugar':'O que este lugar oferece','Mostrar más':'Mostrar mais','Mostrar menos':'Mostrar menos','Reservar':'Reservar',
+            'No se te cobrará nada aún':'Nada será cobrado ainda','noche':'noite','noches':'noites','por persona':'por pessoa','Sostenible':'Sustentável','En reparación':'Em manutenção'
+        },
+        fr: {
+            'Hospedajes':'Hébergements','Experiencias':'Expériences','Comunidad':'Communauté','Panel Anfitrion':"Tableau de l'hôte",'Panel Anfitrión':"Tableau de l'hôte",
+            'Mi Perfil':'Mon Profil','Mis Reservas':'Mes Réservations','Mis Favoritos':'Mes Favoris','Cerrar Sesión':'Se déconnecter','Iniciar Sesión':'Se connecter',
+            'Limpiar filtros':'Effacer les filtres','Ver detalles':'Voir les détails','Ver todos':'Tout voir','Buscar':'Rechercher','Guardar':'Enregistrer','Compartir':'Partager',
+            'Hospedajes en el Huila':'Hébergements au Huila','Experiencias en el Huila':'Expériences au Huila','Resultados de búsqueda':'Résultats de recherche','Inicio':'Accueil',
+            'Categorías':'Catégories','Todos':'Tous','Mis Puntos':'Mes Points','Información Personal':'Informations Personnelles','Datos Básicos':'Informations de base',
+            'Cambiar Contraseña':'Changer le mot de passe','Nombre(s)':'Prénom','Apellidos':'Nom','Correo Electrónico':'E-mail','Teléfono':'Téléphone',
+            'Nueva Contraseña':'Nouveau mot de passe','Confirmar Contraseña':'Confirmer le mot de passe','Guardar Cambios':'Enregistrer','Cambiar foto':'Changer la photo',
+            'Eliminar foto':'Supprimer la photo','Cerrar':'Fermer','Canjear':'Échanger','Canjear puntos':'Échanger des points','Confirma y paga':'Confirmer et payer',
+            'Tu viaje':'Votre voyage','LLEGADA':'ARRIVÉE','SALIDA':'DÉPART','HUÉSPEDES':'VOYAGEURS','Método de pago':'Méthode de paiement',
+            'Tarjeta':'Carte','Efectivo':'Espèces','Débito/Crédito':'Débit/Crédit','Transferencia':'Virement','Al llegar':"À l'arrivée",
+            'Notas para el anfitrión':"Notes pour l'hôte",'Tarifa de servicio':'Frais de service','Resumen de pago':'Résumé du paiement',
+            'Comunidad StayHuila':'Communauté StayHuila','Publicar':'Publier','Cargando publicaciones...':'Chargement des publications...',
+            'Lo que ofrece este lugar':'Ce que propose ce lieu','Mostrar más':'Afficher plus','Mostrar menos':'Afficher moins','Reservar':'Réserver',
+            'No se te cobrará nada aún':'Aucun frais pour le moment','noche':'nuit','noches':'nuits','por persona':'par personne','Sostenible':'Durable','En reparación':'En maintenance'
+        },
+        it: {
+            'Hospedajes':'Alloggi','Experiencias':'Esperienze','Comunidad':'Comunità','Panel Anfitrion':'Pannello Host','Panel Anfitrión':'Pannello Host',
+            'Mi Perfil':'Il Mio Profilo','Mis Reservas':'Le Mie Prenotazioni','Mis Favoritos':'I Miei Preferiti','Cerrar Sesión':'Esci','Iniciar Sesión':'Accedi',
+            'Limpiar filtros':'Cancella filtri','Ver detalles':'Vedi dettagli','Ver todos':'Vedi tutti','Buscar':'Cerca','Guardar':'Salva','Compartir':'Condividi',
+            'Hospedajes en el Huila':'Alloggi nel Huila','Experiencias en el Huila':'Esperienze nel Huila','Resultados de búsqueda':'Risultati di ricerca','Inicio':'Home',
+            'Categorías':'Categorie','Todos':'Tutti','Mis Puntos':'I Miei Punti','Información Personal':'Informazioni Personali','Datos Básicos':'Dati di Base',
+            'Cambiar Contraseña':'Cambia Password','Nombre(s)':'Nome','Apellidos':'Cognome','Correo Electrónico':'E-mail','Teléfono':'Telefono',
+            'Nueva Contraseña':'Nuova Password','Confirmar Contraseña':'Conferma Password','Guardar Cambios':'Salva Modifiche','Cambiar foto':'Cambia foto',
+            'Eliminar foto':'Elimina foto','Cerrar':'Chiudi','Canjear':'Riscatta','Canjear puntos':'Riscatta punti','Confirma y paga':'Conferma e paga',
+            'Tu viaje':'Il tuo viaggio','LLEGADA':'ARRIVO','SALIDA':'PARTENZA','HUÉSPEDES':'OSPITI','Método de pago':'Metodo di pagamento',
+            'Tarjeta':'Carta','Efectivo':'Contanti','Débito/Crédito':'Debito/Credito','Transferencia':'Bonifico','Al llegar':"All'arrivo",
+            'Notas para el anfitrión':'Note per host','Tarifa de servicio':'Commissione di servizio','Resumen de pago':'Riepilogo pagamento',
+            'Comunidad StayHuila':'Comunità StayHuila','Publicar':'Pubblica','Cargando publicaciones...':'Caricamento pubblicazioni...',
+            'Lo que ofrece este lugar':'Cosa offre questo posto','Mostrar más':'Mostra altro','Mostrar menos':'Mostra meno','Reservar':'Prenota',
+            'No se te cobrará nada aún':'Non ti verrà addebitato nulla ancora','noche':'notte','noches':'notti','por persona':'a persona','Sostenible':'Sostenibile','En reparación':'In manutenzione'
+        }
+    };
+
+    const ATTR = {
+        en: {'Ver mis puntos':'View my points','Municipio, nombre o tipo...':'Municipality, name or type...','🔍  Municipio, nombre o tipo...':'🔍  Municipality, name or type...','Ej. Aventura en Tatacoa...':'E.g. Adventure in Tatacoa...','¿Cuántos?':'How many?','Mínimo 6 caracteres':'Minimum 6 characters','Repite la nueva contraseña':'Repeat the new password','Como aparece en la tarjeta':'As shown on the card','¿Hora de llegada aproximada? ¿Alguna necesidad especial? ¿Celebras algo?':'Approximate arrival time? Any special need? Celebrating something?','Buscar hospedaje o experiencia...':'Search lodging or experience...','Escribe tu búsqueda...':'Type your search...','Búsqueda por voz':'Voice search','El correo no se puede cambiar':'Email cannot be changed'},
+        pt: {'Ver mis puntos':'Ver meus pontos','Municipio, nombre o tipo...':'Município, nome ou tipo...','🔍  Municipio, nombre o tipo...':'🔍  Município, nome ou tipo...','Ej. Aventura en Tatacoa...':'Ex. Aventura no Tatacoa...','¿Cuántos?':'Quantos?','Mínimo 6 caracteres':'Mínimo 6 caracteres','Repite la nueva contraseña':'Repita a nova senha','Como aparece en la tarjeta':'Como aparece no cartão','¿Hora de llegada aproximada? ¿Alguna necesidad especial? ¿Celebras algo?':'Hora aproximada de chegada? Alguma necessidade especial? Está comemorando algo?','Buscar hospedaje o experiencia...':'Buscar hospedagem ou experiência...','Escribe tu búsqueda...':'Digite sua busca...','Búsqueda por voz':'Busca por voz','El correo no se puede cambiar':'O e-mail não pode ser alterado'},
+        fr: {'Ver mis puntos':'Voir mes points','Municipio, nombre o tipo...':'Commune, nom ou type...','🔍  Municipio, nombre o tipo...':'🔍  Commune, nom ou type...','Ej. Aventura en Tatacoa...':'Ex. Aventure à Tatacoa...','¿Cuántos?':'Combien ?','Mínimo 6 caracteres':'Minimum 6 caractères','Repite la nueva contraseña':'Répétez le nouveau mot de passe','Como aparece en la tarjeta':'Comme indiqué sur la carte','¿Hora de llegada aproximada? ¿Alguna necesidad especial? ¿Celebras algo?':"Heure d'arrivée approximative ? Besoin particulier ? Vous célébrez quelque chose ?",'Buscar hospedaje o experiencia...':'Rechercher un hébergement ou une expérience...','Escribe tu búsqueda...':'Tapez votre recherche...','Búsqueda por voz':'Recherche vocale','El correo no se puede cambiar':"L'e-mail ne peut pas être modifié"},
+        it: {'Ver mis puntos':'Vedi i miei punti','Municipio, nombre o tipo...':'Comune, nome o tipo...','🔍  Municipio, nombre o tipo...':'🔍  Comune, nome o tipo...','Ej. Aventura en Tatacoa...':'Es. Avventura nel Tatacoa...','¿Cuántos?':'Quanti?','Mínimo 6 caracteres':'Minimo 6 caratteri','Repite la nueva contraseña':'Ripeti la nuova password','Como aparece en la tarjeta':'Come appare sulla carta','¿Hora de llegada aproximada? ¿Alguna necesidad especial? ¿Celebras algo?':'Orario di arrivo approssimativo? Esigenze speciali? Festeggi qualcosa?','Buscar hospedaje o experiencia...':'Cerca alloggio o esperienza...','Escribe tu búsqueda...':'Scrivi la tua ricerca...','Búsqueda por voz':'Ricerca vocale','El correo no se puede cambiar':"L'e-mail non può essere modificata"}
+    };
+    Object.assign(ATTR.en, {'¿Cómo fue tu experiencia en este lugar?':'How was your experience in this place?'});
+    Object.assign(ATTR.pt, {'¿Cómo fue tu experiencia en este lugar?':'Como foi sua experiência neste lugar?'});
+    Object.assign(ATTR.fr, {'¿Cómo fue tu experiencia en este lugar?':'Comment s’est passée votre expérience dans ce lieu ?'});
+    Object.assign(ATTR.it, {'¿Cómo fue tu experiencia en este lugar?':'Com’è stata la tua esperienza in questo posto?'});
+
+    const TITLES = {
+        en: {'Todos los Hospedajes':'All Lodgings','Todas las Experiencias':'All Experiences','Hospedajes Auténticos':'Authentic Lodgings','Mi Perfil':'My Profile','Mis Favoritos':'My Favorites','Comunidad':'Community','Completar Reserva':'Complete Booking'},
+        pt: {'Todos los Hospedajes':'Todas as Hospedagens','Todas las Experiencias':'Todas as Experiências','Hospedajes Auténticos':'Hospedagens Autênticas','Mi Perfil':'Meu Perfil','Mis Favoritos':'Meus Favoritos','Comunidad':'Comunidade','Completar Reserva':'Completar Reserva'},
+        fr: {'Todos los Hospedajes':'Tous les Hébergements','Todas las Experiencias':'Toutes les Expériences','Hospedajes Auténticos':'Hébergements Authentiques','Mi Perfil':'Mon Profil','Mis Favoritos':'Mes Favoris','Comunidad':'Communauté','Completar Reserva':'Finaliser la Réservation'},
+        it: {'Todos los Hospedajes':'Tutti gli Alloggi','Todas las Experiencias':'Tutte le Esperienze','Hospedajes Auténticos':'Alloggi Autentici','Mi Perfil':'Il Mio Profilo','Mis Favoritos':'I Miei Preferiti','Comunidad':'Comunità','Completar Reserva':'Completa Prenotazione'}
+    };
+    Object.assign(TEXT.en, {
+        'Limpieza':'Cleanliness','Comunicación':'Communication','Ubicación':'Location','Relación calidad-precio':'Value for money',
+        'También te puede interesar':'You may also be interested','Otros hospedajes disponibles en el Huila':'Other available lodgings in Huila',
+        'Ya dejaste tu reseña':'You already left your review','Solo se permite una reseña por publicación. ¡Gracias por tu opinión!':'Only one review is allowed per listing. Thank you for your opinion!',
+        'Anfitrión':'Host','Contactar':'Contact','Selecciona tus fechas':'Select your dates','Añade fechas para ver el precio exacto':'Add dates to see the exact price',
+        '¿Dónde está?':'Where is it?','La dirección exacta se comparte tras la reserva.':'The exact address is shared after booking.',
+        'Sé el primero en dejar una reseña.':'Be the first to leave a review.','Deja tu reseña':'Leave your review','Calificación general:':'Overall rating:',
+        'Publicar reseña':'Post review','Inicia sesión para dejar una reseña.':'Log in to leave a review.','Iniciar sesión':'Log in',
+        'Esta es tu publicación':'This is your listing','Los anfitriones no pueden reservar sus propios hospedajes.':'Hosts cannot book their own lodgings.',
+        'Ir al panel':'Go to dashboard','Eres el anfitrión de esta publicación':'You are the host of this listing','No puedes dejarte reseñas propias.':'You cannot review your own listing.',
+        'Auto check-in con caja de llaves.':'Self check-in with lockbox.','Fue buen hospedaje':'It was a good lodging'
+    });
+    Object.assign(TEXT.en, {
+        'Una finca donde vivirás los mejores momento de tu vida y compartirás momento en familia y con tus amigos de la mejor manera':'A farm where you will live some of the best moments of your life and share time with family and friends in the best way.',
+        'Cocina equipada':'Equipped kitchen','Piscina':'Pool','Mayo':'May','Junio':'June','Julio':'July','Agosto':'August','Septiembre':'September','Octubre':'October','Noviembre':'November','Diciembre':'December','Enero':'January','Febrero':'February','Marzo':'March','Abril':'April'
+    });
+    Object.assign(TEXT.pt, {
+        'Limpieza':'Limpeza','Comunicación':'Comunicação','Ubicación':'Localização','Relación calidad-precio':'Custo-benefício',
+        'También te puede interesar':'Você também pode se interessar','Otros hospedajes disponibles en el Huila':'Outras hospedagens disponíveis no Huila',
+        'Ya dejaste tu reseña':'Você já deixou sua avaliação','Solo se permite una reseña por publicación. ¡Gracias por tu opinión!':'Só é permitida uma avaliação por publicação. Obrigado pela sua opinião!',
+        'Anfitrión':'Anfitrião','Contactar':'Contactar','Selecciona tus fechas':'Selecione suas datas','Añade fechas para ver el precio exacto':'Adicione datas para ver o preço exato',
+        '¿Dónde está?':'Onde fica?','La dirección exacta se comparte tras la reserva.':'O endereço exato é compartilhado após a reserva.',
+        'Sé el primero en dejar una reseña.':'Seja o primeiro a deixar uma avaliação.','Deja tu reseña':'Deixe sua avaliação','Calificación general:':'Avaliação geral:',
+        'Publicar reseña':'Publicar avaliação','Inicia sesión para dejar una reseña.':'Entre para deixar uma avaliação.','Iniciar sesión':'Entrar'
+    });
+    Object.assign(TEXT.pt, {
+        'Una finca donde vivirás los mejores momento de tu vida y compartirás momento en familia y con tus amigos de la mejor manera':'Uma fazenda onde você viverá alguns dos melhores momentos da sua vida e compartilhará momentos com família e amigos da melhor maneira.',
+        'Cocina equipada':'Cozinha equipada','Piscina':'Piscina','Mayo':'Maio','Junio':'Junho','Julio':'Julho','Agosto':'Agosto','Septiembre':'Setembro','Octubre':'Outubro','Noviembre':'Novembro','Diciembre':'Dezembro','Enero':'Janeiro','Febrero':'Fevereiro','Marzo':'Março','Abril':'Abril'
+    });
+    Object.assign(TEXT.fr, {
+        'Limpieza':'Propreté','Comunicación':'Communication','Ubicación':'Emplacement','Relación calidad-precio':'Rapport qualité-prix',
+        'También te puede interesar':'Vous pourriez aussi aimer','Otros hospedajes disponibles en el Huila':'Autres hébergements disponibles au Huila',
+        'Ya dejaste tu reseña':'Vous avez déjà laissé votre avis','Solo se permite una reseña por publicación. ¡Gracias por tu opinión!':'Un seul avis est autorisé par annonce. Merci pour votre opinion !',
+        'Anfitrión':'Hôte','Contactar':'Contacter','Selecciona tus fechas':'Sélectionnez vos dates','Añade fechas para ver el precio exacto':'Ajoutez des dates pour voir le prix exact',
+        '¿Dónde está?':'Où est-ce ?','La dirección exacta se comparte tras la reserva.':"L'adresse exacte est partagée après la réservation.",
+        'Sé el primero en dejar una reseña.':'Soyez le premier à laisser un avis.','Deja tu reseña':'Laissez votre avis','Calificación general:':'Note générale :',
+        'Publicar reseña':'Publier un avis','Inicia sesión para dejar una reseña.':'Connectez-vous pour laisser un avis.','Iniciar sesión':'Se connecter'
+    });
+    Object.assign(TEXT.fr, {
+        'Una finca donde vivirás los mejores momento de tu vida y compartirás momento en familia y con tus amigos de la mejor manera':'Une ferme où vous vivrez certains des meilleurs moments de votre vie et partagerez du temps avec votre famille et vos amis de la meilleure façon.',
+        'Cocina equipada':'Cuisine équipée','Piscina':'Piscine','Mayo':'Mai','Junio':'Juin','Julio':'Juillet','Agosto':'Août','Septiembre':'Septembre','Octubre':'Octobre','Noviembre':'Novembre','Diciembre':'Décembre','Enero':'Janvier','Febrero':'Février','Marzo':'Mars','Abril':'Avril'
+    });
+    Object.assign(TEXT.it, {
+        'Limpieza':'Pulizia','Comunicación':'Comunicazione','Ubicación':'Posizione','Relación calidad-precio':'Rapporto qualità-prezzo',
+        'También te puede interesar':'Potrebbe interessarti anche','Otros hospedajes disponibles en el Huila':'Altri alloggi disponibili nel Huila',
+        'Ya dejaste tu reseña':'Hai già lasciato la tua recensione','Solo se permite una reseña por publicación. ¡Gracias por tu opinión!':'È consentita una sola recensione per annuncio. Grazie per la tua opinione!',
+        'Anfitrión':'Host','Contactar':'Contatta','Selecciona tus fechas':'Seleziona le tue date','Añade fechas para ver el precio exacto':'Aggiungi date per vedere il prezzo esatto',
+        '¿Dónde está?':'Dove si trova?','La dirección exacta se comparte tras la reserva.':"L'indirizzo esatto viene condiviso dopo la prenotazione.",
+        'Sé el primero en dejar una reseña.':'Sii il primo a lasciare una recensione.','Deja tu reseña':'Lascia la tua recensione','Calificación general:':'Valutazione generale:',
+        'Publicar reseña':'Pubblica recensione','Inicia sesión para dejar una reseña.':'Accedi per lasciare una recensione.','Iniciar sesión':'Accedi'
+    });
+    Object.assign(TEXT.it, {
+        'Una finca donde vivirás los mejores momento de tu vida y compartirás momento en familia y con tus amigos de la mejor manera':'Una fattoria dove vivrai alcuni dei momenti migliori della tua vita e condividerai il tempo con famiglia e amici nel modo migliore.',
+        'Cocina equipada':'Cucina attrezzata','Piscina':'Piscina','Mayo':'Maggio','Junio':'Giugno','Julio':'Luglio','Agosto':'Agosto','Septiembre':'Settembre','Octubre':'Ottobre','Noviembre':'Novembre','Diciembre':'Dicembre','Enero':'Gennaio','Febrero':'Febbraio','Marzo':'Marzo','Abril':'Aprile'
+    });
+    const ORIGINAL_TEXT = new WeakMap();
+    const TRACKED_TEXT_NODES = new Set();
+    const ORIGINAL_TITLE = document.title;
+
+    function lang() {
+        return (window.I18n && I18n.current) || localStorage.getItem('sh_lang') || 'es';
+    }
+
+    function normalizedText(value) {
+        return (value || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function preserveSpaces(original, translated) {
+        return original.match(/^\s*/)[0] + translated + original.match(/\s*$/)[0];
+    }
+
+    function translateDynamic(el, code) {
+        const text = el.textContent.trim();
+        if (!el.dataset.i18nOriginalSummary) el.dataset.i18nOriginalSummary = text;
+        let m = text.match(/Se han encontrado (\d+) hospedaje[s]? para tu estadía\./i);
+        if (m) {
+            const n = m[1];
+            el.textContent = {en:`Found ${n} lodging${n === '1' ? '' : 's'} for your stay.`,pt:`Foram encontradas ${n} hospedagem${n === '1' ? '' : 's'} para sua estadia.`,fr:`${n} hébergement${n === '1' ? '' : 's'} trouvé${n === '1' ? '' : 's'} pour votre séjour.`,it:`Trovati ${n} alloggi per il tuo soggiorno.`}[code];
+        }
+        m = text.match(/Se han encontrado (\d+) experiencias para tu aventura\./i);
+        if (m) {
+            const n = m[1];
+            el.textContent = {en:`Found ${n} experience${n === '1' ? '' : 's'} for your adventure.`,pt:`Foram encontradas ${n} experiências para sua aventura.`,fr:`${n} expérience${n === '1' ? '' : 's'} trouvée${n === '1' ? '' : 's'} pour votre aventure.`,it:`Trovate ${n} esperienze per la tua avventura.`}[code];
+        }
+        m = text.match(/Anfitrión desde (\d{4})/i);
+        if (m) {
+            el.textContent = {en:`Host since ${m[1]}`,pt:`Anfitrião desde ${m[1]}`,fr:`Hôte depuis ${m[1]}`,it:`Host dal ${m[1]}`}[code];
+        }
+        m = text.match(/^(\d+)\s+reseñas$/i);
+        if (m) {
+            const n = m[1];
+            el.textContent = {en:`${n} review${n === '1' ? '' : 's'}`,pt:`${n} avaliação${n === '1' ? '' : 's'}`,fr:`${n} avis`,it:`${n} recension${n === '1' ? 'e' : 'i'}`}[code];
+        }
+        m = text.match(/^([\d.]+)\s+·\s+(\d+)\s+reseñas$/i);
+        if (m) {
+            const n = m[2];
+            el.textContent = {en:`${m[1]} · ${n} review${n === '1' ? '' : 's'}`,pt:`${m[1]} · ${n} avaliação${n === '1' ? '' : 's'}`,fr:`${m[1]} · ${n} avis`,it:`${m[1]} · ${n} recension${n === '1' ? 'e' : 'i'}`}[code];
+        }
+        m = text.match(/^(Mínimo|Máximo)\s+(\d+)\s+noche[s]?$/i);
+        if (m) {
+            const n = m[2];
+            const isMin = m[1].toLowerCase().startsWith('mín');
+            el.textContent = {
+                en: `${isMin ? 'Minimum' : 'Maximum'} ${n} night${n === '1' ? '' : 's'}`,
+                pt: `${isMin ? 'Mínimo' : 'Máximo'} ${n} noite${n === '1' ? '' : 's'}`,
+                fr: `${isMin ? 'Minimum' : 'Maximum'} ${n} nuit${n === '1' ? '' : 's'}`,
+                it: `${isMin ? 'Minimo' : 'Massimo'} ${n} nott${n === '1' ? 'e' : 'i'}`
+            }[code];
+        }
+    }
+
+    function applyLegacyTranslations(root = document.body) {
+        const code = lang();
+        if (!root) return;
+        if (code === 'es') {
+            TRACKED_TEXT_NODES.forEach(node => {
+                if (ORIGINAL_TEXT.has(node)) node.nodeValue = ORIGINAL_TEXT.get(node);
+            });
+            document.querySelectorAll('[data-i18n-original-placeholder],[data-i18n-original-title],[data-i18n-original-aria-label]').forEach(el => {
+                ['placeholder','title','aria-label'].forEach(attr => {
+                    const storeAttr = `data-i18n-original-${attr}`;
+                    if (el.hasAttribute(storeAttr)) el.setAttribute(attr, el.getAttribute(storeAttr));
+                });
+            });
+            document.querySelectorAll('[data-i18n-original-summary]').forEach(el => {
+                el.textContent = el.dataset.i18nOriginalSummary;
+            });
+            document.title = ORIGINAL_TITLE;
+            return;
+        }
+        const dict = TEXT[code] || {};
+        const attrDict = ATTR[code] || {};
+        const skip = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','OPTION']);
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                const parent = node.parentElement;
+                if (!parent || skip.has(parent.tagName) || parent.closest('[data-no-i18n]') || parent.closest('[data-i18n]')) return NodeFilter.FILTER_REJECT;
+                return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            }
+        });
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(node => {
+            if (!ORIGINAL_TEXT.has(node)) {
+                ORIGINAL_TEXT.set(node, node.nodeValue);
+                TRACKED_TEXT_NODES.add(node);
+            }
+            const original = ORIGINAL_TEXT.get(node);
+            const key = normalizedText(original);
+            if (dict[key]) node.nodeValue = preserveSpaces(original, dict[key]);
+        });
+        root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el => {
+            ['placeholder','title','aria-label'].forEach(attr => {
+                const storeAttr = `data-i18n-original-${attr}`;
+                if (!el.hasAttribute(storeAttr)) el.setAttribute(storeAttr, el.getAttribute(attr) || '');
+                const value = el.getAttribute(storeAttr);
+                const key = normalizedText(value);
+                if (value && attrDict[key]) el.setAttribute(attr, attrDict[key]);
+            });
+        });
+        document.querySelectorAll('.result-summary, .hospedajes-header p, .hc-info p, .hc-stats span, .resenas-header .section-title, .mapa-subtitle, .bw-max, .bw-form span').forEach(el => translateDynamic(el, code));
+        let translatedTitle = ORIGINAL_TITLE;
+        Object.entries(TITLES[code] || {}).forEach(([from, to]) => {
+            translatedTitle = translatedTitle.replace(from, to);
+        });
+        document.title = translatedTitle;
+        document.querySelectorAll('.lang-label').forEach(el => {
+            const l = LANGUAGES[code];
+            if (l) el.textContent = `${l.flag} ${code.toUpperCase()}`;
+        });
+    }
+
+    const baseApply = I18n.apply.bind(I18n);
+    I18n.apply = function patchedApply() {
+        baseApply();
+        applyLegacyTranslations();
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applyLegacyTranslations();
+        const observer = new MutationObserver(mutations => {
+            if (lang() === 'es') return;
+            mutations.forEach(m => m.addedNodes.forEach(node => {
+                if (node.nodeType === Node.ELEMENT_NODE) applyLegacyTranslations(node);
+            }));
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+})();

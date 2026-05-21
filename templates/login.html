@@ -208,12 +208,14 @@
                         <div class="form-group">
                             <label data-i18n="form.name">Nombre</label>
                             <input type="text" name="nombre" data-i18n="form.name_ph" data-i18n-attr="placeholder"
-                                placeholder="Tu nombre" required>
+                                placeholder="Tu nombre" required maxlength="40"
+                                onpaste="return false" oninput="stripEmoji(this)">
                         </div>
                         <div class="form-group">
                             <label data-i18n="form.lastname">Apellido</label>
                             <input type="text" name="apellido" data-i18n="form.lastname_ph" data-i18n-attr="placeholder"
-                                placeholder="Tu apellido" required>
+                                placeholder="Tu apellido" required maxlength="40"
+                                onpaste="return false" oninput="stripEmoji(this)">
                         </div>
                     </div>
                     <div class="form-group">
@@ -229,7 +231,7 @@
                         <div class="input-icon" style="position:relative">
                             <i class="ph ph-lock"></i>
                             <input type="password" name="password" id="pw-reg" data-i18n="form.pw_reg_ph"
-                                data-i18n-attr="placeholder" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                                data-i18n-attr="placeholder" placeholder="Mínimo 6 caracteres" minlength="6" maxlength="128" required>
                             <i class="ph ph-eye pw-toggle" onclick="togglePw('pw-reg',this)"></i>
                         </div>
                     </div>
@@ -245,8 +247,14 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/login.js') }}"></script>
-
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script>
+        function stripEmoji(el) {
+            var pos = el.selectionStart;
+            var clean = el.value.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1FAFF}]/gu, '');
+            if (clean !== el.value) { el.value = clean; el.setSelectionRange(pos - 1, pos - 1); }
+        }
+    </script>
 </body>
 
 </html>

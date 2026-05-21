@@ -39,7 +39,7 @@
         </div>
                 <nav class="nav-links">
             <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
-            <a href="#">Experiencias</a>
+            <a href="/experiencias">Experiencias</a>
 
             <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
             <a href="/panel-anfitrion" class="host-nav-link" >Panel anfitrion</a>
@@ -50,7 +50,7 @@
             </div>
             {% if current_user.is_authenticated %}
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     
@@ -84,11 +84,12 @@
         <!-- Sidebar -->
         <aside class="perfil-sidebar">
             <div class="perfil-avatar-container">
-                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random&size=150' }}" alt="{{ current_user.nombre }}" class="perfil-avatar" id="avatar-preview">
-                <div class="perfil-avatar-edit" title="Cambiar foto" onclick="document.getElementById('foto-input').click();"><i class="ph ph-camera"></i></div>
+                <button type="button" class="perfil-avatar-button" onclick="openAvatarModal()" aria-label="Ver foto de perfil">
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random&size=150' }}" alt="{{ current_user.nombre }}" class="perfil-avatar" id="avatar-preview">
+                    <span class="perfil-avatar-overlay"><i class="ph ph-arrows-out-simple"></i></span>
+                </button>
                 {% if current_user.foto_perfil %}
                 <form action="/perfil/eliminar-foto" method="POST" id="form-eliminar-foto" style="display:none;"></form>
-                <div class="perfil-avatar-delete" title="Eliminar foto" onclick="if(confirm('¿Seguro que deseas eliminar tu foto de perfil?')) document.getElementById('form-eliminar-foto').submit();"><i class="ph ph-trash"></i></div>
                 {% endif %}
             </div>
             <h1 class="perfil-name">{{ current_user.nombre }} {{ current_user.apellido }}</h1>
@@ -98,16 +99,37 @@
                 {% else %}<i class="ph-fill ph-backpack"></i> <span data-i18n="role.guest">Huésped</span>{% endif %}
             </span>
             
-            <div class="gamification-card">
-                <h3><i class="ph-fill ph-star"></i> <span data-i18n="profile.points">Puntos StayHuila</span></h3>
-                <div class="pts">{{ current_user.puntos }}</div>
-                <p data-i18n="profile.level_text">Nivel Explorador. ¡Sigue viajando para alcanzar el nivel Aventurero!</p>
+            {% set pts = current_user.puntos %}
+            {% if pts >= 1000 %}{% set nivel='Embajador Huila' %}{% set nc='#F59E0B' %}{% set pr=100 %}{% set ps=None %}{% set ni='🌟' %}
+            {% elif pts >= 500 %}{% set nivel='Aventurero' %}{% set nc='#111827' %}{% set pr=((pts-500)*100//500)|int %}{% set ps=1000 %}{% set ni='🏔️' %}
+            {% elif pts >= 200 %}{% set nivel='Viajero' %}{% set nc='#111827' %}{% set pr=((pts-200)*100//300)|int %}{% set ps=500 %}{% set ni='🌿' %}
+            {% else %}{% set nivel='Explorador' %}{% set nc='#111827' %}{% set pr=(pts*100//200)|int %}{% set ps=200 %}{% set ni='🧭' %}{% endif %}
+            <div class="gamification-card" style="cursor:pointer;" onclick="window.location.href='/mis-puntos'">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem;">
+                    <h3 style="margin:0;font-size:.88rem;"><i class="ph-fill ph-coin" style="color:#F59E0B;"></i> Puntos StayHuila</h3>
+                    <span class="points-level-pill">{{ ni }} {{ nivel }}</span>
+                </div>
+                <div class="pts">{{ pts }}</div>
+                <div class="points-progress">
+                    <div style="width:{{ [pr,100]|min }}%;"></div>
+                </div>
+                <p style="font-size:.72rem;opacity:.85;margin:0 0 .3rem;">
+                    {% if ps %}{{ ps - pts }} pts para alcanzar {% if nivel=='Explorador' %}Viajero{% elif nivel=='Viajero' %}Aventurero{% else %}Embajador Huila{% endif %}
+                    {% else %}¡Nivel máximo alcanzado! 🎉{% endif %}
+                </p>
+                {% if current_user.credito_descuento and current_user.credito_descuento > 0 %}
+                <div class="points-credit">
+                    <i class="ph-fill ph-ticket"></i> {{ current_user.credito_descuento|int }}% descuento activo
+                </div>
+                {% endif %}
+                <p style="font-size:.68rem;opacity:.6;margin:.4rem 0 0;text-align:center;">Clic para ver tus puntos</p>
             </div>
             
             <div class="sidebar-menu">
                 <a href="/perfil" class="sm-item active"><i class="ph ph-user"></i> <span data-i18n="profile.title">Información Personal</span></a>
                 <a href="/mis-reservas" class="sm-item"><i class="ph ph-calendar-check"></i> <span data-i18n="nav.my_bookings">Mis Reservas</span></a>
                 <a href="/favoritos" class="sm-item"><i class="ph ph-heart"></i> <span data-i18n="nav.my_favorites">Mis Favoritos</span></a>
+                <a href="/mis-puntos" class="sm-item"><i class="ph ph-coin"></i> Mis Puntos</a>
                 <a href="/logout" class="sm-item" style="color:#ef4444;margin-top:1rem;"><i class="ph ph-sign-out" style="color:#ef4444"></i> <span data-i18n="nav.logout">Cerrar Sesión</span></a>
             </div>
         </aside>
@@ -130,11 +152,11 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label data-i18n="form.name">Nombre(s)</label>
-                            <input type="text" name="nombre" value="{{ current_user.nombre }}" required>
+                            <input type="text" name="nombre" value="{{ current_user.nombre }}" required maxlength="40" onpaste="return false" oninput="stripEmoji(this)">
                         </div>
                         <div class="form-group">
                             <label data-i18n="form.lastname">Apellidos</label>
-                            <input type="text" name="apellido" value="{{ current_user.apellido }}" required>
+                            <input type="text" name="apellido" value="{{ current_user.apellido }}" required maxlength="40" onpaste="return false" oninput="stripEmoji(this)">
                         </div>
                     </div>
                     <div class="form-row">
@@ -144,7 +166,7 @@
                         </div>
                         <div class="form-group">
                             <label data-i18n="form.phone">Teléfono</label>
-                            <input type="tel" name="telefono" value="{{ current_user.telefono or '' }}" placeholder="+57 300 000 0000">
+                            <input type="tel" name="telefono" value="{{ current_user.telefono or '' }}" placeholder="3001234567" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)">
                         </div>
                     </div>
                 </div>
@@ -154,26 +176,185 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label data-i18n="profile.new_pw">Nueva Contraseña</label>
-                            <input type="password" name="new_password" placeholder="Mínimo 6 caracteres">
+                            <input type="password" name="new_password" placeholder="Mínimo 6 caracteres" minlength="6" maxlength="128">
                         </div>
                         <div class="form-group">
                             <label data-i18n="profile.confirm_pw">Confirmar Contraseña</label>
-                            <input type="password" name="confirm_password" placeholder="Repite la nueva contraseña">
+                            <input type="password" name="confirm_password" placeholder="Repite la nueva contraseña" maxlength="128">
                         </div>
                     </div>
                 </div>
 
                 <button type="submit" class="btn-save"><i class="ph ph-floppy-disk"></i> <span data-i18n="profile.save">Guardar Cambios</span></button>
             </form>
+
+            <!-- Sección de puntos movida a /mis-puntos -->
+            <section id="mis-puntos" style="display:none;">
+                <h2 style="color:var(--primary);"><i class="ph-fill ph-coin" style="color:#F59E0B;"></i> Mis Puntos</h2>
+                <p style="color:var(--text-muted);margin-bottom:1.5rem;">Gana puntos con cada acción y canjéalos por descuentos en tus próximas reservas.</p>
+
+                <!-- Nivel actual -->
+                <div style="background:linear-gradient(135deg,#2C4A3B,#4a7c59);border-radius:16px;padding:1.5rem;color:white;margin-bottom:1.5rem;">
+                    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                        <div style="font-size:3.5rem;line-height:1;">{{ ni }}</div>
+                        <div style="flex:1;">
+                            <div style="font-size:1.4rem;font-weight:800;">{{ pts }} puntos</div>
+                            <div style="font-size:1rem;opacity:.85;margin:.2rem 0;">Nivel: <strong style="background:{{ nc }};padding:.1rem .6rem;border-radius:50px;font-size:.85rem;">{{ nivel }}</strong></div>
+                            <div style="background:rgba(255,255,255,.2);border-radius:50px;height:8px;margin:.6rem 0 .3rem;">
+                                <div style="background:{{ nc }};height:8px;border-radius:50px;width:{{ [pr,100]|min }}%;transition:width .8s;"></div>
+                            </div>
+                            <div style="font-size:.78rem;opacity:.8;">
+                                {% if ps %}{{ ps - pts }} pts más para subir a <strong>{% if nivel=='Explorador' %}Viajero{% elif nivel=='Viajero' %}Aventurero{% else %}Embajador Huila{% endif %}</strong>{% else %}¡Has alcanzado el nivel máximo! 🎉{% endif %}
+                            </div>
+                        </div>
+                        {% if current_user.credito_descuento and current_user.credito_descuento > 0 %}
+                        <div style="background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.5);border-radius:12px;padding:.7rem 1rem;text-align:center;">
+                            <div style="font-size:1.8rem;font-weight:800;">{{ current_user.credito_descuento|int }}%</div>
+                            <div style="font-size:.75rem;">descuento<br>disponible</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Cómo ganar -->
+                <h3 style="color:var(--primary);margin-bottom:.8rem;"><i class="ph ph-lightning"></i> Cómo ganar puntos</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.8rem;margin-bottom:1.8rem;">
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem;">
+                        <div style="font-size:1.5rem;">🎉</div>
+                        <strong style="color:#166534;">Registrarse</strong>
+                        <div style="color:#15803d;font-size:1.1rem;font-weight:700;">+100 pts</div>
+                        <div style="font-size:.78rem;color:#6b7280;">Bienvenida a StayHuila</div>
+                    </div>
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:1rem;">
+                        <div style="font-size:1.5rem;">🏠</div>
+                        <strong style="color:#1e40af;">Confirmar reserva</strong>
+                        <div style="color:#1d4ed8;font-size:1.1rem;font-weight:700;">+50 pts</div>
+                        <div style="font-size:.78rem;color:#6b7280;">Por cada reserva pagada</div>
+                    </div>
+                    <div style="background:#fdf4ff;border:1px solid #e9d5ff;border-radius:12px;padding:1rem;">
+                        <div style="font-size:1.5rem;">✅</div>
+                        <strong style="color:#6b21a8;">Completar estadía</strong>
+                        <div style="color:#7c3aed;font-size:1.1rem;font-weight:700;">+100 pts</div>
+                        <div style="font-size:.78rem;color:#6b7280;">Al hacer checkout</div>
+                    </div>
+                    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:1rem;">
+                        <div style="font-size:1.5rem;">⭐</div>
+                        <strong style="color:#9a3412;">Dejar reseña</strong>
+                        <div style="color:#ea580c;font-size:1.1rem;font-weight:700;">+25 pts</div>
+                        <div style="font-size:.78rem;color:#6b7280;">Por cada reseña enviada</div>
+                    </div>
+                </div>
+
+                <!-- Niveles -->
+                <h3 style="color:var(--primary);margin-bottom:.8rem;"><i class="ph ph-medal"></i> Niveles</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.6rem;margin-bottom:1.8rem;">
+                    {% for lvl in [('🧭','Explorador','#3B82F6','0 – 199'),('🌿','Viajero','#10B981','200 – 499'),('🏔️','Aventurero','#8B5CF6','500 – 999'),('🌟','Embajador Huila','#F59E0B','1000+')] %}
+                    <div style="border:2px solid {{ 'rgba(0,0,0,.12)' if nivel != lvl[1] else lvl[2] }};border-radius:12px;padding:.75rem;text-align:center;background:{{ 'white' if nivel != lvl[1] else lvl[2]+'22' }};">
+                        <div style="font-size:1.4rem;">{{ lvl[0] }}</div>
+                        <div style="font-weight:700;font-size:.85rem;color:{{ lvl[2] }};">{{ lvl[1] }}</div>
+                        <div style="font-size:.72rem;color:#9ca3af;">{{ lvl[3] }} pts</div>
+                        {% if nivel == lvl[1] %}<div style="font-size:.68rem;background:{{ lvl[2] }};color:white;border-radius:50px;padding:.1rem .4rem;margin-top:.3rem;">Tu nivel actual</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Canjear puntos -->
+                <h3 style="color:var(--primary);margin-bottom:.4rem;"><i class="ph ph-ticket"></i> Canjear puntos</h3>
+                <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:.9rem;">Convierte tus puntos en descuentos automáticos para tu próxima reserva.</p>
+                {% if current_user.credito_descuento and current_user.credito_descuento > 0 %}
+                <div style="background:#fef9c3;border:2px solid #fde047;border-radius:12px;padding:1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.8rem;">
+                    <i class="ph-fill ph-ticket" style="font-size:1.8rem;color:#ca8a04;"></i>
+                    <div>
+                        <strong style="color:#854d0e;">¡Tienes un {{ current_user.credito_descuento|int }}% de descuento activo!</strong>
+                        <p style="font-size:.82rem;color:#92400e;margin:.2rem 0 0;">Se aplicará automáticamente en tu próxima reserva.</p>
+                    </div>
+                </div>
+                {% endif %}
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.8rem;">
+                    <div style="border:2px solid #d1fae5;border-radius:14px;padding:1.1rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#059669;">5%</div>
+                        <div style="font-size:.9rem;font-weight:600;color:#1f2937;">Descuento básico</div>
+                        <div style="font-size:.78rem;color:#6b7280;margin:.2rem 0 .8rem;">Válido en próxima reserva</div>
+                        <div style="font-size:.8rem;font-weight:700;color:#2C4A3B;margin-bottom:.6rem;"><i class="ph-fill ph-coin"></i> 200 puntos</div>
+                        <button onclick="canjearPuntos(200)" class="btn-canjear" style="background:#059669;" data-pts="200">Canjear</button>
+                    </div>
+                    <div style="border:2px solid #ddd6fe;border-radius:14px;padding:1.1rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#7c3aed;">10%</div>
+                        <div style="font-size:.9rem;font-weight:600;color:#1f2937;">Descuento avanzado</div>
+                        <div style="font-size:.78rem;color:#6b7280;margin:.2rem 0 .8rem;">Válido en próxima reserva</div>
+                        <div style="font-size:.8rem;font-weight:700;color:#2C4A3B;margin-bottom:.6rem;"><i class="ph-fill ph-coin"></i> 500 puntos</div>
+                        <button onclick="canjearPuntos(500)" class="btn-canjear" style="background:#7c3aed;" data-pts="500">Canjear</button>
+                    </div>
+                    <div style="border:2px solid #fde68a;border-radius:14px;padding:1.1rem;text-align:center;position:relative;">
+                        <div style="position:absolute;top:-10px;right:12px;background:#F59E0B;color:white;font-size:.68rem;font-weight:700;padding:.1rem .5rem;border-radius:50px;">MEJOR VALOR</div>
+                        <div style="font-size:2rem;font-weight:800;color:#d97706;">20%</div>
+                        <div style="font-size:.9rem;font-weight:600;color:#1f2937;">Descuento premium</div>
+                        <div style="font-size:.78rem;color:#6b7280;margin:.2rem 0 .8rem;">Válido en próxima reserva</div>
+                        <div style="font-size:.8rem;font-weight:700;color:#2C4A3B;margin-bottom:.6rem;"><i class="ph-fill ph-coin"></i> 1000 puntos</div>
+                        <button onclick="canjearPuntos(1000)" class="btn-canjear" style="background:#d97706;" data-pts="1000">Canjear</button>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
+    <div class="avatar-modal" id="avatar-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Foto de perfil">
+        <div class="avatar-modal-backdrop" onclick="closeAvatarModal()"></div>
+        <div class="avatar-modal-panel">
+            <button type="button" class="avatar-modal-close" onclick="closeAvatarModal()" aria-label="Cerrar">
+                <i class="ph ph-x"></i>
+            </button>
+            <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random&size=420' }}" alt="{{ current_user.nombre }}" class="avatar-modal-img" id="avatar-modal-preview">
+            <div class="avatar-modal-actions">
+                <button type="button" class="avatar-action-btn" onclick="document.getElementById('foto-input').click(); closeAvatarModal();">
+                    <i class="ph ph-camera"></i>
+                    Cambiar foto
+                </button>
+                {% if current_user.foto_perfil %}
+                <button type="button" class="avatar-action-btn danger" onclick="deleteProfilePhoto()">
+                    <i class="ph ph-trash"></i>
+                    Eliminar foto
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <script>
+        function openAvatarModal() {
+            var modal = document.getElementById('avatar-modal');
+            if (!modal) return;
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+        function closeAvatarModal() {
+            var modal = document.getElementById('avatar-modal');
+            if (!modal) return;
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        }
+        function deleteProfilePhoto() {
+            if (confirm('¿Seguro que deseas eliminar tu foto de perfil?')) {
+                document.getElementById('form-eliminar-foto').submit();
+            }
+        }
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') closeAvatarModal();
+        });
+        function stripEmoji(el) {
+            var pos = el.selectionStart;
+            var clean = el.value.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1FAFF}]/gu, '');
+            if (clean !== el.value) { el.value = clean; el.setSelectionRange(pos - 1, pos - 1); }
+        }
         function previewAvatar(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('avatar-preview').src = e.target.result;
+                    var modalPreview = document.getElementById('avatar-modal-preview');
+                    if (modalPreview) modalPreview.src = e.target.result;
                 }
                 reader.readAsDataURL(input.files[0]);
             }

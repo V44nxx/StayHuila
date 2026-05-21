@@ -50,4 +50,15 @@
         .thanks-icon{font-size:2.5rem;flex-shrink:0;}
         .thanks-text strong{font-size:1rem;color:#92400e;}
         .thanks-text p{font-size:.88rem;color:#b45309;margin-top:.2rem;}
-        @media(max-width:600px){.estadia-grid{grid-template-columns:1fr 1fr;}.co-hero{flex-direction:column;text-align:center;}.ratings-grid{grid-template-columns:1fr;}}
+        @media(max-width:600px){
+            .co-page { padding: 5rem 1rem 2rem; }
+            .co-hero { flex-direction: column; text-align: center; padding: 1.5rem; }
+            .co-hero h1 { font-size: 1.5rem; }
+            .co-hero::after { display: none; }
+            .estadia-grid { grid-template-columns: 1fr 1fr; }
+            .prop-row { flex-direction: column; text-align: center; }
+            .prop-img { width: 100%; height: 160px; }
+            .ratings-grid { grid-template-columns: 1fr; }
+            .stars-input label { font-size: 1.8rem; }
+            .thanks-card { flex-direction: column; text-align: center; }
+        }

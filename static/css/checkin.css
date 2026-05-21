@@ -56,4 +56,18 @@
         .anf-info span{color:var(--text-muted);font-size:.85rem;}
         .btn-contact{margin-left:auto;border:1.5px solid var(--border);background:white;border-radius:10px;padding:.6rem 1.2rem;cursor:pointer;font-family:inherit;font-weight:600;font-size:.88rem;display:flex;align-items:center;gap:.4rem;transition:border-color .2s;}
         .btn-contact:hover{border-color:var(--primary);}
-        @media(max-width:600px){.info-grid{grid-template-columns:1fr;}.ci-hero{flex-direction:column;text-align:center;}.countdown{justify-content:center;}}
+        @media(max-width:600px){
+            .ci-page { padding: 5rem 1rem 2rem; }
+            .ci-hero { flex-direction: column; text-align: center; padding: 1.5rem; }
+            .ci-hero h1 { font-size: 1.5rem; }
+            .ci-hero::after { display: none; }
+            .prop-row { flex-direction: column; align-items: center; text-align: center; }
+            .prop-img { width: 100%; height: 160px; }
+            .info-grid { grid-template-columns: 1fr; }
+            .countdown { justify-content: center; flex-wrap: wrap; }
+            .cd-box { flex: 1; min-width: 60px; padding: 0.5rem; }
+            .cd-num { font-size: 1.5rem; }
+            .wifi-card { flex-direction: column; text-align: center; }
+            .copy-btn { margin-left: 0; width: 100%; margin-top: 0.5rem; }
+            .btn-contact { margin-left: 0; width: 100%; justify-content: center; margin-top: 0.5rem; }
+        }

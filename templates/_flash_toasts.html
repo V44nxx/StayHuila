@@ -1,0 +1,11 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in messages %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof showToast === 'function') {
+        showToast({{ msg|tojson }}, '{{ "success" if cat=="success" else "error" if cat=="error" else "info" }}');
+    }
+});
+</script>
+{% endfor %}
+{% endwith %}

@@ -843,8 +843,8 @@ body {
 @media (max-width: 1024px) {
     .comunidad-layout {
         grid-template-columns: 240px 1fr;
+        gap: 1.5rem;
     }
-
     .comunidad-right {
         display: none;
     }
@@ -853,11 +853,46 @@ body {
 @media (max-width: 768px) {
     .comunidad-layout {
         grid-template-columns: 1fr;
-        margin-top: 80px;
+        margin-top: 90px;
+        padding: 0 1rem;
     }
-
     .comunidad-sidebar {
         display: none;
+    }
+    .feed-tabs {
+        position: sticky;
+        top: 70px;
+        z-index: 100;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+    }
+    .post-card {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+    .create-post {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+    .post-rec-card img {
+        width: 80px;
+        height: 80px;
+    }
+    .post-actions button span {
+        display: none; /* Solo iconos en móviles muy pequeños si es necesario */
+    }
+}
+
+@media (max-width: 480px) {
+    .comunidad-layout {
+        margin-top: 80px;
+        padding: 0 0.5rem;
+    }
+    .post-actions button span {
+        display: none;
+    }
+    .post-actions button i {
+        font-size: 1.2rem;
     }
 }
 

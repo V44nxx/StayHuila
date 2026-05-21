@@ -16,41 +16,49 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar el mapa en el Huila
     const map = L.map('interactive-map').setView([2.5, -75.5], 8);
 
-    // Capa de mapa (CartoDB Positron es más elegante y limpio)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
+    // Capa de mapa (OSM Estándar es más confiable)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
     }).addTo(map);
+
+    // Forzar redibujado después de un breve delay para asegurar que el contenedor tenga tamaño
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 500);
 
     let markers = [];
 
     // Crear marcadores personalizados con la imagen
     hospedajes.forEach(hospedaje => {
-        if (hospedaje.lat && hospedaje.lng) {
+        // En la BD las columnas son latitud y longitud
+        const lat = hospedaje.latitud || hospedaje.lat;
+        const lng = hospedaje.longitud || hospedaje.lng;
+
+        if (lat && lng) {
             // HTML del Custom Marker (Círculo con foto)
             const customIcon = L.divIcon({
                 className: 'custom-map-marker-container',
-                html: `<div class="custom-map-marker"><img src="${hospedaje.image}" alt="${hospedaje.name}"></div>`,
+                html: `<div class="custom-map-marker"><img src="${hospedaje.image || 'https://via.placeholder.com/50'}" alt="${hospedaje.nombre}"></div>`,
                 iconSize: [50, 50],
                 iconAnchor: [25, 25],
                 popupAnchor: [0, -25]
             });
 
-            // HTML del Popup Elegante
-            const popupHTML = `
-                <div class="popup-card">
-                    <img src="${hospedaje.image}" class="popup-img" alt="${hospedaje.name}">
-                    <div class="popup-info">
-                        <h4 class="popup-title">${hospedaje.name}</h4>
-                        <div class="popup-rating"><i class="ph-fill ph-star" style="color: #F59E0B;"></i> ${hospedaje.rating} (${hospedaje.reviews} reseñas)</div>
-                        <div class="popup-price">$${hospedaje.price.toLocaleString('es-CO')} COP / noche</div>
-                    </div>
-                </div>
-            `;
+    const popupHTML = `
+        <div class="popup-card">
+            <img src="${hospedaje.image || 'https://via.placeholder.com/200x120'}" class="popup-img" alt="${hospedaje.nombre}">
+            <div class="popup-info">
+                <h4 class="popup-title">${hospedaje.nombre}</h4>
+                <div class="popup-rating"><i class="ph-fill ph-star" style="color: #F59E0B;"></i> ${hospedaje.calificacion || 0} (${hospedaje.total_resenas || 0} reseñas)</div>
+                <div class="popup-price">$${(hospedaje.precio_noche || 0).toLocaleString('es-CO')} COP / noche</div>
+                <a href="/hospedaje/${hospedaje.id}" style="display:block; margin-top:8px; text-align:center; background:var(--primary); color:white; text-decoration:none; padding:5px; border-radius:5px; font-size:0.8rem;">Ver detalles</a>
+            </div>
+        </div>
+    `;
 
             // Añadir marcador
-            const marker = L.marker([hospedaje.lat, hospedaje.lng], { icon: customIcon })
+            const marker = L.marker([lat, lng], { icon: customIcon })
                 .addTo(map)
                 .bindPopup(popupHTML);
             

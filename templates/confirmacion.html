@@ -11,6 +11,7 @@
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </head>
 <body>
+{% include '_flash_toasts.html' %}
 <header class="navbar navbar-solid">
     <div class="logo" onclick="window.location.href='/'">
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
@@ -18,18 +19,18 @@
     </div>
             <nav class="nav-links">
             <a href="/hospedajes">Hospedajes</a>
-            <a href="#">Experiencias</a>
+            <a href="/experiencias">Experiencias</a>
 
             <a href="/comunidad">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Pon tu espacio en StayHuila</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Panel Anfitrion</a>
         </nav>
         <div class="user-menu">
-            <div class="language-selector">
+            <div class="language-selector"> 
                 <i class="ph ph-globe"></i> ES
             </div>
             {% if current_user.is_authenticated %}
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     
@@ -302,11 +303,24 @@
                     btn.style.display  = 'none';
                     if (wait) wait.style.display = '';
                     if (cdId) {
-                        var h = Math.floor(diff / 3600000);
-                        var m = Math.floor((diff % 3600000) / 60000);
-                        var s = Math.floor((diff % 60000) / 1000);
-                        document.getElementById(cdId).textContent =
-                            (h > 0 ? h + 'h ' : '') + String(m).padStart(2,'0') + 'm ' + String(s).padStart(2,'0') + 's';
+                        var totalHours = Math.floor(diff / 3600000);
+                        var days = Math.floor(totalHours / 24);
+                        var hours = totalHours % 24;
+                        var minutes = Math.floor((diff % 3600000) / 60000);
+                        var seconds = Math.floor((diff % 60000) / 1000);
+                        var label = '';
+
+                        if (days > 0) {
+                            label = days + ' día' + (days === 1 ? '' : 's');
+                            if (hours > 0) label += ' ' + hours + 'h';
+                            if (minutes > 0 && days < 2) label += ' ' + String(minutes).padStart(2,'0') + 'm';
+                        } else {
+                            label = (hours > 0 ? hours + 'h ' : '')
+                                + String(minutes).padStart(2,'0') + 'm '
+                                + String(seconds).padStart(2,'0') + 's';
+                        }
+
+                        document.getElementById(cdId).textContent = label;
                     }
                 }
             }
