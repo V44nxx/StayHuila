@@ -399,6 +399,7 @@ const I18n = {
         this.updateSelector();
     }
 };
+window.I18n = I18n;
 
 /* ── Build Dropdown ─────────────────────────────────────── */
 function buildLangDropdown() {
@@ -1079,7 +1080,7 @@ document.addEventListener('click', closeLangDropdown);
         };
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initLegacyObserver() {
         applyLegacyTranslations();
         observer = new MutationObserver(mutations => {
             if (lang() === 'es') return;
@@ -1096,7 +1097,13 @@ document.addEventListener('click', closeLangDropdown);
             if (observer) observer.observe(document.body, { childList: true, subtree: true });
         });
         observer.observe(document.body, { childList: true, subtree: true });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initLegacyObserver);
+    } else {
+        initLegacyObserver();
+    }
 })();
 
 // Animation
@@ -1108,7 +1115,13 @@ _s.textContent = `
 document.head.appendChild(_s);
 
 /* ── Init ───────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+function runInit() {
     buildLangDropdown();
     I18n.init();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runInit);
+} else {
+    runInit();
+}
