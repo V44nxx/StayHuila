@@ -465,24 +465,7 @@ function closeLangDropdown() {
 }
 
 document.addEventListener('click', () => {
-    closeLangDropdown();
-});
-
-// Animation
-const _s = document.createElement('style');
-_s.textContent = `
-    @keyframes fadeInDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-    #lang-btn:hover{background:rgba(0,0,0,0.06)!important}
-`;
-document.head.appendChild(_s);
-
-/* ── Init ───────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
-    buildLangDropdown();
-    I18n.init();
-});
-
-/* Extra coverage for legacy templates that still have hard-coded Spanish text. */
+    /* Extra coverage for legacy templates that still have hard-coded Spanish text. */
 (function enhanceLegacyI18n() {
     const TEXT = {
         en: {
@@ -518,7 +501,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'Lo que ofrece este lugar':'What this place offers','Mostrar más':'Show more','Mostrar menos':'Show less','Ver todas las fotos':'See all photos',
             'SuperAnfitrión':'SuperHost','Reservar':'Reserve','Reservar (Deshabilitado)':'Reserve (Disabled)','No se te cobrará nada aún':'You will not be charged yet',
             'noche':'night','noches':'nights','por persona':'per person','Sostenible':'Sustainable','En reparación':'Under maintenance',
-            'No se encontraron resultados para esta categoría.':'No results were found for this category.'
+            'No se encontraron resultados para esta categoría.':'No results were found for this category.',
+            'persona':'person','personas':'people','día':'day','días':'days','noche':'night','noches':'nights','huésped':'guest','huéspedes':'guests','huesped':'guest','huespedes':'guests',
+            '/ persona':'/ person','/ noche':'/ night','por persona':'per person'
         },
         pt: {
             'Hospedajes':'Hospedagens','Experiencias':'Experiências','Comunidad':'Comunidade','Panel Anfitrion':'Painel do Anfitrião','Panel Anfitrión':'Painel do Anfitrião',
@@ -534,7 +519,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'Notas para el anfitrión':'Notas para o anfitrião','Tarifa de servicio':'Taxa de serviço','Resumen de pago':'Resumo do pagamento',
             'Comunidad StayHuila':'Comunidade StayHuila','Publicar':'Publicar','Cargando publicaciones...':'Carregando publicações...',
             'Lo que ofrece este lugar':'O que este lugar oferece','Mostrar más':'Mostrar mais','Mostrar menos':'Mostrar menos','Reservar':'Reservar',
-            'No se te cobrará nada aún':'Nada será cobrado ainda','noche':'noite','noches':'noites','por persona':'por pessoa','Sostenible':'Sustentável','En reparación':'Em manutenção'
+            'No se te cobrará nada aún':'Nada será cobrado ainda','noche':'noite','noches':'noites','por persona':'por pessoa','Sostenible':'Sustentável','En reparación':'Em manutenção',
+            'persona':'pessoa','personas':'pessoas','día':'dia','días':'dias','noche':'noite','noches':'noites','huésped':'hóspede','huéspedes':'hóspedes','huesped':'hóspede','huespedes':'hóspedes',
+            '/ persona':'/ pessoa','/ noche':'/ noite','por persona':'por pessoa'
         },
         fr: {
             'Hospedajes':'Hébergements','Experiencias':'Expériences','Comunidad':'Communauté','Panel Anfitrion':"Tableau de l'hôte",'Panel Anfitrión':"Tableau de l'hôte",
@@ -550,7 +537,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'Notas para el anfitrión':"Notes pour l'hôte",'Tarifa de servicio':'Frais de service','Resumen de pago':'Résumé du paiement',
             'Comunidad StayHuila':'Communauté StayHuila','Publicar':'Publier','Cargando publicaciones...':'Chargement des publications...',
             'Lo que ofrece este lugar':'Ce que propose ce lieu','Mostrar más':'Afficher plus','Mostrar menos':'Afficher moins','Reservar':'Réserver',
-            'No se te cobrará nada aún':'Aucun frais pour le moment','noche':'nuit','noches':'nuits','por persona':'par personne','Sostenible':'Durable','En reparación':'En maintenance'
+            'No se te cobrará nada aún':'Aucun frais pour le moment','noche':'nuit','noches':'nuits','por persona':'par personne','Sostenible':'Durable','En reparación':'En maintenance',
+            'persona':'personne','personas':'personnes','día':'jour','días':'jours','noche':'nuit','noches':'nuits','huésped':'voyageur','huéspedes':'voyageurs','huesped':'voyageur','huespedes':'voyageurs',
+            '/ persona':'/ personne','/ noche':'/ nuit','por persona':'par personne'
         },
         it: {
             'Hospedajes':'Alloggi','Experiencias':'Esperienze','Comunidad':'Comunità','Panel Anfitrion':'Pannello Host','Panel Anfitrión':'Pannello Host',
@@ -566,7 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'Notas para el anfitrión':'Note per host','Tarifa de servicio':'Commissione di servizio','Resumen de pago':'Riepilogo pagamento',
             'Comunidad StayHuila':'Comunità StayHuila','Publicar':'Pubblica','Cargando publicaciones...':'Caricamento pubblicazioni...',
             'Lo que ofrece este lugar':'Cosa offre questo posto','Mostrar más':'Mostra altro','Mostrar menos':'Mostra meno','Reservar':'Prenota',
-            'No se te cobrará nada aún':'Non ti verrà addebitato nulla ancora','noche':'notte','noches':'notti','por persona':'a persona','Sostenible':'Sostenibile','En reparación':'In manutenzione'
+            'No se te cobrará nada aún':'Non ti verrà addebitato nulla ancora','noche':'notte','noches':'notti','por persona':'a persona','Sostenible':'Sostenibile','En reparación':'In manutenzione',
+            'persona':'persona','personas':'persone','día':'giorno','días':'giorni','noche':'notte','noches':'notti','huésped':'ospite','huéspedes':'ospiti','huesped':'ospite','huespedes':'ospiti',
+            '/ persona':'/ persona','/ noche':'/ notte','por persona':'a persona'
         }
     };
 
@@ -579,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.assign(ATTR.en, {'¿Cómo fue tu experiencia en este lugar?':'How was your experience in this place?'});
     Object.assign(ATTR.pt, {'¿Cómo fue tu experiencia en este lugar?':'Como foi sua experiência neste lugar?'});
     Object.assign(ATTR.fr, {'¿Cómo fue tu experiencia en este lugar?':'Comment s’est passée votre expérience dans ce lieu ?'});
-    Object.assign(ATTR.it, {'¿Cómo fue tu experiencia en este lugar?':'Com’è stata la tua esperienza in questo posto?'});
+    Object.assign(ATTR.it, {'¿Cómo fue tu experiencia en este lugar?':'Com’è stata la tua experiencia in questo posto?'});
 
     const TITLES = {
         en: {'Todos los Hospedajes':'All Lodgings','Todas las Experiencias':'All Experiences','Hospedajes Auténticos':'Authentic Lodgings','Mi Perfil':'My Profile','Mis Favoritos':'My Favorites','Comunidad':'Community','Completar Reserva':'Complete Booking'},
@@ -605,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     Object.assign(TEXT.pt, {
         'Limpieza':'Limpeza','Comunicación':'Comunicação','Ubicación':'Localização','Relación calidad-precio':'Custo-benefício',
-        'También te puede interesar':'Você também pode se interessar','Otros hospedajes disponibles en el Huila':'Outras hospedagens disponíveis no Huila',
+        'También te puede interesar':'Você também pode se interessar','Otros hospedajes disponibles no Huila':'Outras hospedagens disponíveis no Huila',
         'Ya dejaste tu reseña':'Você já deixou sua avaliação','Solo se permite una reseña por publicación. ¡Gracias por tu opinión!':'Só é permitida uma avaliação por publicação. Obrigado pela sua opinião!',
         'Anfitrión':'Anfitrião','Contactar':'Contactar','Selecciona tus fechas':'Selecione suas datas','Añade fechas para ver el precio exacto':'Adicione datas para ver o preço exato',
         '¿Dónde está?':'Onde fica?','La dirección exacta se comparte tras la reserva.':'O endereço exato é compartilhado após a reserva.',
@@ -629,22 +620,16 @@ document.addEventListener('DOMContentLoaded', () => {
         'Una finca donde vivirás los mejores momento de tu vida y compartirás momento en familia y con tus amigos de la mejor manera':'Une ferme où vous vivrez certains des meilleurs moments de votre vie et partagerez du temps avec votre famille et vos amis de la meilleure façon.',
         'Cocina equipada':'Cuisine équipée','Piscina':'Piscine','Mayo':'Mai','Junio':'Juin','Julio':'Juillet','Agosto':'Août','Septiembre':'Septembre','Octubre':'Octobre','Noviembre':'Novembre','Diciembre':'Décembre','Enero':'Janvier','Febrero':'Février','Marzo':'Mars','Abril':'Avril'
     });
-    Object.assign(TEXT.it, {
-        'Limpieza':'Pulizia','Comunicación':'Comunicazione','Ubicación':'Posizione','Relación calidad-precio':'Rapporto qualità-prezzo',
-        'También te puede interesar':'Potrebbe interessarti anche','Otros hospedajes disponibles en el Huila':'Altri alloggi disponibili nel Huila',
-        'Ya dejaste tu reseña':'Hai già lasciato la tua recensione','Solo se permite una reseña por publicación. ¡Gracias por tu opinión!':'È consentita una sola recensione per annuncio. Grazie per la tua opinione!',
-        'Anfitrión':'Host','Contactar':'Contatta','Selecciona tus fechas':'Seleziona le tue date','Añade fechas para ver el precio exacto':'Aggiungi date per vedere il prezzo esatto',
-        '¿Dónde está?':'Dove si trova?','La dirección exacta se comparte tras la reserva.':"L'indirizzo esatto viene condiviso dopo la prenotazione.",
-        'Sé el primero en dejar una reseña.':'Sii il primo a lasciare una recensione.','Deja tu reseña':'Lascia la tua recensione','Calificación general:':'Valutazione generale:',
-        'Publicar reseña':'Pubblica recensione','Inicia sesión para dejar una reseña.':'Accedi per lasciare una recensione.','Iniciar sesión':'Accedi'
-    });
-    Object.assign(TEXT.it, {
-        'Una finca donde vivirás los mejores momento de tu vida y compartirás momento en familia y con tus amigos de la mejor manera':'Una fattoria dove vivrai alcuni dei momenti migliori della tua vita e condividerai il tempo con famiglia e amici nel modo migliore.',
-        'Cocina equipada':'Cucina attrezzata','Piscina':'Piscina','Mayo':'Maggio','Junio':'Giugno','Julio':'Luglio','Agosto':'Agosto','Septiembre':'Settembre','Octubre':'Ottobre','Noviembre':'Novembre','Diciembre':'Dicembre','Enero':'Gennaio','Febrero':'Febbraio','Marzo':'Marzo','Abril':'Aprile'
-    });
+
     const ORIGINAL_TEXT = new WeakMap();
     const TRACKED_TEXT_NODES = new Set();
     const ORIGINAL_TITLE = document.title;
+
+    let observer = null;
+    let lastLang = lang();
+    const requestedTexts = new Set();
+    const pendingTexts = new Set();
+    let translateTimeout = null;
 
     function lang() {
         return (window.I18n && I18n.current) || localStorage.getItem('sh_lang') || 'es';
@@ -655,54 +640,152 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function preserveSpaces(original, translated) {
-        return original.match(/^\s*/)[0] + translated + original.match(/\s*$/)[0];
+        const startMatch = original.match(/^\s*/);
+        const endMatch = original.match(/\s*$/);
+        return (startMatch ? startMatch[0] : '') + translated + (endMatch ? endMatch[0] : '');
     }
 
-    function translateDynamic(el, code) {
-        const text = el.textContent.trim();
-        if (!el.dataset.i18nOriginalSummary) el.dataset.i18nOriginalSummary = text;
-        let m = text.match(/Se han encontrado (\d+) hospedaje[s]? para tu estadía\./i);
-        if (m) {
-            const n = m[1];
-            el.textContent = {en:`Found ${n} lodging${n === '1' ? '' : 's'} for your stay.`,pt:`Foram encontradas ${n} hospedagem${n === '1' ? '' : 's'} para sua estadia.`,fr:`${n} hébergement${n === '1' ? '' : 's'} trouvé${n === '1' ? '' : 's'} pour votre séjour.`,it:`Trovati ${n} alloggi per il tuo soggiorno.`}[code];
+    function isTranslatable(text) {
+        if (!text) return false;
+        const normalized = normalizedText(text);
+        if (!normalized) return false;
+        if (/^[0-9\s.,$%&()\-+/*:;!?#@|]+$/.test(normalized)) return false;
+        if (normalized.length <= 1) return false;
+        return true;
+    }
+
+    function getLangCache(code) {
+        try {
+            const cached = localStorage.getItem(`sh_trans_${code}`);
+            return cached ? JSON.parse(cached) : {};
+        } catch (e) {
+            return {};
         }
-        m = text.match(/Se han encontrado (\d+) experiencias para tu aventura\./i);
-        if (m) {
-            const n = m[1];
-            el.textContent = {en:`Found ${n} experience${n === '1' ? '' : 's'} for your adventure.`,pt:`Foram encontradas ${n} experiências para sua aventura.`,fr:`${n} expérience${n === '1' ? '' : 's'} trouvée${n === '1' ? '' : 's'} pour votre aventure.`,it:`Trovate ${n} esperienze per la tua avventura.`}[code];
+    }
+
+    function setLangCache(code, cache) {
+        try {
+            localStorage.setItem(`sh_trans_${code}`, JSON.stringify(cache));
+        } catch (e) {}
+    }
+
+    function getLocalTranslation(key, code) {
+        const dict = TEXT[code] || {};
+        const normKey = key.trim().toLowerCase().replace(/\s+/g, ' ');
+        if (dict[key]) return dict[key];
+        
+        let found = null;
+        for (const [k, v] of Object.entries(dict)) {
+            if (k.toLowerCase().replace(/\s+/g, ' ') === normKey) {
+                found = v;
+                break;
+            }
         }
-        m = text.match(/Anfitrión desde (\d{4})/i);
-        if (m) {
-            el.textContent = {en:`Host since ${m[1]}`,pt:`Anfitrião desde ${m[1]}`,fr:`Hôte depuis ${m[1]}`,it:`Host dal ${m[1]}`}[code];
+        if (found) {
+            if (key[0] === key[0].toUpperCase()) {
+                return found[0].toUpperCase() + found.slice(1);
+            }
+            return found;
         }
-        m = text.match(/^(\d+)\s+reseñas$/i);
-        if (m) {
-            const n = m[1];
-            el.textContent = {en:`${n} review${n === '1' ? '' : 's'}`,pt:`${n} avaliação${n === '1' ? '' : 's'}`,fr:`${n} avis`,it:`${n} recension${n === '1' ? 'e' : 'i'}`}[code];
+        return null;
+    }
+
+    function getLocalAttrTranslation(key, code) {
+        const attrDict = ATTR[code] || {};
+        const normKey = key.trim().toLowerCase().replace(/\s+/g, ' ');
+        if (attrDict[key]) return attrDict[key];
+        
+        for (const [k, v] of Object.entries(attrDict)) {
+            if (k.toLowerCase().replace(/\s+/g, ' ') === normKey) {
+                return v;
+            }
         }
-        m = text.match(/^([\d.]+)\s+·\s+(\d+)\s+reseñas$/i);
-        if (m) {
-            const n = m[2];
-            el.textContent = {en:`${m[1]} · ${n} review${n === '1' ? '' : 's'}`,pt:`${m[1]} · ${n} avaliação${n === '1' ? '' : 's'}`,fr:`${m[1]} · ${n} avis`,it:`${m[1]} · ${n} recension${n === '1' ? 'e' : 'i'}`}[code];
+        return null;
+    }
+
+    function queueTranslation(text) {
+        const key = normalizedText(text);
+        if (!key || !isTranslatable(key)) return;
+        if (requestedTexts.has(key)) return;
+
+        requestedTexts.add(key);
+        pendingTexts.add(key);
+
+        if (translateTimeout) clearTimeout(translateTimeout);
+        translateTimeout = setTimeout(() => {
+            flushTranslations();
+        }, 300);
+    }
+
+    async function flushTranslations() {
+        const code = lang();
+        if (code === 'es') {
+            pendingTexts.clear();
+            return;
         }
-        m = text.match(/^(Mínimo|Máximo)\s+(\d+)\s+noche[s]?$/i);
-        if (m) {
-            const n = m[2];
-            const isMin = m[1].toLowerCase().startsWith('mín');
-            el.textContent = {
-                en: `${isMin ? 'Minimum' : 'Maximum'} ${n} night${n === '1' ? '' : 's'}`,
-                pt: `${isMin ? 'Mínimo' : 'Máximo'} ${n} noite${n === '1' ? '' : 's'}`,
-                fr: `${isMin ? 'Minimum' : 'Maximum'} ${n} nuit${n === '1' ? '' : 's'}`,
-                it: `${isMin ? 'Minimo' : 'Massimo'} ${n} nott${n === '1' ? 'e' : 'i'}`
-            }[code];
+        const textsToTranslate = Array.from(pendingTexts);
+        pendingTexts.clear();
+
+        if (textsToTranslate.length === 0) return;
+
+        const chunks = [];
+        for (let i = 0; i < textsToTranslate.length; i += 50) {
+            chunks.push(textsToTranslate.slice(i, i + 50));
+        }
+
+        const cache = getLangCache(code);
+
+        try {
+            await Promise.all(chunks.map(async (chunk) => {
+                try {
+                    const response = await fetch('/api/translate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ texts: chunk, lang: code })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    const resData = await response.json();
+                    if (resData.success && Array.isArray(resData.translations)) {
+                        chunk.forEach((txt, idx) => {
+                            const trans = resData.translations[idx];
+                            if (trans) {
+                                cache[txt] = trans;
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error('[TRANSLATE ERROR]', err);
+                }
+            }));
+
+            setLangCache(code, cache);
+
+            if (observer) observer.disconnect();
+            applyLegacyTranslations();
+            if (observer) observer.observe(document.body, { childList: true, subtree: true });
+
+        } catch (e) {
+            console.error('[FLUSH ERROR]', e);
         }
     }
 
     function applyLegacyTranslations(root = document.body) {
         const code = lang();
         if (!root) return;
+
+        if (code !== lastLang) {
+            lastLang = code;
+            requestedTexts.clear();
+            pendingTexts.clear();
+            if (translateTimeout) clearTimeout(translateTimeout);
+        }
+
         if (code === 'es') {
             TRACKED_TEXT_NODES.forEach(node => {
+                if (!node.isConnected) {
+                    TRACKED_TEXT_NODES.delete(node);
+                    return;
+                }
                 if (ORIGINAL_TEXT.has(node)) node.nodeValue = ORIGINAL_TEXT.get(node);
             });
             document.querySelectorAll('[data-i18n-original-placeholder],[data-i18n-original-title],[data-i18n-original-aria-label]').forEach(el => {
@@ -711,24 +794,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (el.hasAttribute(storeAttr)) el.setAttribute(attr, el.getAttribute(storeAttr));
                 });
             });
-            document.querySelectorAll('[data-i18n-original-summary]').forEach(el => {
-                el.textContent = el.dataset.i18nOriginalSummary;
-            });
             document.title = ORIGINAL_TITLE;
             return;
         }
-        const dict = TEXT[code] || {};
-        const attrDict = ATTR[code] || {};
-        const skip = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','OPTION']);
+
+        const cache = getLangCache(code);
+        const skip = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','CODE','PRE','SVG','CANVAS','IFRAME']);
+        
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
             acceptNode(node) {
                 const parent = node.parentElement;
-                if (!parent || skip.has(parent.tagName) || parent.closest('[data-no-i18n]') || parent.closest('[data-i18n]')) return NodeFilter.FILTER_REJECT;
+                if (!parent || skip.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+                if (parent.closest('[data-no-i18n]') || parent.closest('[data-i18n]') || parent.closest('.language-selector') || parent.closest('.lang-dropdown')) return NodeFilter.FILTER_REJECT;
                 return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
             }
         });
+
         const nodes = [];
         while (walker.nextNode()) nodes.push(walker.currentNode);
+        
         nodes.forEach(node => {
             if (!ORIGINAL_TEXT.has(node)) {
                 ORIGINAL_TEXT.set(node, node.nodeValue);
@@ -736,23 +820,230 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const original = ORIGINAL_TEXT.get(node);
             const key = normalizedText(original);
-            if (dict[key]) node.nodeValue = preserveSpaces(original, dict[key]);
+            
+            // Check for local regex matches first!
+            let matchedLocal = false;
+            let m = key.match(/Se han encontrado (\d+) hospedaje[s]? para tu estadía\./i);
+            if (m) {
+                const n = m[1];
+                node.nodeValue = preserveSpaces(original, {
+                    en: `Found ${n} lodging${n === '1' ? '' : 's'} for your stay.`,
+                    pt: `Foram encontradas ${n} hospedagem${n === '1' ? '' : 's'} para sua estadia.`,
+                    fr: `${n} hébergement${n === '1' ? '' : 's'} trouvé${n === '1' ? '' : 's'} pour votre séjour.`,
+                    it: `${n} alloggi per il tuo soggiorno.`
+                }[code]);
+                matchedLocal = true;
+            }
+            if (!matchedLocal) {
+                m = key.match(/Se han encontrado (\d+) experiencias para tu aventura\./i);
+                if (m) {
+                    const n = m[1];
+                    node.nodeValue = preserveSpaces(original, {
+                        en: `Found ${n} experience${n === '1' ? '' : 's'} for your adventure.`,
+                        pt: `Foram encontradas ${n} experiências para sua aventura.`,
+                        fr: `${n} expérience${n === '1' ? '' : 's'} trouvée${n === '1' ? '' : 's'} pour votre aventure.`,
+                        it: `${n} experiencias per la tua avventura.`
+                    }[code]);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/Anfitrión desde (\d{4})/i);
+                if (m) {
+                    node.nodeValue = preserveSpaces(original, {
+                        en: `Host since ${m[1]}`,
+                        pt: `Anfitrião desde ${m[1]}`,
+                        fr: `Hôte depuis ${m[1]}`,
+                        it: `Host dal ${m[1]}`
+                    }[code]);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^(\d+)\s+reseñas$/i);
+                if (m) {
+                    const n = m[1];
+                    node.nodeValue = preserveSpaces(original, {
+                        en: `${n} review${n === '1' ? '' : 's'}`,
+                        pt: `${n} avaliação${n === '1' ? '' : 's'}`,
+                        fr: `${n} avis`,
+                        it: `${n} recension${n === '1' ? 'e' : 'i'}`
+                    }[code]);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^([\d.]+)\s+·\s+(\d+)\s+reseñas$/i);
+                if (m) {
+                    const n = m[2];
+                    node.nodeValue = preserveSpaces(original, {
+                        en: `${m[1]} · ${n} review${n === '1' ? '' : 's'}`,
+                        pt: `${m[1]} · ${n} avaliação${n === '1' ? '' : 's'}`,
+                        fr: `${m[1]} · ${n} avis`,
+                        it: `${m[1]} · ${n} recension${n === '1' ? 'e' : 'i'}`
+                    }[code]);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^·\s+(\d+)\s+reseñas$/i);
+                if (m) {
+                    const n = m[1];
+                    node.nodeValue = preserveSpaces(original, {
+                        en: `· ${n} review${n === '1' ? '' : 's'}`,
+                        pt: `· ${n} avaliação${n === '1' ? '' : 's'}`,
+                        fr: `· ${n} avis`,
+                        it: `· ${n} recension${n === '1' ? 'e' : 'i'}`
+                    }[code]);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^(Mínimo|Máximo|Máx\.)\s+(\d+)\s+noche[s]?$/i);
+                if (m) {
+                    const n = m[2];
+                    const prefix = m[1].toLowerCase();
+                    const transPrefix = {
+                        en: prefix.startsWith('mín') ? 'Minimum' : 'Maximum',
+                        pt: prefix.startsWith('mín') ? 'Mínimo' : 'Máximo',
+                        fr: prefix.startsWith('mín') ? 'Minimum' : 'Maximum',
+                        it: prefix.startsWith('mín') ? 'Minimo' : 'Massimo'
+                    }[code];
+                    node.nodeValue = preserveSpaces(original, `${transPrefix} ${n} ${n === '1' ? {en:'night',pt:'noite',fr:'nuit',it:'notte'}[code] : {en:'nights',pt:'noites',fr:'nuits',it:'notti'}[code]}`);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^(Máx\.|Máximo)\s+(\d+)\s+huésped[es]?$/i);
+                if (m) {
+                    const n = m[2];
+                    const transPrefix = { en: 'Max.', pt: 'Máx.', fr: 'Max.', it: 'Max.' }[code];
+                    const transGuests = {
+                        en: n === '1' ? 'guest' : 'guests',
+                        pt: n === '1' ? 'hóspede' : 'hóspedes',
+                        fr: n === '1' ? 'voyageur' : 'voyageurs',
+                        it: n === '1' ? 'ospite' : 'ospiti'
+                    }[code];
+                    node.nodeValue = preserveSpaces(original, `${transPrefix} ${n} ${transGuests}`);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^(\d+)\s+reseñas\s+\(Anfitrión\)$/i);
+                if (m) {
+                    const n = m[1];
+                    node.nodeValue = preserveSpaces(original, {
+                        en: `${n} review${n === '1' ? '' : 's'} (Host)`,
+                        pt: `${n} avaliação${n === '1' ? '' : 's'} (Anfitrião)`,
+                        fr: `${n} avis (Hôte)`,
+                        it: `${n} recension${n === '1' ? 'e' : 'i'} (Host)`
+                    }[code]);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^\((\d+)\s+reseñas\)$/i);
+                if (m) {
+                    const n = m[1];
+                    node.nodeValue = preserveSpaces(original, {
+                        en: `(${n} review${n === '1' ? '' : 's'})`,
+                        pt: `(${n} avaliação${n === '1' ? '' : 's'})`,
+                        fr: `(${n} avis)`,
+                        it: `(${n} recension${n === '1' ? 'e' : 'i'})`
+                    }[code]);
+                    matchedLocal = true;
+                }
+            }
+            if (!matchedLocal) {
+                m = key.match(/^\$([\d.]+)\s*×\s*(\d+)\s+(persona|personas)\s*×\s*(\d+)\s+(día|días|noche|noches)$/i);
+                if (m) {
+                    const price = m[1];
+                    const count1 = m[2];
+                    const count2 = m[4];
+                    const type2 = m[5].toLowerCase();
+                    
+                    const type1Trans = {
+                        en: count1 === '1' ? 'person' : 'people',
+                        pt: count1 === '1' ? 'pessoa' : 'pessoas',
+                        fr: count1 === '1' ? 'personne' : 'personnes',
+                        it: count1 === '1' ? 'persona' : 'persone'
+                    }[code];
+                    
+                    let type2Trans = '';
+                    if (type2.startsWith('d')) {
+                        type2Trans = {
+                            en: count2 === '1' ? 'day' : 'days',
+                            pt: count2 === '1' ? 'dia' : 'dias',
+                            fr: count2 === '1' ? 'jour' : 'jours',
+                            it: count2 === '1' ? 'giorno' : 'giorni'
+                        }[code];
+                    } else {
+                        type2Trans = {
+                            en: count2 === '1' ? 'night' : 'nights',
+                            pt: count2 === '1' ? 'noite' : 'noites',
+                            fr: count2 === '1' ? 'nuit' : 'nuits',
+                            it: count2 === '1' ? 'notte' : 'notti'
+                        }[code];
+                    }
+                    node.nodeValue = preserveSpaces(original, `$${price} × ${count1} ${type1Trans} × ${count2} ${type2Trans}`);
+                    matchedLocal = true;
+                }
+            }
+
+            if (matchedLocal) return;
+
+            const localTrans = getLocalTranslation(key, code);
+            if (localTrans) {
+                node.nodeValue = preserveSpaces(original, localTrans);
+            } else {
+                if (cache[key]) {
+                    node.nodeValue = preserveSpaces(original, cache[key]);
+                } else {
+                    queueTranslation(original);
+                }
+            }
         });
+
         root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el => {
+            if (el.closest('[data-no-i18n]') || el.closest('[data-i18n]') || el.closest('.language-selector') || el.closest('.lang-dropdown')) return;
             ['placeholder','title','aria-label'].forEach(attr => {
                 const storeAttr = `data-i18n-original-${attr}`;
                 if (!el.hasAttribute(storeAttr)) el.setAttribute(storeAttr, el.getAttribute(attr) || '');
                 const value = el.getAttribute(storeAttr);
+                if (!value) return;
                 const key = normalizedText(value);
-                if (value && attrDict[key]) el.setAttribute(attr, attrDict[key]);
+                const localTrans = getLocalAttrTranslation(key, code);
+                if (localTrans) {
+                    el.setAttribute(attr, localTrans);
+                } else {
+                    if (cache[key]) {
+                        el.setAttribute(attr, cache[key]);
+                    } else {
+                        queueTranslation(value);
+                    }
+                }
             });
         });
-        document.querySelectorAll('.result-summary, .hospedajes-header p, .hc-info p, .hc-stats span, .resenas-header .section-title, .mapa-subtitle, .bw-max, .bw-form span').forEach(el => translateDynamic(el, code));
+
         let translatedTitle = ORIGINAL_TITLE;
+        let foundStaticTitle = false;
         Object.entries(TITLES[code] || {}).forEach(([from, to]) => {
-            translatedTitle = translatedTitle.replace(from, to);
+            if (translatedTitle.includes(from)) {
+                translatedTitle = translatedTitle.replace(from, to);
+                foundStaticTitle = true;
+            }
         });
-        document.title = translatedTitle;
+        if (foundStaticTitle) {
+            document.title = translatedTitle;
+        } else {
+            const titleKey = normalizedText(ORIGINAL_TITLE);
+            if (cache[titleKey]) {
+                document.title = cache[titleKey];
+            } else {
+                queueTranslation(ORIGINAL_TITLE);
+            }
+        }
+
         document.querySelectorAll('.lang-label').forEach(el => {
             const l = LANGUAGES[code];
             if (l) el.textContent = `${l.flag} ${code.toUpperCase()}`;
@@ -765,13 +1056,43 @@ document.addEventListener('DOMContentLoaded', () => {
         applyLegacyTranslations();
     };
 
+    // Hook window.showToast to translate toast messages instantly
+    const originalShowToast = window.showToast;
+    if (typeof originalShowToast === 'function') {
+        window.showToast = function(message, type) {
+            const code = lang();
+            if (code === 'es') {
+                return originalShowToast(message, type);
+            }
+            const normKey = normalizedText(message);
+            const localTrans = getLocalTranslation(normKey, code);
+            if (localTrans) {
+                return originalShowToast(localTrans, type);
+            }
+            const cache = getLangCache(code);
+            if (cache[normKey]) {
+                return originalShowToast(cache[normKey], type);
+            }
+            queueTranslation(message);
+            return originalShowToast(message, type);
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         applyLegacyTranslations();
-        const observer = new MutationObserver(mutations => {
+        observer = new MutationObserver(mutations => {
             if (lang() === 'es') return;
+            if (observer) observer.disconnect();
+            
             mutations.forEach(m => m.addedNodes.forEach(node => {
-                if (node.nodeType === Node.ELEMENT_NODE) applyLegacyTranslations(node);
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    applyLegacyTranslations(node);
+                } else if (node.nodeType === Node.TEXT_NODE) {
+                    applyLegacyTranslations(node.parentElement || document.body);
+                }
             }));
+            
+            if (observer) observer.observe(document.body, { childList: true, subtree: true });
         });
         observer.observe(document.body, { childList: true, subtree: true });
     });

@@ -3416,5 +3416,76 @@ def api_verificar_reset():
         c.close()
 
 
+@app.route('/api/translate', methods=['POST'])
+def api_translate():
+    """
+    Recibe una lista de textos en español y los traduce al idioma especificado
+    utilizando Gemini 2.5 Flash.
+    """
+    data = request.get_json(silent=True) or {}
+    texts = data.get('texts', [])
+    lang = data.get('lang', 'en').lower()
+
+    if not texts:
+        return jsonify({'success': True, 'translations': []})
+
+    if not isinstance(texts, list):
+        return jsonify({'success': False, 'error': 'texts debe ser una lista'}), 400
+
+    # Mapeo de códigos de idioma a nombres legibles
+    lang_names = {
+        'en': 'Inglés',
+        'pt': 'Portugués',
+        'fr': 'Francés',
+        'it': 'Italiano'
+    }
+    target_lang = lang_names.get(lang, 'Inglés')
+
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = (
+            f"Eres un sistema de traducción automático profesional para la plataforma turística StayHuila.\n"
+            f"Traduce la siguiente lista de textos del español al idioma: {target_lang}.\n"
+            f"Reglas estrictas:\n"
+            f"1. Conserva exactamente el mismo orden de la lista.\n"
+            f"2. Conserva exactamente la misma cantidad de elementos.\n"
+            f"3. No omitas ningún texto y no agregues textos nuevos.\n"
+            f"4. Mantén nombres propios del Huila intactos (como 'Tatacoa', 'Gigante', 'San Agustín', 'StayHuila', etc.).\n"
+            f"5. Responde ÚNICAMENTE con un objeto JSON válido con la clave 'translations' que contiene el arreglo de strings traducidos.\n"
+            f"No envíes explicaciones, no uses formato Markdown (```json o similares) ni nada adicional. Ejemplo de respuesta:\n"
+            f'{{"translations": ["translated_text_1", "translated_text_2", ...]}}\n\n'
+            f"Lista de textos en formato JSON:\n"
+            f"{json.dumps(texts, ensure_ascii=False)}"
+        )
+
+        response = model.generate_content(prompt)
+        resp_text = response.text.strip()
+        
+        # Limpiar posibles bloques markdown del output
+        if resp_text.startswith("```"):
+            resp_text = re.sub(r"^```(?:json)?\n", "", resp_text)
+            resp_text = re.sub(r"\n```$", "", resp_text)
+        resp_text = resp_text.strip()
+        
+        parsed = json.loads(resp_text)
+        translations = parsed.get('translations', [])
+        
+        # Validación de seguridad para asegurar que coincidan las dimensiones
+        if len(translations) != len(texts):
+            app.logger.warning(f"[TRANSLATE] La longitud no coincide. Esperados {len(texts)}, recibidos {len(translations)}. Usando fallbacks.")
+            # Si hay diferencia, rellenamos con los originales para que la página no se rompa
+            while len(translations) < len(texts):
+                translations.append(texts[len(translations)])
+            translations = translations[:len(texts)]
+            
+        return jsonify({'success': True, 'translations': translations})
+        
+    except Exception as e:
+        app.logger.error(f"[TRANSLATE] Error traduciendo textos: {e}")
+        # En caso de error, devolvemos el texto original como fallback para que no falle la interfaz
+        return jsonify({'success': True, 'translations': texts, 'error': str(e)})
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
