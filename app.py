@@ -132,13 +132,6 @@ def send_reset_email(to_email, codigo):
         server.login(MAIL_USERNAME, MAIL_PASSWORD)
         server.sendmail(MAIL_FROM, to_email, msg.as_string())
 
-# --- INTEGRACIÓN ASISTENTE IA ---
-import sys
-import os
-sys.path.append(os.path.join(app.root_path, 'asistente_ia'))
-from asistente_api import asistente_bp
-app.register_blueprint(asistente_bp)
-# --------------------------------
 
 
 DB = dict(host='localhost', user='root', password='', database='StayHuila',

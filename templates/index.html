@@ -33,9 +33,7 @@
     <!-- Phosphor Icons for modern minimalist icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
-    <!-- IA Assistant Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/asistente.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -184,9 +182,7 @@
                     <input type="number" id="sh-guests" data-i18n="hero.guests_ph" data-i18n-attr="placeholder"
                         placeholder="¿Cuántos?" min="1">
                 </div>
-                <button class="voice-search-btn" title="Búsqueda por voz" id="sh-voice-btn">
-                    <i class="ph-fill ph-microphone"></i>
-                </button>
+
                 <button class="search-btn" id="sh-submit">
                     <i class="ph-bold ph-magnifying-glass"></i>
                 </button>
@@ -728,9 +724,7 @@
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-    <!-- IA Assistant Interface -->
-    {% include 'components/asistente.html' %}
-    <script src="{{ url_for('static', filename='js/asistente.js') }}"></script>
+
 
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>

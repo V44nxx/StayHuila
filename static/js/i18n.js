@@ -74,7 +74,6 @@ const T = {
         'booking.total':'Total','booking.max_guests':'Máx. {n} huéspedes',
         'booking.max_prefix':'Máx.','booking.guests_lower':'huéspedes',
         'booking.repair_msg':'Este hospedaje se encuentra actualmente en reparación o mantenimiento. Las reservas están deshabilitadas temporalmente.',
-        'ai.sub':'Tu asistente de viajes','ai.ph':'Escribe tu búsqueda...',
     },
     en: {
         'nav.lodgings':'Lodgings','nav.experiences':'Experiences','nav.community':'Community',
@@ -138,7 +137,6 @@ const T = {
         'booking.total':'Total','booking.max_guests':'Max. {n} guests',
         'booking.max_prefix':'Max.','booking.guests_lower':'guests',
         'booking.repair_msg':'This lodging is currently under repair or maintenance. Bookings are temporarily disabled.',
-        'ai.sub':'Your travel assistant','ai.ph':'Type your search...',
     },
     pt: {
         'nav.lodgings':'Hospedagens','nav.experiences':'Experiências','nav.community':'Comunidade',
@@ -197,12 +195,11 @@ const T = {
         'detail.share':'Compartilhar','detail.save':'Salvar','detail.all_photos':'Ver todas as fotos',
         'detail.super_host':'SuperAnfitrião','detail.more':'Mostrar mais','detail.less':'Mostrar menos',
         'detail.offers':'O que este lugar oferece','detail.checkin_at':'Check-in às','detail.checkout_at':'Checkout às',
-        'booking.reserve':'Reservar','booking.reserve_disabled':'Reservar (Desabilitado)',
+        'booking.reserve':'Reservar','booking.reserve_disabled':'Reservar (Deshabilitado)',
         'booking.no_charge':'Nada será cobrado ainda','booking.nights':'noites','booking.service_fee':'Taxa de serviço',
         'booking.total':'Total','booking.max_guests':'Máx. {n} hóspedes',
         'booking.max_prefix':'Máx.','booking.guests_lower':'hóspedes',
         'booking.repair_msg':'Esta hospedagem está em manutenção. As reservas estão temporariamente desativadas.',
-        'ai.sub':'Seu assistente de viagens','ai.ph':'Digite sua busca...',
     },
     fr: {
         'nav.lodgings':'Hébergements','nav.experiences':'Expériences','nav.community':'Communauté',
@@ -266,7 +263,6 @@ const T = {
         'booking.total':'Total','booking.max_guests':'Max. {n} voyageurs',
         'booking.max_prefix':'Max.','booking.guests_lower':'voyageurs',
         'booking.repair_msg':'Ce logement est en cours de réparation. Les réservations sont temporairement désactivées.',
-        'ai.sub':'Votre assistant voyage','ai.ph':'Tapez votre recherche...',
     },
     it: {
         'nav.lodgings':'Alloggi','nav.experiences':'Esperienze','nav.community':'Comunità',
@@ -330,7 +326,6 @@ const T = {
         'booking.total':'Totale','booking.max_guests':'Max. {n} ospiti',
         'booking.max_prefix':'Max.','booking.guests_lower':'ospiti',
         'booking.repair_msg':'Questo alloggio è attualmente in manutenzione. Le prenotazioni sono temporaneamente disabilitate.',
-        'ai.sub':'Il tuo assistente di viaggio','ai.ph':'Scrivi la tua ricerca...',
     }
 };
 
@@ -389,10 +384,7 @@ const I18n = {
             });
         });
 
-        // 3. AI assistant placeholder & subtitle
-        const aiInput = document.getElementById('ai-text-input');
-        if (aiInput) aiInput.placeholder = this.t('ai.ph');
-        document.querySelectorAll('.ai-header p').forEach(el => el.textContent = this.t('ai.sub'));
+
     },
 
     updateSelector() {

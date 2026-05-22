@@ -107,12 +107,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    // 7. Voice Search Button (Hero)
-    const voiceHeroBtn = document.querySelector('.voice-search-btn');
-    if (voiceHeroBtn) {
-        voiceHeroBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showToast('Escuchando... ¿A dónde te gustaría viajar en el Huila? (Mockup Voz)');
-        });
-    }
+
 });
