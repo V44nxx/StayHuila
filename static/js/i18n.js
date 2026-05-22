@@ -464,8 +464,9 @@ function closeLangDropdown() {
     buildLangDropdown(); // Rebuild all to update checkmarks
 }
 
-document.addEventListener('click', () => {
-    /* Extra coverage for legacy templates that still have hard-coded Spanish text. */
+document.addEventListener('click', closeLangDropdown);
+
+/* Extra coverage for legacy templates that still have hard-coded Spanish text. */
 (function enhanceLegacyI18n() {
     const TEXT = {
         en: {
@@ -1097,3 +1098,17 @@ document.addEventListener('click', () => {
         observer.observe(document.body, { childList: true, subtree: true });
     });
 })();
+
+// Animation
+const _s = document.createElement('style');
+_s.textContent = `
+    @keyframes fadeInDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    #lang-btn:hover{background:rgba(0,0,0,0.06)!important}
+`;
+document.head.appendChild(_s);
+
+/* ── Init ───────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+    buildLangDropdown();
+    I18n.init();
+});
