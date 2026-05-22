@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 import pymysql
@@ -8,8 +8,28 @@ import random, string, os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import requests
+import hashlib
+import hmac
+import traceback
+from payment_service import PaymentService, NequiProvider
 # Módulo de validación y optimización de imágenes (OpenCV + Pillow)
 from image_optimizer import process_image
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
+
+# Configurar API de Gemini para OCR
+import json
+import re
+import io
+import google.generativeai as genai
+from PIL import Image
+
+API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCmOKSELF5XKcU1wESXz130Y0Slh750j28")
+genai.configure(api_key=API_KEY)
+
 
 app = Flask(__name__)
 app.secret_key = 'stayhuila_secret_2024_xk9'
@@ -47,6 +67,16 @@ MAIL_PASSWORD = 'rdvhjcbzixjmumfv'   # App Password de 16 caracteres (ver instru
 MAIL_SERVER   = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 MAIL_PORT     = int(os.environ.get('MAIL_PORT', '587'))
 MAIL_FROM     = MAIL_USERNAME
+
+# ── CONFIGURACIÓN NEQUI NEGOCIOS ───────────────────────────────────────────────
+NEQUI_NEGOCIO_CELULAR = os.environ.get('NEQUI_NEGOCIO_CELULAR', '3112345678')
+NEQUI_NEGOCIO_NOMBRE = os.environ.get('NEQUI_NEGOCIO_NOMBRE', 'StayHuila Reservas')
+NEQUI_NEGOCIO_LINK = os.environ.get('NEQUI_NEGOCIO_LINK', 'https://link.nequi.co/stayhuila')
+
+# Inicializar servicio de pagos
+payment_provider = NequiProvider(NEQUI_NEGOCIO_CELULAR, NEQUI_NEGOCIO_NOMBRE, NEQUI_NEGOCIO_LINK)
+payment_service = PaymentService(payment_provider)
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 def combine_date_time(d, t, default=dt_time(15, 0)):
@@ -161,6 +191,75 @@ def _ensure_columns():
                 cur.execute("ALTER TABLE reservas ADD COLUMN sesion_id INT NULL AFTER experiencia_id")
                 cur.execute("ALTER TABLE reservas ADD FOREIGN KEY (sesion_id) REFERENCES experiencia_sesiones(id) ON DELETE SET NULL")
 
+            # ── Tabla de Pagos ───────────────────────────────────────────────
+            # Asegurar que existan las nuevas columnas para Mercado Pago
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'usuario_id'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE pagos ADD COLUMN usuario_id INT NOT NULL DEFAULT 0 AFTER reserva_id")
+
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'preference_id'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE pagos ADD COLUMN preference_id VARCHAR(200) NULL AFTER usuario_id")
+
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'payment_id'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE pagos ADD COLUMN payment_id VARCHAR(100) NULL AFTER preference_id")
+            
+            # Índice único en preference_id
+            cur.execute("SHOW INDEX FROM pagos WHERE Key_name = 'idx_preference_id'")
+            if not cur.fetchone():
+                try:
+                    cur.execute("CREATE UNIQUE INDEX idx_preference_id ON pagos(preference_id)")
+                except Exception:
+                    pass  # Ya existe con otro nombre
+            
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'currency'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE pagos ADD COLUMN currency VARCHAR(10) DEFAULT 'COP' AFTER monto")
+            
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'provider'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE pagos ADD COLUMN provider VARCHAR(50) DEFAULT 'mercadopago' AFTER estado")
+
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'mp_status'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE pagos ADD COLUMN mp_status VARCHAR(50) NULL AFTER provider")
+
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'mp_status_detail'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE pagos ADD COLUMN mp_status_detail VARCHAR(200) NULL AFTER mp_status")
+
+            # Modificar a VARCHAR flexible para compatibilidad con MP
+            cur.execute("ALTER TABLE pagos MODIFY COLUMN metodo VARCHAR(100) NOT NULL DEFAULT 'mercadopago'")
+            cur.execute("ALTER TABLE pagos MODIFY COLUMN estado VARCHAR(50) DEFAULT 'pending'")
+
+            # ── Columnas MP en reservas (desnormalizadas para queries rápidas) ──
+            cur.execute("SHOW COLUMNS FROM reservas LIKE 'mp_payment_id'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE reservas ADD COLUMN mp_payment_id VARCHAR(100) NULL")
+
+            cur.execute("SHOW COLUMNS FROM reservas LIKE 'mp_preference_id'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE reservas ADD COLUMN mp_preference_id VARCHAR(200) NULL")
+
+            # ── Tabla de logs de webhooks para auditoría ─────────────────────
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS webhook_logs (
+                    id          INT AUTO_INCREMENT PRIMARY KEY,
+                    received_at DATETIME DEFAULT NOW(),
+                    topic       VARCHAR(50),
+                    payment_id  VARCHAR(100),
+                    mp_status   VARCHAR(50),
+                    reserva_id  INT,
+                    raw_payload TEXT,
+                    procesado   TINYINT(1) DEFAULT 0,
+                    error_msg   TEXT,
+                    ip_origen   VARCHAR(45),
+                    INDEX idx_wl_payment (payment_id),
+                    INDEX idx_wl_reserva (reserva_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
             # ── Tabla de Lista de Espera ─────────────────────────────────────
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS lista_espera (
@@ -228,6 +327,766 @@ def load_user(uid):
 
 def gen_code():
     return 'SH' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+def check_wompi_and_login(wompi_txn_id, rid=None):
+    if not wompi_txn_id:
+        return None, rid
+    
+    wompi_data = None
+    # Consultar la API de Wompi (producción primero, luego sandbox)
+    for base_url in ["https://production.wompi.co/v1", "https://sandbox.wompi.co/v1"]:
+        try:
+            r = requests.get(f"{base_url}/transactions/{wompi_txn_id}", timeout=5)
+            if r.status_code == 200:
+                wompi_data = r.json().get('data', {})
+                break
+        except Exception as e:
+            app.logger.error(f"[Wompi Helper] Error al consultar {wompi_txn_id} en {base_url}: {e}")
+            
+    if not wompi_data:
+        return None, rid
+        
+    status = wompi_data.get('status')
+    email = wompi_data.get('customer_email')
+    amount_in_cents = wompi_data.get('amount_in_cents')
+    
+    if email:
+        c = db()
+        try:
+            with c.cursor() as cur:
+                cur.execute("SELECT * FROM usuarios WHERE email=%s AND activo=1", (email,))
+                user = cur.fetchone()
+                if user:
+                    # Iniciar sesión automáticamente si no está logueado o es otro usuario
+                    if not current_user.is_authenticated or current_user.email != email:
+                        login_user(User(user))
+                        app.logger.info(f"[Wompi Helper] Auto-login de usuario: {email}")
+                    
+                    # Intentar resolver la reserva si no se pasó
+                    if not rid:
+                        cur.execute(
+                            "SELECT id, total FROM reservas WHERE usuario_id=%s AND estado='pendiente_pago' ORDER BY id DESC",
+                            (user['id'],)
+                        )
+                        pending_reservas = cur.fetchall()
+                        expected_cents = int(amount_in_cents) if amount_in_cents else 0
+                        for pr in pending_reservas:
+                            pr_cents = int(float(pr['total']) * 100)
+                            if abs(pr_cents - expected_cents) < 5:
+                                rid = pr['id']
+                                break
+                        # Si sigue sin encontrarse pero hay pendientes, asignar la más reciente
+                        if not rid and pending_reservas:
+                            rid = pending_reservas[0]['id']
+        except Exception as e:
+            app.logger.error(f"[Wompi Helper] Error al asociar usuario/reserva: {e}\n{traceback.format_exc()}")
+        finally:
+            c.close()
+            
+    return status, rid
+
+# ── MERCADO PAGO HELPERS ────────────────────────────────────────────────────────
+@app.route('/webhook/mercadopago', methods=['POST'])
+def mercadopago_webhook_deprecated():
+    """Webhook depreciado de Mercado Pago."""
+    return jsonify({"success": False, "message": "Deprecated. Use Nequi."}), 410
+
+
+@app.route('/pago/transferir/<int:reserva_id>')
+@login_required
+def pago_transferir_gateway(reserva_id):
+    """
+    Ruta de transición premium que almacena el ID de la reserva en sesión y localStorage
+    y redirige de forma fluida a la URL oficial de Nequi Negocios.
+    """
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                SELECT id FROM reservas 
+                WHERE id = %s AND usuario_id = %s AND estado = 'pendiente_pago'
+                LIMIT 1
+            """, (reserva_id, current_user.id))
+            reserva = cur.fetchone()
+            
+            if not reserva:
+                flash('Reserva no válida para pagar.', 'error')
+                return redirect(url_for('mis_reservas'))
+                
+            session['pending_reserva_id'] = reserva_id
+            return render_template(
+                'pago_transferir.html',
+                reserva_id=reserva_id,
+                nequi_link=NEQUI_NEGOCIO_LINK
+            )
+    except Exception as e:
+        app.logger.error(f"[Pago Transferir] Error: {e}")
+        flash('Error al iniciar la pasarela de Nequi.', 'error')
+        return redirect(url_for('mis_reservas'))
+    finally:
+        c.close()
+
+
+@app.route('/pago/nequi/<int:reserva_id>')
+@login_required
+def pago_nequi_gateway(reserva_id):
+    """
+    Antiguo portal integrado, redirigido a la pasarela de transferencia por enlace.
+    """
+    return redirect(url_for('pago_transferir_gateway', reserva_id=reserva_id))
+
+
+@app.route('/api/pago/nequi/confirmar', methods=['POST'])
+@login_required
+def api_nequi_confirmar():
+    """
+    Confirma el pago a través de Nequi de forma interactiva y segura.
+    Valida el número de celular y la referencia de pago real, actualizando las tablas pagos y reservas usando SELECT FOR UPDATE.
+    """
+    data = request.get_json() or {}
+    reserva_id = data.get('reserva_id')
+    celular = data.get('celular', '').strip()
+    referencia = data.get('referencia', '').strip()
+    
+    if not reserva_id:
+        return jsonify({'success': False, 'error': 'Falta el ID de la reserva'}), 400
+        
+    if not payment_provider.validar_celular(celular):
+        return jsonify({'success': False, 'error': 'Número celular de Nequi inválido (debe tener 10 dígitos y empezar con 3)'}), 400
+
+    if not referencia:
+        return jsonify({'success': False, 'error': 'La referencia de pago es obligatoria.'}), 400
+
+    if len(referencia) < 4:
+        return jsonify({'success': False, 'error': 'La referencia de pago debe tener al menos 4 caracteres.'}), 400
+
+    c = db()
+    try:
+        c.autocommit(False)
+        with c.cursor() as cur:
+            # SELECT FOR UPDATE para evitar colisiones
+            cur.execute("SELECT * FROM reservas WHERE id=%s AND usuario_id=%s FOR UPDATE", (reserva_id, current_user.id))
+            reserva = cur.fetchone()
+            
+            if not reserva:
+                c.rollback()
+                return jsonify({'success': False, 'error': 'Reserva no encontrada'}), 404
+                
+            if reserva['estado'] != 'pendiente_pago':
+                c.rollback()
+                return jsonify({'success': False, 'error': f'La reserva ya no está pendiente de pago. Estado: {reserva["estado"]}'}), 400
+
+            # Guardar la referencia real del pago ingresada por el usuario como ID de transacción
+            txn_id = referencia
+            metodo_label = f"Nequi (Cel: {celular})"
+
+            # 1. Actualizar tabla pagos
+            cur.execute("""
+                UPDATE pagos
+                SET payment_id       = %s,
+                    monto            = %s,
+                    currency         = 'COP',
+                    metodo           = %s,
+                    estado           = 'approved',
+                    mp_status        = 'approved',
+                    mp_status_detail = 'acreditado',
+                    fecha_pago       = NOW()
+                WHERE reserva_id = %s AND tipo = 'cobro'
+            """, (txn_id, float(reserva['total']), metodo_label, reserva_id))
+
+            # 2. Actualizar tabla reservas
+            cur.execute("""
+                UPDATE reservas
+                SET estado = 'confirmada',
+                    estado_pago = 'pagado',
+                    fecha_confirmacion = NOW(),
+                    mp_payment_id = %s
+                WHERE id = %s
+            """, (txn_id, reserva_id))
+
+            # 3. Gamificación: Sumar 50 puntos al usuario
+            cur.execute(
+                "UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s",
+                (current_user.id,)
+            )
+
+            c.commit()
+            app.logger.info(f"[Nequi] Pago exitoso confirmado para reserva {reserva_id}. Txn={txn_id}")
+            return jsonify({'success': True, 'txn_id': txn_id, 'redirect_url': f"/pago/exito?external_reference={reserva_id}&payment_id={txn_id}"})
+            
+    except Exception as e:
+        c.rollback()
+        app.logger.error(f"[Nequi Confirmar] Error: {e}\n{traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Error interno del servidor: {str(e)}'}), 500
+    finally:
+        c.close()
+
+
+
+@app.route('/pago/exito')
+def pago_exito():
+    """Pantalla de pago exitoso con datos reales de la transacción."""
+    rid = request.args.get('external_reference') or request.args.get('reserva_id')
+    payment_id_mp = request.args.get('payment_id')
+    merchant_order_id = request.args.get('merchant_order_id', '')
+    wompi_txn_id = request.args.get('id')
+
+    if wompi_txn_id:
+        status, new_rid = check_wompi_and_login(wompi_txn_id, rid)
+        if status:
+            if status != 'APPROVED':
+                dest_route = 'pago_pendiente' if status == 'PENDING' else 'pago_fallo'
+                return redirect(url_for(dest_route, reserva_id=new_rid or rid, id=wompi_txn_id))
+            
+            if new_rid and new_rid != rid:
+                return redirect(url_for('pago_exito', reserva_id=new_rid, payment_id=wompi_txn_id))
+            elif new_rid:
+                rid = new_rid
+
+    # Si no se pasó por parámetro, intentar recuperar de la sesión
+    session_reserva_id = session.pop('pending_reserva_id', None)
+    if not rid and session_reserva_id:
+        return redirect(url_for('pago_exito', reserva_id=session_reserva_id))
+
+    if not current_user.is_authenticated:
+        flash('Inicia sesión para ver los detalles de tu reserva.', 'info')
+        return redirect(url_for('login', next=request.full_path))
+
+    reserva_data = None
+    pago_data = None
+
+    if rid:
+        # Auto-confirmación atómica de la reserva si sigue pendiente
+        c = db()
+        try:
+            c.autocommit(False)
+            with c.cursor() as cur:
+                # SELECT FOR UPDATE para evitar colisiones
+                cur.execute("SELECT * FROM reservas WHERE id=%s AND usuario_id=%s FOR UPDATE", (rid, current_user.id))
+                reserva = cur.fetchone()
+                
+                if reserva and reserva['estado'] == 'pendiente_pago':
+                    # Generar ID de transacción para registrar el pago con Nequi Link
+                    txn_id = payment_id_mp or wompi_txn_id or ("NEQ-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8)))
+                    metodo_label = "Nequi Negocios Link"
+
+                    # 1. Actualizar tabla pagos
+                    cur.execute("""
+                        UPDATE pagos
+                        SET payment_id       = %s,
+                            monto            = %s,
+                            currency         = 'COP',
+                            metodo           = %s,
+                            estado           = 'approved',
+                            mp_status        = 'approved',
+                            mp_status_detail = 'acreditado',
+                            fecha_pago       = NOW()
+                        WHERE reserva_id = %s AND tipo = 'cobro'
+                    """, (txn_id, float(reserva['total']), metodo_label, rid))
+
+                    # 2. Actualizar tabla reservas
+                    cur.execute("""
+                        UPDATE reservas
+                        SET estado = 'confirmada',
+                            estado_pago = 'pagado',
+                            fecha_confirmacion = NOW(),
+                            mp_payment_id = %s
+                        WHERE id = %s
+                    """, (txn_id, rid))
+
+                    # 3. Gamificación: Sumar 50 puntos al usuario
+                    cur.execute(
+                        "UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s",
+                        (current_user.id,)
+                    )
+                    c.commit()
+                    app.logger.info(f"[Nequi Exito] Pago de reserva {rid} auto-confirmado exitosamente. Txn={txn_id}")
+                else:
+                    c.rollback()
+        except Exception as e:
+            c.rollback()
+            app.logger.error(f"[Nequi Exito] Error al auto-confirmar reserva {rid}: {e}\n{traceback.format_exc()}")
+        finally:
+            c.close()
+
+    if rid:
+        try:
+            c = db()
+            with c.cursor() as cur:
+                cur.execute("""
+                    SELECT r.*,
+                        COALESCE(h.nombre, e.nombre) AS hosp_nombre,
+                        COALESCE(h.municipio, e.municipio) AS municipio,
+                        COALESCE(i.url, ei.url) AS hosp_img
+                    FROM reservas r
+                    LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                    LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                    LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                    LEFT JOIN experiencia_imagenes ei ON e.id = ei.experiencia_id AND ei.es_portada = 1
+                    WHERE r.id = %s AND r.usuario_id = %s
+                """, (rid, current_user.id))
+                reserva_data = serialize(cur.fetchone())
+
+                if reserva_data:
+                    cur.execute("""
+                        SELECT payment_id, monto, currency, metodo, estado, mp_status,
+                               fecha_pago, provider
+                        FROM pagos
+                        WHERE reserva_id = %s AND tipo = 'cobro'
+                        ORDER BY id DESC LIMIT 1
+                    """, (rid,))
+                    pago_data = serialize(cur.fetchone())
+            c.close()
+        except Exception as e:
+            app.logger.error(f"[pago_exito] Error cargando datos: {e}")
+
+    # Si rid existe pero no se encontró la reserva (o no pertenece a current_user)
+    if rid and not reserva_data:
+        flash('No se pudo encontrar la reserva especificada.', 'error')
+        return redirect(url_for('mis_reservas'))
+
+    return render_template(
+        'pago_resultado.html',
+        resultado='exito',
+        reserva=reserva_data,
+        pago=pago_data,
+        payment_id_mp=payment_id_mp or wompi_txn_id,
+        merchant_order_id=merchant_order_id
+    )
+
+
+@app.route('/pago/fallo')
+def pago_fallo():
+    """Pantalla de pago fallido con opciones de reintento."""
+    rid = request.args.get('external_reference') or request.args.get('reserva_id')
+    wompi_txn_id = request.args.get('id')
+
+    if wompi_txn_id:
+        status, new_rid = check_wompi_and_login(wompi_txn_id, rid)
+        if new_rid:
+            rid = new_rid
+
+    session_reserva_id = session.pop('pending_reserva_id', None)
+    if not rid and session_reserva_id:
+        return redirect(url_for('pago_fallo', reserva_id=session_reserva_id))
+
+    if not current_user.is_authenticated:
+        flash('Inicia sesión para ver los detalles de tu reserva.', 'info')
+        return redirect(url_for('login', next=request.full_path))
+
+    reserva_data = None
+
+    if rid:
+        try:
+            c = db()
+            with c.cursor() as cur:
+                cur.execute("""
+                    SELECT r.*,
+                        COALESCE(h.nombre, e.nombre) AS hosp_nombre,
+                        COALESCE(i.url, ei.url) AS hosp_img
+                    FROM reservas r
+                    LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                    LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                    LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                    LEFT JOIN experiencia_imagenes ei ON e.id = ei.experiencia_id AND ei.es_portada = 1
+                    WHERE r.id = %s AND r.usuario_id = %s
+                """, (rid, current_user.id))
+                reserva_data = serialize(cur.fetchone())
+            c.close()
+        except Exception as e:
+            app.logger.error(f"[pago_fallo] Error: {e}")
+
+    return render_template('pago_resultado.html', resultado='fallo', reserva=reserva_data, pago=None)
+
+
+@app.route('/pago/pendiente')
+def pago_pendiente():
+    """Pantalla de pago pendiente (PSE, transferencias bancarias)."""
+    rid = request.args.get('external_reference') or request.args.get('reserva_id')
+    wompi_txn_id = request.args.get('id')
+
+    if wompi_txn_id:
+        status, new_rid = check_wompi_and_login(wompi_txn_id, rid)
+        if new_rid:
+            rid = new_rid
+
+    session_reserva_id = session.pop('pending_reserva_id', None)
+    if not rid and session_reserva_id:
+        return redirect(url_for('pago_pendiente', reserva_id=session_reserva_id))
+
+    if not current_user.is_authenticated:
+        flash('Inicia sesión para ver los detalles de tu reserva.', 'info')
+        return redirect(url_for('login', next=request.full_path))
+
+    reserva_data = None
+    pago_data = None
+
+    if rid:
+        try:
+            c = db()
+            with c.cursor() as cur:
+                cur.execute("""
+                    SELECT r.*,
+                        COALESCE(h.nombre, e.nombre) AS hosp_nombre,
+                        COALESCE(i.url, ei.url) AS hosp_img
+                    FROM reservas r
+                    LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                    LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                    LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                    LEFT JOIN experiencia_imagenes ei ON e.id = ei.experiencia_id AND ei.es_portada = 1
+                    WHERE r.id = %s AND r.usuario_id = %s
+                """, (rid, current_user.id))
+                reserva_data = serialize(cur.fetchone())
+
+                if reserva_data:
+                    cur.execute("""
+                        SELECT payment_id, monto, currency, metodo, estado, mp_status, fecha_pago
+                        FROM pagos WHERE reserva_id = %s AND tipo = 'cobro'
+                        ORDER BY id DESC LIMIT 1
+                    """, (rid,))
+                    pago_data = serialize(cur.fetchone())
+            c.close()
+        except Exception as e:
+            app.logger.error(f"[pago_pendiente] Error: {e}")
+
+    return render_template('pago_resultado.html', resultado='pendiente', reserva=reserva_data, pago=pago_data)
+
+@app.route('/pagar/<int:reserva_id>')
+@login_required
+def pagar_reserva(reserva_id):
+    """
+    Genera o reutiliza la intención de pago para Nequi y redirige a la pasarela Nequi local.
+    """
+    c = db()
+    try:
+        c.autocommit(False)
+        with c.cursor() as cur:
+            # SELECT FOR UPDATE — evitar procesamiento paralelo por doble clic
+            cur.execute("""
+                SELECT r.*, h.nombre AS hosp_nombre, e.nombre AS exp_nombre,
+                       p.preference_id AS pago_preference_id,
+                       p.estado AS pago_estado,
+                       p.fecha_pago AS pago_fecha
+                FROM reservas r
+                LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                LEFT JOIN pagos p ON p.reserva_id = r.id AND p.tipo = 'cobro'
+                WHERE r.id = %s AND r.usuario_id = %s
+                FOR UPDATE
+            """, (reserva_id, current_user.id))
+            reserva = cur.fetchone()
+
+            if not reserva:
+                c.rollback()
+                flash('Reserva no encontrada.', 'error')
+                return redirect(url_for('mis_reservas'))
+
+            # Validar que la reserva esté pendiente de pago
+            if reserva['estado'] != 'pendiente_pago':
+                c.rollback()
+                if reserva['estado'] == 'confirmada':
+                    flash('Esta reserva ya fue pagada exitosamente. ✅', 'success')
+                elif reserva['estado'] == 'cancelada':
+                    flash('Esta reserva fue cancelada.', 'error')
+                else:
+                    flash(f'Estado de reserva: {reserva["estado"]}', 'info')
+                return redirect(url_for('confirmacion', id=reserva_id))
+
+            # Validar que el pago no está ya aprobado
+            if reserva.get('pago_estado') == 'approved':
+                c.rollback()
+                flash('¡Esta reserva ya tiene un pago aprobado!', 'success')
+                return redirect(url_for('confirmacion', id=reserva_id))
+
+            nombre_publicacion = reserva.get('hosp_nombre') or reserva.get('exp_nombre') or 'Estadía'
+            titulo = f"StayHuila - {nombre_publicacion}"
+            descripcion = f"Reserva {reserva['codigo_reserva']} · {reserva['num_huespedes']} huésped(es)"
+
+            reservation_data = {
+                'id': reserva_id,
+                'titulo': titulo,
+                'descripcion': descripcion,
+                'total': float(reserva['total']),
+                'tipo': reserva['tipo'],
+                'codigo': reserva['codigo_reserva'],
+                'base_url': request.host_url.rstrip('/')
+            }
+
+            user_data = {
+                'id': current_user.id,
+                'nombre': current_user.nombre,
+                'apellido': current_user.apellido,
+                'email': current_user.email
+            }
+
+            preference = payment_service.generate_payment_link(reservation_data, user_data)
+
+            # Actualizar preference_id en pagos y en reservas (desnormalizado)
+            cur.execute("""
+                UPDATE pagos
+                SET preference_id = %s
+                WHERE reserva_id = %s AND tipo = 'cobro'
+            """, (preference['id'], reserva_id))
+
+            cur.execute("""
+                UPDATE reservas SET mp_preference_id = %s WHERE id = %s
+            """, (preference['id'], reserva_id))
+
+            c.commit()
+
+            # Redirigir a la pantalla de transición local para registrar localStorage
+            return redirect(url_for('pago_transferir_gateway', reserva_id=reserva_id))
+
+    except Exception as e:
+        c.rollback()
+        app.logger.error(f"[Nequi] Error al generar pago reserva {reserva_id}: {e}\n{traceback.format_exc()}")
+        flash(f'Error al conectar con la pasarela de Nequi: {str(e)}', 'error')
+        return redirect(url_for('confirmacion', id=reserva_id))
+    finally:
+        c.close()
+
+
+
+@app.route('/api/pago/estado/<int:reserva_id>')
+@login_required
+def api_pago_estado(reserva_id):
+    """
+    API JSON para polling del estado del pago desde el frontend.
+    Usado en la pantalla de pago pendiente para verificar si el webhook confirmó el pago.
+    """
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                SELECT r.estado, r.estado_pago, r.mp_payment_id, r.codigo_reserva,
+                       p.payment_id, p.fecha_pago, p.metodo, p.mp_status, p.monto, p.currency
+                FROM reservas r
+                LEFT JOIN pagos p ON p.reserva_id = r.id AND p.tipo = 'cobro'
+                WHERE r.id = %s AND r.usuario_id = %s
+                LIMIT 1
+            """, (reserva_id, current_user.id))
+            row = cur.fetchone()
+
+        if not row:
+            return jsonify({'success': False, 'error': 'Reserva no encontrada'}), 404
+
+        return jsonify({
+            'success': True,
+            'estado_reserva': row['estado'],
+            'estado_pago': row.get('mp_status') or row.get('estado_pago', ''),
+            'payment_id': row.get('payment_id') or row.get('mp_payment_id'),
+            'codigo_reserva': row['codigo_reserva'],
+            'fecha_pago': row['fecha_pago'].isoformat() if row.get('fecha_pago') else None,
+            'metodo': row.get('metodo'),
+            'monto': float(row['monto']) if row.get('monto') else None,
+            'currency': row.get('currency', 'COP')
+        })
+    finally:
+        c.close()
+
+
+def extraer_json_ocr(texto):
+    """Extrae el bloque JSON de la respuesta del modelo OCR."""
+    try:
+        return json.loads(texto)
+    except Exception:
+        match = re.search(r'```json\s*(.*?)\s*```', texto, re.DOTALL)
+        if match:
+            try: return json.loads(match.group(1))
+            except Exception: pass
+        match = re.search(r'(\{.*?\})', texto, re.DOTALL)
+        if match:
+            try: return json.loads(match.group(1))
+            except Exception: pass
+    return None
+
+
+@app.route('/api/pago/ocr-confirmar/<int:reserva_id>', methods=['POST'])
+@login_required
+def api_pago_ocr_confirmar(reserva_id):
+    """
+    Recibe un comprobante de pago en formato imagen, realiza OCR con Gemini,
+    y si se detecta un ID de transacción válido, confirma el pago de forma automática.
+    """
+    import uuid
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'success': False, 'error': 'No se cargó ningún archivo de comprobante.'}), 400
+
+    # 1. Validar extensión de la imagen
+    allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': f'Formato no permitido (.{ext}). Usa JPG, JPEG, PNG o WEBP.'}), 400
+
+    c = db()
+    try:
+        # 2. Leer bytes de la imagen
+        file_bytes = file.read()
+        if len(file_bytes) > 5 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'El archivo es demasiado grande (máximo 5MB).'}), 400
+
+        # Guardar una copia local del comprobante para auditoría y verificación futura
+        upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'comprobantes')
+        os.makedirs(upload_folder, exist_ok=True)
+        filename = f"comprobante_reserva_{reserva_id}_{uuid.uuid4().hex[:10]}.{ext}"
+        filepath = os.path.join(upload_folder, filename)
+        
+        with open(filepath, 'wb') as f:
+            f.write(file_bytes)
+
+        # 3. Llamar a Gemini 2.5 Flash con la imagen para OCR
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = (
+            "Analiza esta imagen que es un comprobante de pago (Nequi, Daviplata, Wompi, etc.). "
+            "Detecta y extrae el ID de transacción, número de aprobación o referencia de pago. "
+            "Responde ÚNICAMENTE con un objeto JSON válido con la estructura exacta: "
+            '{"transaction_id": "VALOR_DETECTADO", "confidence": "high|medium|low"}. '
+            "Si no logras encontrar ningún ID de transacción o referencia de pago en la imagen, deja transaction_id como null."
+        )
+
+        try:
+            pil_image = Image.open(io.BytesIO(file_bytes))
+            response = model.generate_content([prompt, pil_image])
+            ocr_text = response.text.strip()
+            app.logger.info(f"[OCR] Respuesta de Gemini para reserva {reserva_id}: {ocr_text}")
+        except Exception as ge:
+            app.logger.error(f"[OCR] Error llamando a Gemini: {ge}")
+            return jsonify({'success': False, 'error': 'Error de comunicación con el servicio de IA. Inténtalo de nuevo o ingresa el ID a mano.'}), 500
+
+        # 4. Parsear respuesta JSON
+        data = extraer_json_ocr(ocr_text)
+        if not data:
+            return jsonify({'success': False, 'error': 'No se pudo interpretar el comprobante de pago. Intenta subir una foto más clara o ingresa el ID a mano.'}), 400
+
+        txn_id = data.get('transaction_id')
+        confidence = data.get('confidence', 'low')
+
+        if not txn_id or confidence == 'low' or len(str(txn_id).strip()) < 4:
+            return jsonify({
+                'success': False, 
+                'error': 'No logramos detectar una referencia de pago válida en la imagen. Por favor, asegúrate de que el comprobante sea legible e inténtalo de nuevo, o ingresa el código a mano.'
+            }), 400
+
+        txn_id = str(txn_id).strip()
+
+        # 5. Iniciar confirmación atómica en BD
+        c.autocommit(False)
+        with c.cursor() as cur:
+            # SELECT FOR UPDATE para evitar condiciones de carrera
+            cur.execute("SELECT * FROM reservas WHERE id=%s AND usuario_id=%s FOR UPDATE", (reserva_id, current_user.id))
+            reserva = cur.fetchone()
+
+            if not reserva:
+                c.rollback()
+                return jsonify({'success': False, 'error': 'Reserva no encontrada'}), 404
+
+            if reserva['estado'] != 'pendiente_pago':
+                c.rollback()
+                return jsonify({'success': False, 'error': f'La reserva ya no está pendiente de pago. Estado: {reserva["estado"]}'}), 400
+
+            metodo_label = "Nequi OCR Comprobante"
+
+            # A. Actualizar la tabla pagos
+            cur.execute("""
+                UPDATE pagos
+                SET payment_id       = %s,
+                    monto            = %s,
+                    currency         = 'COP',
+                    metodo           = %s,
+                    estado           = 'approved',
+                    mp_status        = 'approved',
+                    mp_status_detail = 'acreditado',
+                    fecha_pago       = NOW()
+                WHERE reserva_id = %s AND tipo = 'cobro'
+            """, (txn_id, float(reserva['total']), metodo_label, reserva_id))
+
+            # B. Actualizar la tabla reservas
+            cur.execute("""
+                UPDATE reservas
+                SET estado = 'confirmada',
+                    estado_pago = 'pagado',
+                    fecha_confirmacion = NOW(),
+                    mp_payment_id = %s
+                WHERE id = %s
+            """, (txn_id, reserva_id))
+
+            # C. Gamificación: Sumar 50 puntos al usuario
+            cur.execute(
+                "UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s",
+                (current_user.id,)
+            )
+
+            c.commit()
+            app.logger.info(f"[OCR] Pago exitoso auto-confirmado para reserva {reserva_id}. Txn={txn_id}")
+            return jsonify({
+                'success': True,
+                'txn_id': txn_id,
+                'redirect_url': f"/pago/exito?reserva_id={reserva_id}&payment_id={txn_id}"
+            })
+
+    except Exception as e:
+        if c:
+            c.rollback()
+        app.logger.error(f"[OCR Confirmar] Error: {e}\n{traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'Error interno del servidor: {str(e)}'}), 500
+    finally:
+        c.close()
+
+
+@app.route('/api/pago/cancelar/<int:reserva_id>', methods=['POST'])
+@login_required
+def api_cancelar_pago(reserva_id):
+    """
+    Cancelar voluntariamente una reserva en estado pendiente_pago.
+    Libera cupos de sesión si aplica.
+    """
+    c = db()
+    try:
+        c.autocommit(False)
+        with c.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM reservas
+                WHERE id = %s AND usuario_id = %s AND estado = 'pendiente_pago'
+                FOR UPDATE
+            """, (reserva_id, current_user.id))
+            reserva = cur.fetchone()
+
+            if not reserva:
+                c.rollback()
+                return jsonify({'success': False, 'error': 'Reserva no encontrada o no cancelable'}), 404
+
+            # Cancelar la reserva
+            cur.execute("""
+                UPDATE reservas SET estado = 'cancelada', fecha_cancelacion = NOW(),
+                motivo_cancelacion = 'Cancelada voluntariamente por el usuario'
+                WHERE id = %s
+            """, (reserva_id,))
+
+            # Marcar el pago como cancelado
+            cur.execute(
+                "UPDATE pagos SET estado = 'cancelled', mp_status = 'cancelled' WHERE reserva_id = %s AND tipo = 'cobro'",
+                (reserva_id,)
+            )
+
+            # Liberar cupos de sesión
+            if reserva.get('sesion_id'):
+                cur.execute("""
+                    UPDATE experiencia_sesiones
+                    SET cupos_disponibles = cupos_disponibles + %s, estado = 'disponible'
+                    WHERE id = %s
+                """, (reserva['num_huespedes'], reserva['sesion_id']))
+
+            c.commit()
+            return jsonify({'success': True, 'message': 'Reserva cancelada correctamente'})
+
+    except Exception as e:
+        c.rollback()
+        app.logger.error(f"[api_cancelar_pago] Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        c.close()
 
 DESCUENTO_CANTIDAD_MIN_HUESPEDES = 5
 DESCUENTO_CANTIDAD_PCT = 5
@@ -804,7 +1663,17 @@ def reservar():
                 
                 # 2. Bloquear la fila de hospedaje/experiencia con SELECT FOR UPDATE
                 if tipo_reserva == 'experiencia':
-                    cur.execute("SELECT id, anfitrion_id, precio_persona, 0 as descuento_porcentaje, activo, estado, capacidad_max FROM experiencias WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
+                    # --- EVITAR DUPLICADOS ---
+                    cur.execute("""SELECT id FROM reservas 
+                        WHERE usuario_id=%s AND experiencia_id=%s AND fecha_checkin=%s AND estado IN ('pendiente_pago', 'confirmada', 'check_in')""", 
+                        (current_user.id, hid, checkin))
+                    exists = cur.fetchone()
+                    if exists:
+                        c.rollback()
+                        flash('Ya tienes una reserva para esta fecha.', 'info')
+                        return redirect(url_for('confirmacion', id=exists['id']))
+
+                    cur.execute("SELECT id, nombre, anfitrion_id, precio_persona, 0 as descuento_porcentaje, activo, estado, capacidad_max FROM experiencias WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
                     hosp = cur.fetchone()
                     if not hosp:
                         flash('Experiencia no encontrada.', 'error')
@@ -880,10 +1749,11 @@ def reservar():
                     descuento_cantidad = descuento_por_cantidad(precio_base, huespedes)
                     descuento = descuento_publicacion + descuento_cantidad
                     tarifa = round((precio_base - descuento) * 0.14, 2)
-                    total = precio_base - descuento + tarifa
+                    total = round(precio_base - descuento + tarifa, 2)
                     credito_pct = float(getattr(current_user, 'credito_descuento', 0) or 0)
                     credito_amount = round(total * credito_pct / 100, 2) if credito_pct > 0 else 0
-                    total = max(0, total - credito_amount)
+                    # Mercado Pago requiere un mínimo (aprox 2000 COP para evitar errores en CO)
+                    total = round(max(2000.0, total - credito_amount), 2)
                     # Sumar el crédito de puntos al descuento total para el registro en la reserva
                     descuento = float(descuento) + credito_amount
                     codigo = gen_code()
@@ -897,8 +1767,18 @@ def reservar():
                           precio_base, tarifa, descuento, total, metodo, notes))
                     rid = cur.lastrowid
                 else:
-                    # Incluir estadia_minima/maxima para validar rango de noches
-                    cur.execute("SELECT id, anfitrion_id, precio_noche, descuento_porcentaje, activo, estado, capacidad_max, estadia_minima, estadia_maxima FROM hospedajes WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
+                    # --- EVITAR DUPLICADOS ---
+                    cur.execute("""SELECT id FROM reservas 
+                        WHERE usuario_id=%s AND hospedaje_id=%s AND fecha_checkin=%s AND fecha_checkout=%s AND estado IN ('pendiente_pago', 'confirmada', 'check_in')""", 
+                        (current_user.id, hid, checkin, checkout))
+                    exists = cur.fetchone()
+                    if exists:
+                        c.rollback()
+                        flash('Ya tienes una reserva para estas fechas.', 'info')
+                        return redirect(url_for('confirmacion', id=exists['id']))
+
+                    # Incluir nombre y estadia_minima/maxima para validar rango de noches y generar pago
+                    cur.execute("SELECT id, nombre, anfitrion_id, precio_noche, descuento_porcentaje, activo, estado, capacidad_max, estadia_minima, estadia_maxima FROM hospedajes WHERE id=%s AND eliminado=0 FOR UPDATE", (hid,))
                     hosp = cur.fetchone()
                     if not hosp:
                         flash('Hospedaje no encontrado.', 'error')
@@ -953,10 +1833,11 @@ def reservar():
                     descuento_cantidad = descuento_por_cantidad(precio_base, huespedes)
                     descuento = descuento_publicacion + descuento_cantidad
                     tarifa = round((precio_base - descuento) * 0.14, 2)
-                    total = precio_base - descuento + tarifa
+                    total = round(precio_base - descuento + tarifa, 2)
                     credito_pct = float(getattr(current_user, 'credito_descuento', 0) or 0)
                     credito_amount = round(total * credito_pct / 100, 2) if credito_pct > 0 else 0
-                    total = max(0, total - credito_amount)
+                    # Mercado Pago requiere un mínimo (aprox 2000 COP para evitar errores en CO)
+                    total = round(max(2000.0, total - credito_amount), 2)
                     # Sumar el crédito de puntos al descuento total para el registro en la reserva
                     descuento = float(descuento) + credito_amount
                     codigo = gen_code()
@@ -970,54 +1851,58 @@ def reservar():
                           precio_base, tarifa, descuento, total, metodo, notes))
                     rid = cur.lastrowid
                 
-                # Registrar auditoría de pago inicial (estado = pendiente)
+                # Registrar auditoría de pago inicial (estado = pending)
                 cur.execute("""
-                    INSERT INTO pagos(reserva_id, monto, tipo, metodo, estado, fecha_pago)
-                    VALUES(%s, %s, 'cobro', %s, 'pendiente', NOW())
-                """, (rid, total, metodo))
+                    INSERT INTO pagos(reserva_id, usuario_id, monto, tipo, metodo, estado, provider, fecha_pago)
+                    VALUES(%s, %s, %s, 'cobro', %s, 'pending', 'nequi', NOW())
+                """, (rid, current_user.id, total, metodo))
                 
-                # Procesar según método
-                if metodo == 'tarjeta':
-                    # Tarjeta de crédito/débito: Simular aprobación automática exitosa
-                    cur.execute("""
-                        UPDATE reservas 
-                        SET estado = 'confirmada', estado_pago = 'pagado', fecha_confirmacion = NOW() 
-                        WHERE id = %s
-                    """, (rid,))
+                # ── INTEGRACIÓN NEQUI NEGOCIOS ───────────────────────────
+                # Preparar datos para la preferencia
+                titulo = f"Reserva en {hosp['nombre']}"
+                descripcion = f"Reserva {codigo} - {huespedes} huéspedes"
+                
+                reservation_data = {
+                    'id': rid,
+                    'titulo': titulo,
+                    'descripcion': descripcion,
+                    'total': total,
+                    'tipo': tipo_reserva,
+                    'base_url': request.host_url.rstrip('/')
+                }
+                
+                user_data = {
+                    'id': current_user.id,
+                    'nombre': current_user.nombre,
+                    'apellido': current_user.apellido,
+                    'email': current_user.email
+                }
+                
+                try:
+                    # Generar intención de pago en Nequi
+                    preference = payment_service.generate_payment_link(reservation_data, user_data)
+                    
+                    # Guardar ID de preferencia en la tabla pagos (usando la nueva columna preference_id) y reservas (mp_preference_id)
                     cur.execute("""
                         UPDATE pagos 
-                        SET estado = 'aprobado' 
-                        WHERE reserva_id = %s AND estado = 'pendiente'
-                    """, (rid,))
-                    cur.execute("UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s", (current_user.id,))
-                    c.commit()
-                    flash('¡Pago procesado con éxito! Tu reserva ha sido confirmada.', 'success')
-                elif metodo in ('nequi', 'daviplata', 'transferencia'):
-                    # Simulación: pago digital aprobado automáticamente
+                        SET preference_id = %s 
+                        WHERE reserva_id = %s AND estado = 'pending'
+                    """, (preference['id'], rid))
+                    
                     cur.execute("""
-                        UPDATE reservas 
-                        SET estado = 'confirmada', estado_pago = 'pagado', fecha_confirmacion = NOW() 
-                        WHERE id = %s
-                    """, (rid,))
-                    cur.execute("""
-                        UPDATE pagos 
-                        SET estado = 'aprobado' 
-                        WHERE reserva_id = %s AND estado = 'pendiente'
-                    """, (rid,))
-                    cur.execute("UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s", (current_user.id,))
+                        UPDATE reservas SET mp_preference_id = %s WHERE id = %s
+                    """, (preference['id'], rid))
+                    
                     c.commit()
-                    metodo_label = {'nequi': 'Nequi', 'daviplata': 'Daviplata', 'transferencia': 'Transferencia'}[metodo]
-                    flash(f'¡Pago por {metodo_label} procesado con éxito! Tu reserva ha sido confirmada.', 'success')
-                else:  # efectivo
-                    # Efectivo: Se confirma directamente al momento de hacer la reserva
-                    cur.execute("""
-                        UPDATE reservas 
-                        SET estado = 'confirmada', estado_pago = 'pendiente', fecha_confirmacion = NOW() 
-                        WHERE id = %s
-                    """, (rid,))
-                    cur.execute("UPDATE usuarios SET puntos_gamificacion = puntos_gamificacion + 50 WHERE id = %s", (current_user.id,))
-                    c.commit()
-                    flash('Reserva confirmada. Realizarás el pago en efectivo al llegar.', 'success')
+                    
+                    # Redirigir a la pantalla de transición local para registrar localStorage
+                    return redirect(url_for('pago_transferir_gateway', reserva_id=rid))
+                    
+                except Exception as e:
+                    app.logger.error(f"Error al generar pago Nequi: {str(e)}")
+                    c.rollback()
+                    flash(f'Error al conectar con la pasarela de Nequi: {str(e)}', 'error')
+                    return redirect(request.referrer)
                 
                 # Aplicar crédito de puntos canjeados si existe
                 if credito_pct > 0:
@@ -1028,6 +1913,7 @@ def reservar():
             return redirect(url_for('confirmacion', id=rid))
         except Exception as e:
             c.rollback()
+            app.logger.error(f'Error en reservar: {str(e)}\n{traceback.format_exc()}')
             flash('Error al procesar la reserva: ' + str(e), 'error')
             return redirect(request.referrer)
         finally:
@@ -1050,6 +1936,15 @@ def reservar():
             c.commit()
             
             if tipo_reserva == 'experiencia':
+                # --- VALIDAR SI YA TIENE UNA RESERVA ACTIVA ---
+                cur.execute("""SELECT id FROM reservas 
+                    WHERE usuario_id=%s AND experiencia_id=%s AND fecha_checkin=%s AND estado IN ('pendiente_pago', 'confirmada', 'check_in')""", 
+                    (current_user.id, hid, checkin))
+                exists = cur.fetchone()
+                if exists:
+                    flash('Ya tienes una reserva activa para esta experiencia y fecha.', 'info')
+                    return redirect(url_for('confirmacion', id=exists['id']))
+
                 cur.execute("""SELECT e.*,i.url as image,u.nombre as anf_nombre,u.foto_perfil as anf_foto
                     FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
                     JOIN usuarios u ON e.anfitrion_id=u.id WHERE e.id=%s""", (hid,))
@@ -1073,6 +1968,15 @@ def reservar():
                 precio_base = float(hosp['precio_persona']) * huespedes * noches if noches else float(hosp['precio_persona']) * huespedes
                 
             else:
+                # --- VALIDAR SI YA TIENE UNA RESERVA ACTIVA ---
+                cur.execute("""SELECT id FROM reservas 
+                    WHERE usuario_id=%s AND hospedaje_id=%s AND fecha_checkin=%s AND fecha_checkout=%s AND estado IN ('pendiente_pago', 'confirmada', 'check_in')""", 
+                    (current_user.id, hid, checkin, checkout))
+                exists = cur.fetchone()
+                if exists:
+                    flash('Ya tienes una reserva activa para este hospedaje y fechas.', 'info')
+                    return redirect(url_for('confirmacion', id=exists['id']))
+
                 cur.execute("""SELECT h.*,i.url as image,u.nombre as anf_nombre,u.foto_perfil as anf_foto
                     FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                     JOIN usuarios u ON h.anfitrion_id=u.id WHERE h.id=%s""", (hid,))
@@ -1123,42 +2027,6 @@ def reservar():
         c.close()
 
 
-# ── SIMULACIÓN DE PAGO ────────────────────────────────────────
-@app.route('/simular-pago/<int:id>', methods=['POST'])
-@login_required
-def simular_pago(id):
-    c = db()
-    try:
-        with c.cursor() as cur:
-            cur.execute("""SELECT id, usuario_id, metodo_pago, total, estado 
-                FROM reservas WHERE id=%s AND usuario_id=%s""", (id, current_user.id))
-            r = cur.fetchone()
-        if not r:
-            flash('Reserva no encontrada.', 'error')
-            return redirect(url_for('mis_reservas'))
-        if r['estado'] != 'pendiente_pago':
-            flash('Esta reserva no requiere pago pendiente.', 'info')
-            return redirect(url_for('confirmacion', id=id))
-        metodo_label = {'tarjeta':'Tarjeta','nequi':'Nequi','daviplata':'Daviplata',
-                        'transferencia':'Transferencia','efectivo':'Efectivo'}.get(r['metodo_pago'], r['metodo_pago'])
-        with c.cursor() as cur:
-            cur.execute("""UPDATE reservas 
-                SET estado='confirmada', estado_pago='pagado', fecha_confirmacion=NOW() 
-                WHERE id=%s""", (id,))
-            cur.execute("""UPDATE pagos SET estado='aprobado' 
-                WHERE reserva_id=%s AND estado='pendiente'""", (id,))
-            cur.execute("UPDATE usuarios SET puntos_gamificacion=puntos_gamificacion+50 WHERE id=%s",
-                        (current_user.id,))
-            c.commit()
-        flash(f'¡Pago por {metodo_label} simulado con éxito! Tu reserva está confirmada.', 'success')
-        return redirect(url_for('confirmacion', id=id))
-    except Exception as e:
-        c.rollback()
-        flash('Error al simular el pago: ' + str(e), 'error')
-        return redirect(url_for('mis_reservas'))
-    finally:
-        c.close()
-
 # ── CONFIRMACIÓN ──────────────────────────────────────────────
 @app.route('/reserva/<int:id>')
 @login_required
@@ -1172,17 +2040,19 @@ def confirmacion(id):
                 COALESCE(h.hora_checkin, NULL) as hora_checkin,
                 COALESCE(h.hora_checkout, NULL) as hora_checkout,
                 h.instrucciones_llegada,h.wifi_nombre,h.wifi_password,
-                COALESCE(i.url, ei.url) as hosp_img, 
-                COALESCE(u.nombre, ue.nombre) as anf_nombre, 
-                COALESCE(u.foto_perfil, ue.foto_perfil) as anf_foto
-                FROM reservas r 
+                COALESCE(i.url, ei.url) as hosp_img,
+                COALESCE(u.nombre, ue.nombre) as anf_nombre,
+                COALESCE(u.foto_perfil, ue.foto_perfil) as anf_foto,
+                p.metodo as metodo_pago, p.referencia_externa, p.estado as pago_estado
+                FROM reservas r
                 LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                 LEFT JOIN usuarios u ON h.anfitrion_id=u.id
                 LEFT JOIN experiencias e ON r.experiencia_id=e.id
                 LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
                 LEFT JOIN usuarios ue ON e.anfitrion_id=ue.id
-                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""", 
+                LEFT JOIN pagos p ON p.reserva_id=r.id AND p.tipo='cobro'
+                WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""",
                 (id, current_user.id, current_user.id, current_user.id))
             reserva = cur.fetchone()
         if not reserva:
@@ -1207,26 +2077,44 @@ def mis_reservas():
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT r.*,
-                COALESCE(h.nombre, e.nombre) as hosp_nombre,
-                COALESCE(h.municipio, e.municipio) as municipio,
-                COALESCE(h.hora_checkin, NULL) as hora_checkin,
-                COALESCE(h.hora_checkout, NULL) as hora_checkout,
-                COALESCE(i.url, ei.url) as hosp_img 
-                FROM reservas r 
-                LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
-                LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                LEFT JOIN experiencias e ON r.experiencia_id=e.id
-                LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
-                WHERE r.usuario_id=%s ORDER BY r.fecha_reserva DESC""", (current_user.id,))
-            reservas = cur.fetchall()
+            cur.execute("""
+                SELECT r.*,
+                    COALESCE(h.nombre, e.nombre) AS hosp_nombre,
+                    COALESCE(h.municipio, e.municipio) AS municipio,
+                    COALESCE(h.hora_checkin, NULL) AS hora_checkin,
+                    COALESCE(h.hora_checkout, NULL) AS hora_checkout,
+                    COALESCE(i.url, ei.url) AS hosp_img,
+                    p.payment_id AS mp_payment_id,
+                    p.fecha_pago AS mp_fecha_pago,
+                    p.metodo AS mp_metodo,
+                    p.mp_status AS mp_estado_pago,
+                    p.monto AS mp_monto,
+                    p.currency AS mp_currency
+                FROM reservas r
+                LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                LEFT JOIN experiencia_imagenes ei ON e.id = ei.experiencia_id AND ei.es_portada = 1
+                LEFT JOIN pagos p ON p.reserva_id = r.id AND p.tipo = 'cobro'
+                WHERE r.usuario_id = %s
+                ORDER BY r.fecha_reserva DESC
+            """, (current_user.id,))
+            reservas = serialize(cur.fetchall())
+
         for r in reservas:
             fi = r.get('fecha_checkin')
             fo = r.get('fecha_checkout')
-            ci = combine_date_time(fi, r.get('hora_checkin'), dt_time(15, 0)) if fi else None
-            co = combine_date_time(fo, r.get('hora_checkout'), dt_time(11, 0)) if fo else None
+            ci = combine_date_time(
+                datetime.fromisoformat(fi).date() if fi else None,
+                None, dt_time(15, 0)
+            ) if fi else None
+            co = combine_date_time(
+                datetime.fromisoformat(fo).date() if fo else None,
+                None, dt_time(11, 0)
+            ) if fo else None
             r['checkin_ts']  = int(ci.timestamp()) if ci else 0
             r['checkout_ts'] = int(co.timestamp()) if co else 0
+
         return render_template('mis_reservas.html', reservas=reservas)
     finally:
         c.close()
@@ -1417,7 +2305,8 @@ def panel_anfitrion():
             ids_hosp = [h['id'] for h in mis_hospedajes]
             ids_exp = [e['id'] for e in mis_experiencias]
             reservas_recientes = []
-            stats = {'ingresos': 0, 'total_res': 0, 'pendientes': 0}
+            pagos_recientes = []
+            stats = {'ingresos': 0, 'total_res': 0, 'pendientes': 0, 'total_res_pagadas': 0}
             
             if ids_hosp or ids_exp:
                 # Query combine
@@ -1445,18 +2334,62 @@ def panel_anfitrion():
                     WHERE {where_clause} ORDER BY r.fecha_reserva DESC LIMIT 15""", params)
                 reservas_recientes = cur.fetchall()
                 
-                cur.execute(f"""SELECT COALESCE(SUM(total),0) as ingresos,
-                    COUNT(*) as total_res,
-                    SUM(CASE WHEN estado IN ('pendiente_pago', 'confirmada') THEN 1 ELSE 0 END) as pendientes
-                    FROM reservas r WHERE ({where_clause})
-                    AND estado NOT IN ('cancelada')""", params)
+                # Cargar historial de pagos para el anfitrión
+                cur.execute(f"""SELECT p.*, r.codigo_reserva, u.nombre as huesped_nombre, u.apellido as huesped_apellido,
+                    COALESCE(h.nombre, e.nombre) as item_nombre
+                    FROM pagos p
+                    JOIN reservas r ON p.reserva_id = r.id
+                    JOIN usuarios u ON r.usuario_id = u.id
+                    LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                    LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                    WHERE {where_clause.replace('r.', 'r.')} 
+                    ORDER BY p.fecha_pago DESC LIMIT 20""", params)
+                pagos_recientes = cur.fetchall()
                 
-                # Fetch row or use default
+                # Ingresos totales históricos (no se pierden aunque se deshabilite publicación)
+                cur.execute(f"""
+                    SELECT
+                        COALESCE(SUM(CASE WHEN p.mp_status = 'approved' THEN p.monto ELSE 0 END), 0) AS ingresos_totales,
+                        COALESCE(SUM(CASE WHEN p.mp_status = 'approved'
+                            AND MONTH(p.fecha_pago) = MONTH(NOW())
+                            AND YEAR(p.fecha_pago) = YEAR(NOW())
+                            THEN p.monto ELSE 0 END), 0) AS ingresos_mes,
+                        COUNT(CASE WHEN p.mp_status = 'approved' THEN 1 END) AS pagos_aprobados,
+                        COUNT(CASE WHEN (p.mp_status = 'pending' OR p.estado = 'pending')
+                            AND r.estado = 'pendiente_pago' THEN 1 END) AS pagos_pendientes_count
+                    FROM pagos p
+                    JOIN reservas r ON p.reserva_id = r.id
+                    WHERE ({where_clause})
+                """, params)
+
                 row = cur.fetchone()
                 if row:
-                    stats = row
+                    stats['ingresos']           = float(row['ingresos_mes'] or 0)
+                    stats['ingresos_totales']    = float(row['ingresos_totales'] or 0)
+                    stats['total_res_pagadas']   = int(row['pagos_aprobados'] or 0)
+                    stats['pagos_pendientes']    = int(row['pagos_pendientes_count'] or 0)
+
+                # Llegadas pendientes (reservas confirmadas aún sin check-in)
+                cur.execute(
+                    f"SELECT COUNT(*) AS pendientes FROM reservas r WHERE ({where_clause}) AND estado = 'confirmada'",
+                    params
+                )
+                row_p = cur.fetchone()
+                if row_p:
+                    stats['pendientes'] = int(row_p['pendientes'] or 0)
+
+                # Reservas totales del anfitrión
+                cur.execute(
+                    f"SELECT COUNT(*) AS total FROM reservas r WHERE ({where_clause})",
+                    params
+                )
+                row_t = cur.fetchone()
+                if row_t:
+                    stats['total_res'] = int(row_t['total'] or 0)
+
         return render_template('panel_anfitrion.html', mis_hospedajes=mis_hospedajes,
-                               mis_experiencias=mis_experiencias, reservas_recientes=reservas_recientes, stats=stats)
+                               mis_experiencias=mis_experiencias, reservas_recientes=reservas_recientes, 
+                               pagos_recientes=pagos_recientes, stats=stats)
     finally:
         c.close()
 
@@ -2491,4 +3424,4 @@ def api_verificar_reset():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)

@@ -63,8 +63,12 @@
     <div class="confirm-header">
         {% if reserva.estado == 'pendiente_pago' %}
             <div class="confirm-check" style="background:#f59e0b;"><i class="ph-fill ph-clock" style="color:white;"></i></div>
-            <h1 style="color:#d97706;">¡Reserva Pre-confirmada! ⏳</h1>
-            <p>Completa tu pago dentro de los próximos 10 minutos para asegurar tus fechas.</p>
+            <h1 style="color:#d97706;">
+                ¡Reserva Pre-confirmada!
+            </h1>
+            <p>
+                Completa tu pago dentro de los próximos 10 minutos para asegurar tus fechas.
+            </p>
         {% elif reserva.estado == 'cancelada' %}
             <div class="confirm-check" style="background:#ef4444;"><i class="ph-fill ph-x-circle" style="color:white;"></i></div>
             <h1 style="color:#dc2626;">Reserva Cancelada o Expirada ❌</h1>
@@ -85,7 +89,8 @@
                 <div style="margin-bottom:.4rem;">
                     {% if reserva.estado == 'pendiente_pago' %}
                         <span class="badge-estado" style="background:#fef3c7;color:#d97706;border-color:#fde68a;">
-                            <i class="ph-fill ph-clock"></i> Pendiente de Pago
+                            <i class="ph-fill ph-clock"></i>
+                            Pendiente de Pago
                         </span>
                     {% elif reserva.estado == 'cancelada' %}
                         <span class="badge-estado" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5;">
@@ -134,24 +139,33 @@
     </div>
 
     <!-- Instrucciones de Pago para Nequi/Daviplata/Transferencia -->
-    {% if reserva.estado == 'pendiente_pago' and reserva.metodo_pago in ('nequi', 'daviplata', 'transferencia') %}
+    {% if reserva.estado == 'pendiente_pago' %}
     <div class="price-summary" style="border-left: 4px solid #f59e0b; background: #fffbeb; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-        <h2 style="color: #b45309; margin-bottom: 0.5rem;"><i class="ph ph-wallet" style="vertical-align: middle;"></i> Instrucciones de Pago</h2>
+        <h2 style="color: #b45309; margin-bottom: 0.5rem;"><i class="ph ph-wallet" style="vertical-align: middle;"></i>
+            Instrucciones de Pago
+        </h2>
         <p style="font-size: 0.95rem; line-height: 1.5; color: #78350f; margin-bottom: 1rem;">
-            Por favor, transfiere el valor total a una de las siguientes cuentas oficiales de StayHuila para confirmar tu reserva:
+            Por favor, completa el pago para confirmar tu reserva. El pago se realiza de forma directa y segura a través del enlace oficial de Nequi Negocios.
         </p>
+        {% if reserva.metodo_pago == 'nequi' or reserva.metodo_pago == 'mercadopago' or reserva.metodo_pago == 'efectivo' %}
+        <div style="text-align: center; margin-top: 1rem;">
+            <p style="font-size: 0.9rem; color: #555; margin-bottom: 1rem;">Haz clic abajo para ir al portal oficial de Nequi Negocios y realizar el pago.</p>
+            <a href="/pagar/{{ reserva.id }}" 
+               class="btn-action" style="display:inline-block; background:#da2977; color:white; border:none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(218, 41, 119, 0.2);">
+                <i class="ph ph-arrow-square-out"></i> Pagar con Enlace de Nequi
+            </a>
+        </div>
+        {% endif %}
+        
+        {% if reserva.metodo_pago != 'efectivo' and reserva.metodo_pago != 'mercadopago' and reserva.metodo_pago != 'nequi' %}
         <div style="margin: 1rem 0; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #fef3c7; display: grid; gap: 0.8rem; font-size: 0.95rem;">
             <div>
-                <strong>Nequi:</strong> <span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: #2C4A3B;">300 123 4567</span>
-            </div>
-            <div>
-                <strong>Daviplata:</strong> <span style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: #2C4A3B;">300 123 4567</span>
-            </div>
-            <div>
-                <strong>Monto a transferir:</strong> <strong style="font-size: 1.1rem; color: #b45309;">${{ "{:,.0f}".format(reserva.total).replace(',','.') }} COP</strong>
+                <strong>Instrucciones:</strong> El sistema está esperando la confirmación de tu pago.
             </div>
         </div>
-        <div style="background: #fef3c7; border-radius: 8px; padding: 0.8rem; text-align: center; font-size: 0.95rem; color: #78350f; font-weight: 600;">
+        {% endif %}
+        
+        <div style="background: #fef3c7; border-radius: 8px; padding: 0.8rem; text-align: center; font-size: 0.95rem; color: #78350f; font-weight: 600; margin-top: 1rem;">
             <i class="ph ph-hourglass-high" style="vertical-align: middle; font-size: 1.1rem;"></i>
             Tiempo restante para pagar: <span id="payment-countdown" style="font-family: monospace; font-size: 1.15rem; color: #dc2626; font-weight: 700;">10:00</span>
         </div>
@@ -199,10 +213,11 @@
             <strong>{% if reserva.estado == 'pendiente_pago' %}Total a pagar{% else %}Total pagado{% endif %}</strong>
             <strong>${{ "{:,.0f}".format(reserva.total).replace(',','.') }} COP</strong>
         </div>
+        {% set metodo_label = {'nequi':'Nequi','mercadopago':'Nequi','efectivo':'Efectivo'}.get(reserva.metodo_pago, reserva.metodo_pago) %}
         {% if reserva.estado == 'pendiente_pago' %}
-            <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-warning" style="color:#f59e0b"></i> Tu reserva está pre-reservada · Método: {{ reserva.metodo_pago }}</div>
+            <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-warning" style="color:#f59e0b"></i> Tu reserva está pre-reservada · Método: {{ metodo_label }}</div>
         {% else %}
-            <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-check" style="color:#16a34a"></i> Pago procesado de forma segura · Método: {{ reserva.metodo_pago }}</div>
+            <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-check" style="color:#16a34a"></i> Pago procesado de forma segura · Método: {{ metodo_label }}</div>
         {% endif %}
     </div>
 
@@ -214,8 +229,13 @@
             <div class="step">
                 <div class="step-num">1</div>
                 <div class="step-content">
-                    <strong>Realiza la transferencia</strong>
-                    <p>Transfiere por Nequi o Daviplata en un plazo máximo de 10 minutos.</p>
+                    {% if reserva.metodo_pago == 'nequi' or reserva.metodo_pago == 'mercadopago' %}
+                    <strong>Paga con Nequi</strong>
+                    <p>Completa tu pago de forma segura usando tu número celular o código QR.</p>
+                    {% else %}
+                    <strong>Pago en efectivo</strong>
+                    <p>Deberás realizar el pago directamente al llegar al alojamiento.</p>
+                    {% endif %}
                 </div>
             </div>
             <div class="step">

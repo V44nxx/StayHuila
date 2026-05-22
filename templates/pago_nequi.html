@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagar con Nequi · StayHuila</title>
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pago_nequi.css') }}">
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+<body>
+
+    <div class="nequi-container">
+        
+        <!-- Header Nequi -->
+        <header class="nequi-header">
+            <div class="nequi-logo-container">
+                <span class="nequi-logo-txt">nequi</span>
+                <div class="nequi-logo-dot"></div>
+            </div>
+            <div class="nequi-tagline">Negocios</div>
+        </header>
+
+        <!-- Body de la pasarela -->
+        <div class="nequi-body">
+            
+            <!-- Breve resumen de la reserva -->
+            <div class="reserva-brief">
+                <h3>{{ reserva.hosp_nombre }}</h3>
+                <p><i class="ph ph-hash" style="vertical-align:middle;"></i> Reserva: {{ reserva.codigo_reserva }}</p>
+                <div class="total-row">
+                    <span>Total a pagar</span>
+                    <span class="total-price">${{ "{:,.0f}".format(reserva.total).replace(',', '.') }} COP</span>
+                </div>
+            </div>
+    <style>
+        .payment-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 1.8rem;
+        }
+        .step-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .step-badge {
+            background: var(--nequi-pink);
+            color: white;
+            border-radius: 6px;
+            padding: 2px 10px;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            width: max-content;
+            margin-bottom: 0.6rem;
+            letter-spacing: 0.05em;
+        }
+        .step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            color: white;
+        }
+        .step-desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 1.2rem;
+        }
+        .qr-container-box {
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+        .qr-card {
+            background: white;
+            padding: 0.8rem;
+            border-radius: 12px;
+            display: inline-block;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .qr-image {
+            width: 160px;
+            height: 160px;
+            display: block;
+        }
+        .titular-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.6rem;
+        }
+        .nequi-btn-direct {
+            width: 100%;
+            padding: 0.9rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 2px solid var(--nequi-pink);
+            background: transparent;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .nequi-btn-direct:hover {
+            background: var(--nequi-pink);
+            box-shadow: 0 4px 15px rgba(218, 41, 119, 0.3);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="nequi-container">
+        
+        <!-- Header Nequi -->
+        <header class="nequi-header">
+            <div class="nequi-logo-container">
+                <span class="nequi-logo-txt">nequi</span>
+                <div class="nequi-logo-dot"></div>
+            </div>
+            <div class="nequi-tagline">Negocios</div>
+        </header>
+
+        <!-- Body de la pasarela -->
+        <div class="nequi-body">
+            
+            <!-- Breve resumen de la reserva -->
+            <div class="reserva-brief">
+                <h3>{{ reserva.hosp_nombre }}</h3>
+                <p><i class="ph ph-hash" style="vertical-align:middle;"></i> Reserva: {{ reserva.codigo_reserva }}</p>
+                <div class="total-row">
+                    <span>Total a pagar</span>
+                    <span class="total-price">${{ "{:,.0f}".format(reserva.total).replace(',', '.') }} COP</span>
+                </div>
+            </div>
+
+            <!-- Estructura de pasos de pago real -->
+            <div class="payment-steps" id="payment-steps-container">
+                
+                <!-- PASO 1: Realizar transferencia real -->
+                <div class="step-card">
+                    <div class="step-badge">Paso 1</div>
+                    <h3 class="step-title">Realiza el pago real en Nequi</h3>
+                    <p class="step-desc">Escanea el código QR desde tu app Nequi de tu celular o presiona el botón para pagar directamente usando el enlace oficial de cobro de Nequi Negocios.</p>
+                    
+                    <div class="qr-container-box">
+                        <div class="qr-card">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ negocio_link }}" 
+                                 alt="QR Nequi Negocios" class="qr-image">
+                        </div>
+                        <p class="titular-text">Titular: <strong>{{ negocio_nombre }}</strong></p>
+                    </div>
+
+                    <a href="{{ negocio_link }}" target="_blank" class="nequi-btn-direct">
+                        <i class="ph ph-arrow-square-out"></i> Pagar con Enlace de Nequi
+                    </a>
+                </div>
+
+                <!-- PASO 2: Registrar comprobante -->
+                <div class="step-card">
+                    <div class="step-badge">Paso 2</div>
+                    <h3 class="step-title">Registra tu comprobante</h3>
+                    <p class="step-desc">Una vez realizada la transferencia en Nequi, ingresa el número celular de origen y la referencia de pago (código de transacción) para confirmar tu reserva.</p>
+                    
+                    <form id="form-nequi-confirmar" onsubmit="registrarPagoNequi(event)">
+                        <div class="form-group">
+                            <label for="celular">Celular de origen (Nequi)</label>
+                            <div class="input-wrapper">
+                                <span class="input-prefix">+57</span>
+                                <input type="tel" id="celular" class="nequi-input" placeholder="3000000000" 
+                                       pattern="^3\d{9}$" maxlength="10" required autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label for="referencia">Referencia de Pago de Nequi</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="referencia" class="nequi-input" style="padding-left: 1rem;" 
+                                       placeholder="M1234567 o número de referencia" required autocomplete="off" minlength="4">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="nequi-btn primary" id="btn-registrar-pago" style="margin-top: 1.2rem;">
+                            <i class="ph ph-check-circle"></i> Confirmar y Registrar Pago
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ── SECCIÓN SIMULACIÓN / PROCESANDO ── -->
+            <div id="section-simulacion" class="simulacion-section">
+                <div class="nequi-spinner"></div>
+                <h3 class="sim-status" id="sim-title">Registrando pago...</h3>
+                <p class="sim-sub" id="sim-text">Estamos guardando tu referencia y confirmando tu estadía en el sistema.</p>
+            </div>
+
+            <!-- Volver a StayHuila -->
+            <a href="/mis-reservas" class="nequi-cancel" id="btn-cancelar">
+                ✕ Cancelar y regresar
+            </a>
+
+        </div>
+    </div>
+
+    <div class="nequi-footer">
+        <p>StayHuila &copy; 2026 · Con tecnología de Nequi Negocios Colombia</p>
+    </div>
+
+    <script>
+        // Registra el pago en el backend
+        async function registrarPagoNequi(e) {
+            e.preventDefault();
+            
+            const celular = document.getElementById('celular').value.trim();
+            const referencia = document.getElementById('referencia').value.trim();
+
+            if (!/^3\d{9}$/.test(celular)) {
+                alert("Número celular inválido. Debe tener 10 dígitos y comenzar con 3.");
+                return;
+            }
+
+            if (referencia.length < 4) {
+                alert("La referencia de pago debe tener al menos 4 caracteres.");
+                return;
+            }
+
+            // Ocultar sección de pasos
+            document.getElementById('payment-steps-container').style.display = 'none';
+            document.getElementById('btn-cancelar').style.display = 'none';
+
+            // Mostrar spinner de carga
+            const simSec = document.getElementById('section-simulacion');
+            simSec.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/pago/nequi/confirmar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        reserva_id: {{ reserva.id }},
+                        celular: celular,
+                        referencia: referencia
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert("Error en el pago: " + (data.error || "Transacción denegada"));
+                    // Restaurar vista
+                    simSec.style.display = 'none';
+                    document.getElementById('payment-steps-container').style.display = 'block';
+                    document.getElementById('btn-cancelar').style.display = 'block';
+                }
+            } catch (err) {
+                alert("Error de red al confirmar la transacción. Intenta nuevamente.");
+                simSec.style.display = 'none';
+                document.getElementById('payment-steps-container').style.display = 'block';
+                document.getElementById('btn-cancelar').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

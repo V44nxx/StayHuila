@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagar Reserva con Nequi · StayHuila</title>
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --bg-dark: #0f0a1c;
+            --card-glass: rgba(25, 18, 44, 0.45);
+            --nequi-pink: #da2977;
+            --nequi-purple: #3f1954;
+            --text-light: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(218, 41, 119, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(63, 25, 84, 0.3) 0%, transparent 55%);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            overflow: hidden;
+        }
+
+        .transition-container {
+            width: 90%;
+            max-width: 480px;
+            padding: 2.5rem;
+            background: var(--card-glass);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            position: relative;
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand-logo img {
+            width: 42px;
+            height: 42px;
+        }
+
+        .brand-logo span {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 30%, var(--text-muted) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .loading-animation {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 2.5rem;
+        }
+
+        .spinner-outer {
+            width: 100%;
+            height: 100%;
+            border: 3px solid rgba(218, 41, 119, 0.1);
+            border-top: 3px solid var(--nequi-pink);
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+        }
+
+        .spinner-inner {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(63, 25, 84, 0.1);
+            border-bottom: 2px solid #a855f7;
+            border-radius: 50%;
+            animation: spinReverse 1s linear infinite;
+        }
+
+        .nequi-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.8rem;
+            color: var(--nequi-pink);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spinReverse {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            background: linear-gradient(135deg, #fff 0%, #e5e7eb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .btn-nequi {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            width: 100%;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--nequi-pink) 0%, var(--nequi-purple) 100%);
+            color: var(--text-light);
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(218, 41, 119, 0.3);
+            transition: all 0.3s ease;
+            margin-bottom: 1.2rem;
+        }
+
+        .btn-nequi:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(218, 41, 119, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            width: 100%;
+            padding: 0.9rem 2rem;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-top: 0.8rem;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .input-glass {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: var(--text-light);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            margin-bottom: 0.8rem;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .input-glass:focus {
+            outline: none;
+            border-color: var(--nequi-pink);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 10px rgba(218, 41, 119, 0.2);
+        }
+
+        .manual-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .manual-section h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .manual-section p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .secure-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 50px;
+            font-size: 0.82rem;
+            color: #10b981;
+            font-weight: 600;
+            margin-top: 1.5rem;
+        }
+
+        .secure-badge i {
+            font-size: 1rem;
+        }
+
+        .footer-note {
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Pestañas (Tabs) */
+        .tabs-container {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1.5rem 0 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.6rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .tab-btn.active {
+            background: rgba(218, 41, 119, 0.15);
+            color: var(--text-light);
+            border: 1px solid rgba(218, 41, 119, 0.3);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Zona de carga OCR */
+        .ocr-upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .ocr-upload-zone:hover, .ocr-upload-zone.dragover {
+            border-color: var(--nequi-pink);
+            background: rgba(218, 41, 119, 0.05);
+            box-shadow: 0 0 15px rgba(218, 41, 119, 0.15);
+        }
+
+        .ocr-upload-zone i {
+            font-size: 2.2rem;
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+        }
+
+        .ocr-upload-zone:hover i {
+            color: var(--nequi-pink);
+            transform: translateY(-3px);
+        }
+
+        .ocr-upload-zone h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .ocr-upload-zone p {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Vista previa y Escáner */
+        .ocr-preview-container {
+            position: relative;
+            width: 100%;
+            max-height: 250px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ocr-preview-image {
+            max-width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .ocr-scanner-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--nequi-pink), transparent);
+            box-shadow: 0 0 12px 3px var(--nequi-pink);
+            z-index: 10;
+            animation: laserScan 2.5s ease-in-out infinite;
+        }
+
+        @keyframes laserScan {
+            0% { top: 0%; opacity: 0; }
+            5% { opacity: 1; }
+            50% { top: 98%; opacity: 1; }
+            95% { opacity: 1; }
+            100% { top: 0%; opacity: 0; }
+        }
+
+        /* Alertas de error en OCR */
+        .ocr-alert {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            font-size: 0.82rem;
+            color: #fca5a5;
+            text-align: left;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            line-height: 1.4;
+        }
+
+        .ocr-alert i {
+            font-size: 1.1rem;
+            margin-top: 0.1rem;
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="transition-container" style="max-height: 90vh; overflow-y: auto;">
+        <!-- Logo -->
+        <div class="brand-logo">
+            <img src="/static/images/logo.png" alt="StayHuila Logo" onerror="this.src='https://via.placeholder.com/45?text=SH'">
+            <span>StayHuila</span>
+        </div>
+
+        <!-- Vista 1: Listo para pagar -->
+        <div id="state-ready">
+            <div class="nequi-illustration" style="margin-bottom: 2rem; font-size: 3.5rem; color: var(--nequi-pink); filter: drop-shadow(0 0 15px rgba(218, 41, 119, 0.4));">
+                <i class="ph-fill ph-wallet"></i>
+            </div>
+            
+            <h1 class="title">Pago listo para procesar</h1>
+            <p class="subtitle">Haz clic en el botón de abajo para abrir el portal seguro de <strong>Nequi Negocios</strong> en una nueva pestaña y completar tu reserva.</p>
+            
+            <a href="{{ nequi_link }}" target="_blank" class="btn-nequi" id="btn-pay">
+                <i class="ph-fill ph-arrow-square-out"></i> Pagar con Nequi
+            </a>
+            
+            <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">
+                Esta página se actualizará automáticamente una vez realices el pago.
+            </p>
+        </div>
+
+        <!-- Vista 2: Esperando pago -->
+        <div id="state-waiting" style="display: none;">
+            <div class="loading-animation" style="margin-bottom: 1.5rem;">
+                <div class="spinner-outer"></div>
+                <div class="spinner-inner"></div>
+                <div class="nequi-icon">
+                    <i class="ph-fill ph-hourglass-medium"></i>
+                </div>
+            </div>
+            
+            <h1 class="title">Esperando tu pago</h1>
+            <p class="subtitle">Por favor, completa la transacción en la pestaña de <strong>Nequi</strong> que se acaba de abrir.</p>
+            
+            <a href="{{ nequi_link }}" target="_blank" class="btn-nequi" style="background: rgba(255, 255, 255, 0.05); box-shadow: none; border: 1px solid rgba(218, 41, 119, 0.3); margin-bottom: 0.8rem;">
+                <i class="ph ph-arrow-square-out"></i> Reabrir portal de pago
+            </a>
+
+            <!-- Sección de confirmación por Comprobante u OCR / Manual -->
+            <div class="manual-section">
+                <h3><i class="ph ph-shield-check"></i> Confirma tu pago</h3>
+                <p>Por favor confirma tu pago subiendo el comprobante o ingresando el ID:</p>
+                
+                <div class="tabs-container">
+                    <button type="button" class="tab-btn active" id="tab-ocr-btn">
+                        <i class="ph ph-camera"></i> Subir Comprobante
+                    </button>
+                    <button type="button" class="tab-btn" id="tab-manual-btn">
+                        <i class="ph ph-keyboard"></i> Código Manual
+                    </button>
+                </div>
+
+                <!-- Tab: OCR -->
+                <div class="tab-content active" id="tab-ocr">
+                    <!-- Drop Zone -->
+                    <div class="ocr-upload-zone" id="ocr-dropzone">
+                        <i class="ph ph-cloud-arrow-up"></i>
+                        <h4>Sube tu comprobante</h4>
+                        <p>Arrastra la captura del pago aquí, o haz clic para buscar. (PNG, JPG, WEBP)</p>
+                        <input type="file" id="ocr-file-input" accept="image/*" style="display: none;">
+                    </div>
+
+                    <!-- Scan Preview Container -->
+                    <div id="ocr-preview-box" style="display: none; margin-top: 0.5rem;">
+                        <div class="ocr-preview-container">
+                            <div class="ocr-scanner-line" id="ocr-scanner-line"></div>
+                            <img src="" id="ocr-preview-img" class="ocr-preview-image" alt="Comprobante">
+                        </div>
+                        <div style="text-align: center; margin-bottom: 1rem;">
+                            <p style="font-size: 0.85rem; color: #a855f7; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <i class="ph ph-spinner animate-spin"></i>
+                                <span id="ocr-status-text">Analizando comprobante con IA...</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="ocr-error-box" class="ocr-alert" style="display: none; margin-top: 0.5rem;">
+                        <i class="ph ph-warning-circle"></i>
+                        <span id="ocr-error-text">No se pudo procesar. Intenta de nuevo.</span>
+                    </div>
+                </div>
+
+                <!-- Tab: Manual -->
+                <div class="tab-content" id="tab-manual">
+                    <input type="text" id="manual-txn-id" class="input-glass" placeholder="Ej: 182736-12345-APPROVED-XYZ" autocomplete="off" style="margin-top: 0.5rem;">
+                    <button id="btn-confirm-manual" class="btn-nequi" style="margin-bottom: 0; font-size: 0.9rem;">
+                        <i class="ph ph-shield-check"></i> Verificar y Confirmar Pago
+                    </button>
+                </div>
+            </div>
+
+            <a href="/mis-reservas" class="btn-outline">
+                <i class="ph ph-calendar-check"></i> Ir a Mis Reservas
+            </a>
+        </div>
+
+        <!-- Secure Badge -->
+        <div class="secure-badge">
+            <i class="ph-fill ph-shield-check"></i>
+            <span>Conexión Cifrada & Segura</span>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-note">
+            No cierres esta pestaña.
+        </div>
+    </div>
+
+    <script>
+        // Guardar el ID de la reserva en el localStorage local del dominio
+        localStorage.setItem('pending_reserva_id', '{{ reserva_id }}');
+
+        const btnPay = document.getElementById('btn-pay');
+        const stateReady = document.getElementById('state-ready');
+        const stateWaiting = document.getElementById('state-waiting');
+        const btnConfirmManual = document.getElementById('btn-confirm-manual');
+        const manualTxnIdInput = document.getElementById('manual-txn-id');
+        let pollInterval = null;
+
+        // Elementos OCR
+        const tabOcrBtn = document.getElementById('tab-ocr-btn');
+        const tabManualBtn = document.getElementById('tab-manual-btn');
+        const tabOcr = document.getElementById('tab-ocr');
+        const tabManual = document.getElementById('tab-manual');
+        const ocrDropzone = document.getElementById('ocr-dropzone');
+        const ocrFileInput = document.getElementById('ocr-file-input');
+        const ocrPreviewBox = document.getElementById('ocr-preview-box');
+        const ocrPreviewImg = document.getElementById('ocr-preview-img');
+        const ocrScannerLine = document.getElementById('ocr-scanner-line');
+        const ocrStatusText = document.getElementById('ocr-status-text');
+        const ocrErrorBox = document.getElementById('ocr-error-box');
+        const ocrErrorText = document.getElementById('ocr-error-text');
+
+        // Lógica de Pestañas
+        tabOcrBtn.addEventListener('click', () => {
+            tabOcrBtn.classList.add('active');
+            tabManualBtn.classList.remove('active');
+            tabOcr.classList.add('active');
+            tabManual.classList.remove('active');
+        });
+
+        tabManualBtn.addEventListener('click', () => {
+            tabManualBtn.classList.add('active');
+            tabOcrBtn.classList.remove('active');
+            tabManual.classList.add('active');
+            tabOcr.classList.remove('active');
+        });
+
+        // Clic en la zona de drop para abrir selector de archivos
+        ocrDropzone.addEventListener('click', () => {
+            ocrFileInput.click();
+        });
+
+        ocrFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadAndScanComprobante(e.target.files[0]);
+            }
+        });
+
+        // Drag & Drop eventos
+        ocrDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            ocrDropzone.classList.add('dragover');
+        });
+
+        ocrDropzone.addEventListener('dragleave', () => {
+            ocrDropzone.classList.remove('dragover');
+        });
+
+        ocrDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            ocrDropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                uploadAndScanComprobante(e.dataTransfer.files[0]);
+            }
+        });
+
+        async function uploadAndScanComprobante(file) {
+            // Ocultar zona de carga y errores
+            ocrDropzone.style.display = 'none';
+            ocrErrorBox.style.display = 'none';
+            ocrStatusText.textContent = 'Leyendo comprobante con IA...';
+            
+            // Mostrar previsualización
+            ocrPreviewBox.style.display = 'block';
+            ocrScannerLine.style.display = 'block';
+
+            // Cargar imagen en la etiqueta img
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                ocrPreviewImg.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            // Preparar FormData
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/pago/ocr-confirmar/{{ reserva_id }}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    ocrScannerLine.style.display = 'none';
+                    ocrStatusText.innerHTML = '<span style="color: #10b981;"><i class="ph ph-check-circle"></i> ¡Pago detectado y confirmado! Redirigiendo...</span>';
+                    
+                    // Detener polling si estaba activo
+                    if (pollInterval) clearInterval(pollInterval);
+                    
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url;
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || 'Error al analizar el comprobante.');
+                }
+            } catch (error) {
+                // Detener escaneo y mostrar error
+                ocrScannerLine.style.display = 'none';
+                ocrPreviewBox.style.display = 'none';
+                ocrDropzone.style.display = 'flex';
+                
+                ocrErrorText.textContent = error.message;
+                ocrErrorBox.style.display = 'flex';
+            }
+        }
+
+        function startPolling() {
+            if (pollInterval) return;
+            
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/pago/estado/{{ reserva_id }}');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && (data.estado_reserva === 'confirmada' || data.estado_pago === 'approved' || data.estado_pago === 'pagado')) {
+                            clearInterval(pollInterval);
+                            window.location.href = '/pago/exito?reserva_id={{ reserva_id }}';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error verificando estado del pago:', error);
+                }
+            }, 3000);
+        }
+
+        async function checkInitialStatus() {
+            try {
+                const response = await fetch('/api/pago/estado/{{ reserva_id }}');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && (data.estado_reserva === 'confirmada' || data.estado_pago === 'approved' || data.estado_pago === 'pagado')) {
+                        window.location.href = '/pago/exito?reserva_id={{ reserva_id }}';
+                    }
+                }
+            } catch (error) {
+                console.error('Error al verificar estado inicial:', error);
+            }
+        }
+
+        btnPay.addEventListener('click', () => {
+            // Mostrar estado de espera
+            stateReady.style.display = 'none';
+            stateWaiting.style.display = 'block';
+            
+            // Iniciar verificación en tiempo real
+            startPolling();
+        });
+
+        btnConfirmManual.addEventListener('click', () => {
+            const txnId = manualTxnIdInput.value.trim();
+            if (!txnId) {
+                alert('Por favor ingresa un ID de transacción válido.');
+                return;
+            }
+            
+            btnConfirmManual.disabled = true;
+            btnConfirmManual.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Verificando...';
+            
+            // Redirigir al endpoint de éxito para que el backend valide el ID contra la API de Wompi
+            window.location.href = '/pago/exito?reserva_id={{ reserva_id }}&id=' + encodeURIComponent(txnId);
+        });
+
+        // Verificar el estado inicial en caso de recarga
+        checkInitialStatus();
+    </script>
+</body>
+</html>

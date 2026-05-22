@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.get('reserva_id') && !urlParams.get('external_reference')) {
+                const pendingId = localStorage.getItem('pending_reserva_id');
+                if (pendingId) {
+                    localStorage.removeItem('pending_reserva_id');
+                    urlParams.set('reserva_id', pendingId);
+                    window.location.replace(window.location.pathname + '?' + urlParams.toString());
+                }
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if resultado == 'exito' %}
+    <title>¡Pago Exitoso! · StayHuila</title>
+    <meta name="description" content="Tu pago fue procesado exitosamente en StayHuila.">
+    {% elif resultado == 'pendiente' %}
+    <title>Pago en Proceso · StayHuila</title>
+    <meta name="description" content="Tu pago está siendo procesado en StayHuila.">
+    {% else %}
+    <title>Pago No Procesado · StayHuila</title>
+    <meta name="description" content="Hubo un problema con tu pago en StayHuila.">
+    {% endif %}
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pago_resultado.css') }}">
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+</head>
+<body>
+{% include '_flash_toasts.html' %}
+
+<!-- Navbar mínima -->
+<header class="navbar navbar-solid">
+    <div class="logo" onclick="window.location.href='/'">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img"
+             onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+        <span>StayHuila</span>
+    </div>
+    <div class="user-menu">
+        <a href="/mis-reservas" style="font-size:.9rem;font-weight:600;color:var(--primary);text-decoration:none;display:flex;align-items:center;gap:.4rem;">
+            <i class="ph ph-calendar-check"></i> Mis Reservas
+        </a>
+    </div>
+</header>
+
+<!-- Datos para JS -->
+<div id="pr-resultado"
+     data-resultado="{{ resultado }}"
+     data-reserva-id="{{ reserva.id if reserva else '' }}"
+     style="display:none;">
+</div>
+
+<main class="pr-hero" style="padding-top: 80px;">
+    <div class="pr-card">
+
+        <!-- ── Banner de estado ─────────────────────────────────── -->
+        <div class="pr-banner {{ resultado }}">
+            <div class="pr-icon">
+                {% if resultado == 'exito' %}
+                    <i class="ph-fill ph-check-circle"></i>
+                {% elif resultado == 'pendiente' %}
+                    <i class="ph-fill ph-hourglass-medium"></i>
+                {% else %}
+                    <i class="ph-fill ph-x-circle"></i>
+                {% endif %}
+            </div>
+
+            {% if resultado == 'exito' %}
+                <h1 class="pr-title">¡Pago Exitoso! 🎉</h1>
+                <p class="pr-subtitle">Tu reserva ha sido confirmada. ¡Prepárate para vivir Huila!</p>
+            {% elif resultado == 'pendiente' %}
+                <h1 class="pr-title">Pago en Proceso ⏳</h1>
+                <p class="pr-subtitle">Tu pago está siendo procesado. Te notificaremos cuando se confirme.</p>
+            {% else %}
+                <h1 class="pr-title">Pago No Procesado</h1>
+                <p class="pr-subtitle">No pudimos completar el cobro. Puedes intentarlo nuevamente.</p>
+            {% endif %}
+
+            {% if reserva %}
+            <div class="pr-code-badge">
+                <i class="ph ph-hash"></i>
+                {{ reserva.codigo_reserva or 'Sin código' }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ── Cuerpo ────────────────────────────────────────────── -->
+        <div class="pr-body">
+
+            <!-- Info de la publicación -->
+            {% if reserva %}
+            <div class="pr-pub-row">
+                <img src="{{ reserva.hosp_img or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=200' }}"
+                     alt="{{ reserva.hosp_nombre }}"
+                     class="pr-pub-img">
+                <div class="pr-pub-info">
+                    <h3>{{ reserva.hosp_nombre or 'Tu alojamiento' }}</h3>
+                    <p>
+                        <i class="ph ph-map-pin" style="vertical-align:middle;"></i>
+                        {{ reserva.municipio or 'Huila' }}, Colombia
+                    </p>
+                    {% if reserva.fecha_checkin %}
+                    <p style="margin-top:.3rem;font-size:.82rem;">
+                        <i class="ph ph-calendar" style="vertical-align:middle;"></i>
+                        {{ reserva.fecha_checkin }} → {{ reserva.fecha_checkout }}
+                        &nbsp;·&nbsp;
+                        <i class="ph ph-users" style="vertical-align:middle;"></i>
+                        {{ reserva.num_huespedes }} huésped(es)
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ── Detalles de la transacción ───────────────────── -->
+            <div class="pr-details">
+
+                <!-- Monto pagado -->
+                {% if reserva %}
+                <div class="pr-detail-row">
+                    <span class="pr-detail-label">
+                        <i class="ph ph-money"></i> Total
+                        {% if resultado == 'pendiente' %}a pagar{% elif resultado == 'exito' %}pagado{% else %}de la reserva{% endif %}
+                    </span>
+                    <span class="pr-detail-value monto">
+                        ${{ "{:,.0f}".format(reserva.total).replace(',', '.') }} COP
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- ID de pago Nequi -->
+                {% if pago and pago.payment_id %}
+                <div class="pr-detail-row">
+                    <span class="pr-detail-label">
+                        <i class="ph ph-fingerprint"></i> ID Transacción Nequi
+                    </span>
+                    <span class="pr-detail-value id-tx" title="Clic para copiar">
+                        {{ pago.payment_id }}
+                    </span>
+                </div>
+                {% elif payment_id_mp %}
+                <div class="pr-detail-row">
+                    <span class="pr-detail-label">
+                        <i class="ph ph-fingerprint"></i> ID Transacción Nequi
+                    </span>
+                    <span class="pr-detail-value id-tx" title="Clic para copiar">
+                        {{ payment_id_mp }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Método de pago -->
+                {% if pago and pago.metodo %}
+                <div class="pr-detail-row">
+                    <span class="pr-detail-label">
+                        <i class="ph ph-credit-card"></i> Método de pago
+                    </span>
+                    <span class="pr-detail-value">
+                        <span class="mp-method-badge">
+                            {% set metodo = pago.metodo | lower %}
+                            {% if 'visa' in metodo %}
+                                💳 Visa
+                            {% elif 'mastercard' in metodo or 'master' in metodo %}
+                                💳 Mastercard
+                            {% elif 'pse' in metodo %}
+                                🏦 PSE
+                            {% elif 'nequi' in metodo %}
+                                📱 Nequi
+                            {% elif 'daviplata' in metodo %}
+                                📱 Daviplata
+                            {% elif 'amex' in metodo %}
+                                💳 Amex
+                            {% elif 'efecty' in metodo %}
+                                💵 Efecty
+                            {% else %}
+                                💳 {{ pago.metodo | capitalize }}
+                            {% endif %}
+                        </span>
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Fecha de pago -->
+                {% if pago and pago.fecha_pago %}
+                <div class="pr-detail-row">
+                    <span class="pr-detail-label">
+                        <i class="ph ph-clock"></i> Fecha del pago
+                    </span>
+                    <span class="pr-detail-value">{{ pago.fecha_pago }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Estado del Pago -->
+                {% if pago and pago.mp_status %}
+                <div class="pr-detail-row">
+                    <span class="pr-detail-label">
+                        <i class="ph ph-shield-check"></i> Estado del Pago
+                    </span>
+                    <span class="pr-detail-value">
+                        {% if pago.mp_status == 'approved' or pago.mp_status == 'pagado' %}
+                            <span style="color:#16a34a;font-weight:700;">✅ Aprobado</span>
+                        {% elif pago.mp_status == 'pending' %}
+                            <span style="color:#d97706;font-weight:700;">⏳ En proceso</span>
+                        {% elif pago.mp_status == 'rejected' %}
+                            <span style="color:#dc2626;font-weight:700;">❌ Rechazado</span>
+                        {% elif pago.mp_status == 'cancelled' %}
+                            <span style="color:#6b7280;font-weight:700;">⊘ Cancelado</span>
+                        {% else %}
+                            {{ pago.mp_status }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Número de reserva -->
+                {% if reserva %}
+                <div class="pr-detail-row">
+                    <span class="pr-detail-label">
+                        <i class="ph ph-tag"></i> Código de reserva
+                    </span>
+                    <span class="pr-detail-value" style="font-family:monospace;letter-spacing:.06em;">
+                        {{ reserva.codigo_reserva }}
+                    </span>
+                </div>
+                {% endif %}
+
+            </div>
+            <!-- /pr-details -->
+
+            <!-- ── Alerta especial para pendiente ────────────────── -->
+            {% if resultado == 'pendiente' %}
+            <div class="pr-pending-info">
+                <i class="ph-fill ph-info"></i>
+                <p>
+                    <strong>¿Pagaste con PSE o transferencia?</strong><br>
+                    Los pagos bancarios pueden tardar hasta <strong>72 horas hábiles</strong> en confirmarse.
+                    Te notificaremos por correo cuando el banco confirme la transacción.
+                    Tu reserva está pre-reservada mientras tanto.
+                </p>
+            </div>
+
+            <!-- Polling badge -->
+            <div class="pr-polling" id="polling-badge">
+                <div class="dot"></div>
+                Verificando estado del pago automáticamente cada 5 segundos...
+            </div>
+            {% endif %}
+
+            <!-- ── Acciones ───────────────────────────────────────── -->
+            <div class="pr-actions">
+
+                {% if resultado == 'exito' %}
+                    {% if reserva %}
+                    <a href="/reserva/{{ reserva.id }}" class="pr-btn primary">
+                        <i class="ph-fill ph-check-circle"></i> Ver mi reserva
+                    </a>
+                    {% endif %}
+                    <a href="/mis-reservas" class="pr-btn outline">
+                        <i class="ph ph-calendar-check"></i> Mis Reservas
+                    </a>
+
+                {% elif resultado == 'pendiente' %}
+                    {% if reserva %}
+                    <a href="/reserva/{{ reserva.id }}" class="pr-btn primary">
+                        <i class="ph ph-eye"></i> Ver reserva
+                    </a>
+                    <button id="btn-cancelar-reserva" class="pr-btn danger-outline">
+                        <i class="ph ph-x-circle"></i> Cancelar reserva
+                    </button>
+                    {% else %}
+                    <a href="/mis-reservas" class="pr-btn outline">
+                        <i class="ph ph-calendar-check"></i> Mis Reservas
+                    </a>
+                    {% endif %}
+
+                {% else %}
+                    <!-- resultado == fallo -->
+                    {% if reserva %}
+                    <a href="/pagar/{{ reserva.id }}" class="pr-btn nequi">
+                        <i class="ph ph-arrow-square-out"></i> Reintentar pago con Nequi
+                    </a>
+                    <a href="/mis-reservas" class="pr-btn outline">
+                        <i class="ph ph-calendar"></i> Mis Reservas
+                    </a>
+                    {% else %}
+                    <a href="/" class="pr-btn primary">
+                        <i class="ph ph-house"></i> Ir al inicio
+                    </a>
+                    {% endif %}
+                {% endif %}
+
+            </div>
+
+            <!-- Powered by Nequi -->
+            <div style="text-align:center;margin-top:1.5rem;padding-top:1.2rem;border-top:1px solid var(--border);">
+                <p style="font-size:.75rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:.4rem;">
+                    <i class="ph ph-shield-check" style="color:#da2977;"></i>
+                    Respaldado de forma segura por
+                    <strong style="color:#da2977;">Nequi Negocios</strong>
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Volver al inicio siempre disponible -->
+    <a href="/" style="margin-top:1.5rem;font-size:.85rem;color:var(--primary);font-weight:600;display:flex;align-items:center;gap:.4rem;text-decoration:none;opacity:.8;">
+        <i class="ph ph-arrow-left"></i> Volver al inicio
+    </a>
+</main>
+
+<script src="{{ url_for('static', filename='js/pago_resultado.js') }}"></script>
+</body>
+</html>

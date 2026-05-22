@@ -68,11 +68,6 @@ function selectMetodo(val, el){
     document.querySelectorAll('.metodo-card').forEach(c=>c.classList.remove('selected'));
     el.classList.add('selected');
     el.querySelector('input').checked = true;
-    document.getElementById('card-fields').classList.toggle('visible', val==='tarjeta');
-}
-function fmtCard(inp){
-    let v = inp.value.replace(/\D/g,'').substring(0,16);
-    inp.value = v.replace(/(.{4})/g,'$1 ').trim();
 }
 
 // Ensure the code inside is executed after the DOM is fully loaded to access element properties properly
