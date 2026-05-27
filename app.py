@@ -185,7 +185,7 @@ def _ensure_columns():
                 cur.execute("ALTER TABLE reservas ADD FOREIGN KEY (sesion_id) REFERENCES experiencia_sesiones(id) ON DELETE SET NULL")
 
             # ── Tabla de Pagos ───────────────────────────────────────────────
-            # Asegurar que existan las nuevas columnas para Mercado Pago
+            # Asegurar que existan las nuevas columnas para pagos externos
             cur.execute("SHOW COLUMNS FROM pagos LIKE 'usuario_id'")
             if not cur.fetchone():
                 cur.execute("ALTER TABLE pagos ADD COLUMN usuario_id INT NOT NULL DEFAULT 0 AFTER reserva_id")
@@ -212,42 +212,59 @@ def _ensure_columns():
             
             cur.execute("SHOW COLUMNS FROM pagos LIKE 'provider'")
             if not cur.fetchone():
-                cur.execute("ALTER TABLE pagos ADD COLUMN provider VARCHAR(50) DEFAULT 'mercadopago' AFTER estado")
+                cur.execute("ALTER TABLE pagos ADD COLUMN provider VARCHAR(50) DEFAULT 'nequi' AFTER estado")
 
-            cur.execute("SHOW COLUMNS FROM pagos LIKE 'mp_status'")
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'external_status'")
             if not cur.fetchone():
-                cur.execute("ALTER TABLE pagos ADD COLUMN mp_status VARCHAR(50) NULL AFTER provider")
+                # Intentar renombrar de mp_status si existe, o crear nuevo
+                cur.execute("SHOW COLUMNS FROM pagos LIKE 'mp_status'")
+                if cur.fetchone():
+                    cur.execute("ALTER TABLE pagos CHANGE mp_status external_status VARCHAR(50) NULL")
+                else:
+                    cur.execute("ALTER TABLE pagos ADD COLUMN external_status VARCHAR(50) NULL AFTER provider")
 
-            cur.execute("SHOW COLUMNS FROM pagos LIKE 'mp_status_detail'")
+            cur.execute("SHOW COLUMNS FROM pagos LIKE 'external_status_detail'")
             if not cur.fetchone():
-                cur.execute("ALTER TABLE pagos ADD COLUMN mp_status_detail VARCHAR(200) NULL AFTER mp_status")
+                cur.execute("SHOW COLUMNS FROM pagos LIKE 'mp_status_detail'")
+                if cur.fetchone():
+                    cur.execute("ALTER TABLE pagos CHANGE mp_status_detail external_status_detail VARCHAR(200) NULL")
+                else:
+                    cur.execute("ALTER TABLE pagos ADD COLUMN external_status_detail VARCHAR(200) NULL AFTER external_status")
 
-            # Modificar a VARCHAR flexible para compatibilidad con MP
-            cur.execute("ALTER TABLE pagos MODIFY COLUMN metodo VARCHAR(100) NOT NULL DEFAULT 'mercadopago'")
+            # Modificar a VARCHAR flexible
+            cur.execute("ALTER TABLE pagos MODIFY COLUMN metodo VARCHAR(100) NOT NULL DEFAULT 'nequi'")
             cur.execute("ALTER TABLE pagos MODIFY COLUMN estado VARCHAR(50) DEFAULT 'pending'")
 
-            # ── Columnas MP en reservas (desnormalizadas para queries rápidas) ──
-            cur.execute("SHOW COLUMNS FROM reservas LIKE 'mp_payment_id'")
+            # ── Columnas de pago en reservas (desnormalizadas para queries rápidas) ──
+            cur.execute("SHOW COLUMNS FROM reservas LIKE 'external_payment_id'")
             if not cur.fetchone():
-                cur.execute("ALTER TABLE reservas ADD COLUMN mp_payment_id VARCHAR(100) NULL")
+                cur.execute("SHOW COLUMNS FROM reservas LIKE 'mp_payment_id'")
+                if cur.fetchone():
+                    cur.execute("ALTER TABLE reservas CHANGE mp_payment_id external_payment_id VARCHAR(100) NULL")
+                else:
+                    cur.execute("ALTER TABLE reservas ADD COLUMN external_payment_id VARCHAR(100) NULL")
 
-            cur.execute("SHOW COLUMNS FROM reservas LIKE 'mp_preference_id'")
+            cur.execute("SHOW COLUMNS FROM reservas LIKE 'external_preference_id'")
             if not cur.fetchone():
-                cur.execute("ALTER TABLE reservas ADD COLUMN mp_preference_id VARCHAR(200) NULL")
+                cur.execute("SHOW COLUMNS FROM reservas LIKE 'mp_preference_id'")
+                if cur.fetchone():
+                    cur.execute("ALTER TABLE reservas CHANGE mp_preference_id external_preference_id VARCHAR(200) NULL")
+                else:
+                    cur.execute("ALTER TABLE reservas ADD COLUMN external_preference_id VARCHAR(200) NULL")
 
             # ── Tabla de logs de webhooks para auditoría ─────────────────────
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS webhook_logs (
-                    id          INT AUTO_INCREMENT PRIMARY KEY,
-                    received_at DATETIME DEFAULT NOW(),
-                    topic       VARCHAR(50),
-                    payment_id  VARCHAR(100),
-                    mp_status   VARCHAR(50),
-                    reserva_id  INT,
-                    raw_payload TEXT,
-                    procesado   TINYINT(1) DEFAULT 0,
-                    error_msg   TEXT,
-                    ip_origen   VARCHAR(45),
+                    id              INT AUTO_INCREMENT PRIMARY KEY,
+                    received_at     DATETIME DEFAULT NOW(),
+                    topic           VARCHAR(50),
+                    payment_id      VARCHAR(100),
+                    external_status VARCHAR(50),
+                    reserva_id      INT,
+                    raw_payload     TEXT,
+                    procesado       TINYINT(1) DEFAULT 0,
+                    error_msg       TEXT,
+                    ip_origen       VARCHAR(45),
                     INDEX idx_wl_payment (payment_id),
                     INDEX idx_wl_reserva (reserva_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -378,13 +395,7 @@ def check_wompi_and_login(wompi_txn_id, rid=None):
             
     return status, rid
 
-# ── MERCADO PAGO HELPERS ────────────────────────────────────────────────────────
-@app.route('/webhook/mercadopago', methods=['POST'])
-def mercadopago_webhook_deprecated():
-    """Webhook depreciado de Mercado Pago."""
-    return jsonify({"success": False, "message": "Deprecated. Use Nequi."}), 410
-
-
+# ── PASARELA NEQUI ────────────────────────────────────────────────────────
 @app.route('/pago/transferir/<int:reserva_id>')
 @login_required
 def pago_transferir_gateway(reserva_id):
@@ -476,14 +487,14 @@ def api_nequi_confirmar():
             # 1. Actualizar tabla pagos
             cur.execute("""
                 UPDATE pagos
-                SET payment_id       = %s,
-                    monto            = %s,
-                    currency         = 'COP',
-                    metodo           = %s,
-                    estado           = 'approved',
-                    mp_status        = 'approved',
-                    mp_status_detail = 'acreditado',
-                    fecha_pago       = NOW()
+                SET payment_id            = %s,
+                    monto                 = %s,
+                    currency              = 'COP',
+                    metodo                = %s,
+                    estado                = 'approved',
+                    external_status       = 'approved',
+                    external_status_detail = 'acreditado',
+                    fecha_pago            = NOW()
                 WHERE reserva_id = %s AND tipo = 'cobro'
             """, (txn_id, float(reserva['total']), metodo_label, reserva_id))
 
@@ -493,7 +504,7 @@ def api_nequi_confirmar():
                 SET estado = 'confirmada',
                     estado_pago = 'pagado',
                     fecha_confirmacion = NOW(),
-                    mp_payment_id = %s
+                    external_payment_id = %s
                 WHERE id = %s
             """, (txn_id, reserva_id))
 
@@ -520,7 +531,7 @@ def api_nequi_confirmar():
 def pago_exito():
     """Pantalla de pago exitoso con datos reales de la transacción."""
     rid = request.args.get('external_reference') or request.args.get('reserva_id')
-    payment_id_mp = request.args.get('payment_id')
+    payment_id_ext = request.args.get('payment_id')
     merchant_order_id = request.args.get('merchant_order_id', '')
     wompi_txn_id = request.args.get('id')
 
@@ -560,20 +571,20 @@ def pago_exito():
                 
                 if reserva and reserva['estado'] == 'pendiente_pago':
                     # Generar ID de transacción para registrar el pago con Nequi Link
-                    txn_id = payment_id_mp or wompi_txn_id or ("NEQ-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8)))
+                    txn_id = payment_id_ext or wompi_txn_id or ("NEQ-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8)))
                     metodo_label = "Nequi Negocios Link"
 
                     # 1. Actualizar tabla pagos
                     cur.execute("""
                         UPDATE pagos
-                        SET payment_id       = %s,
-                            monto            = %s,
-                            currency         = 'COP',
-                            metodo           = %s,
-                            estado           = 'approved',
-                            mp_status        = 'approved',
-                            mp_status_detail = 'acreditado',
-                            fecha_pago       = NOW()
+                        SET payment_id            = %s,
+                            monto                 = %s,
+                            currency              = 'COP',
+                            metodo                = %s,
+                            estado                = 'approved',
+                            external_status       = 'approved',
+                            external_status_detail = 'acreditado',
+                            fecha_pago            = NOW()
                         WHERE reserva_id = %s AND tipo = 'cobro'
                     """, (txn_id, float(reserva['total']), metodo_label, rid))
 
@@ -583,7 +594,7 @@ def pago_exito():
                         SET estado = 'confirmada',
                             estado_pago = 'pagado',
                             fecha_confirmacion = NOW(),
-                            mp_payment_id = %s
+                            external_payment_id = %s
                         WHERE id = %s
                     """, (txn_id, rid))
 
@@ -622,7 +633,7 @@ def pago_exito():
 
                 if reserva_data:
                     cur.execute("""
-                        SELECT payment_id, monto, currency, metodo, estado, mp_status,
+                        SELECT payment_id, monto, currency, metodo, estado, external_status,
                                fecha_pago, provider
                         FROM pagos
                         WHERE reserva_id = %s AND tipo = 'cobro'
@@ -733,7 +744,7 @@ def pago_pendiente():
 
                 if reserva_data:
                     cur.execute("""
-                        SELECT payment_id, monto, currency, metodo, estado, mp_status, fecha_pago
+                        SELECT payment_id, monto, currency, metodo, estado, external_status, fecha_pago
                         FROM pagos WHERE reserva_id = %s AND tipo = 'cobro'
                         ORDER BY id DESC LIMIT 1
                     """, (rid,))
@@ -822,7 +833,7 @@ def pagar_reserva(reserva_id):
             """, (preference['id'], reserva_id))
 
             cur.execute("""
-                UPDATE reservas SET mp_preference_id = %s WHERE id = %s
+                UPDATE reservas SET external_preference_id = %s WHERE id = %s
             """, (preference['id'], reserva_id))
 
             c.commit()
@@ -851,8 +862,8 @@ def api_pago_estado(reserva_id):
     try:
         with c.cursor() as cur:
             cur.execute("""
-                SELECT r.estado, r.estado_pago, r.mp_payment_id, r.codigo_reserva,
-                       p.payment_id, p.fecha_pago, p.metodo, p.mp_status, p.monto, p.currency
+                SELECT r.estado, r.estado_pago, r.external_payment_id, r.codigo_reserva,
+                       p.payment_id, p.fecha_pago, p.metodo, p.external_status, p.monto, p.currency
                 FROM reservas r
                 LEFT JOIN pagos p ON p.reserva_id = r.id AND p.tipo = 'cobro'
                 WHERE r.id = %s AND r.usuario_id = %s
@@ -866,8 +877,8 @@ def api_pago_estado(reserva_id):
         return jsonify({
             'success': True,
             'estado_reserva': row['estado'],
-            'estado_pago': row.get('mp_status') or row.get('estado_pago', ''),
-            'payment_id': row.get('payment_id') or row.get('mp_payment_id'),
+            'estado_pago': row.get('external_status') or row.get('estado_pago', ''),
+            'payment_id': row.get('payment_id') or row.get('external_payment_id'),
             'codigo_reserva': row['codigo_reserva'],
             'fecha_pago': row['fecha_pago'].isoformat() if row.get('fecha_pago') else None,
             'metodo': row.get('metodo'),
@@ -989,8 +1000,8 @@ def api_pago_ocr_confirmar(reserva_id):
                     currency         = 'COP',
                     metodo           = %s,
                     estado           = 'approved',
-                    mp_status        = 'approved',
-                    mp_status_detail = 'acreditado',
+                    external_status       = 'approved',
+                    external_status_detail = 'acreditado',
                     fecha_pago       = NOW()
                 WHERE reserva_id = %s AND tipo = 'cobro'
             """, (txn_id, float(reserva['total']), metodo_label, reserva_id))
@@ -1001,7 +1012,7 @@ def api_pago_ocr_confirmar(reserva_id):
                 SET estado = 'confirmada',
                     estado_pago = 'pagado',
                     fecha_confirmacion = NOW(),
-                    mp_payment_id = %s
+                    external_payment_id = %s
                 WHERE id = %s
             """, (txn_id, reserva_id))
 
@@ -1059,7 +1070,7 @@ def api_cancelar_pago(reserva_id):
 
             # Marcar el pago como cancelado
             cur.execute(
-                "UPDATE pagos SET estado = 'cancelled', mp_status = 'cancelled' WHERE reserva_id = %s AND tipo = 'cobro'",
+                "UPDATE pagos SET estado = 'cancelled', external_status = 'cancelled' WHERE reserva_id = %s AND tipo = 'cobro'",
                 (reserva_id,)
             )
 
@@ -1745,7 +1756,7 @@ def reservar():
                     total = round(precio_base - descuento + tarifa, 2)
                     credito_pct = float(getattr(current_user, 'credito_descuento', 0) or 0)
                     credito_amount = round(total * credito_pct / 100, 2) if credito_pct > 0 else 0
-                    # Mercado Pago requiere un mínimo (aprox 2000 COP para evitar errores en CO)
+                    # Redondear y asegurar monto mínimo
                     total = round(max(2000.0, total - credito_amount), 2)
                     # Sumar el crédito de puntos al descuento total para el registro en la reserva
                     descuento = float(descuento) + credito_amount
@@ -1829,7 +1840,7 @@ def reservar():
                     total = round(precio_base - descuento + tarifa, 2)
                     credito_pct = float(getattr(current_user, 'credito_descuento', 0) or 0)
                     credito_amount = round(total * credito_pct / 100, 2) if credito_pct > 0 else 0
-                    # Mercado Pago requiere un mínimo (aprox 2000 COP para evitar errores en CO)
+                    # Redondear y asegurar monto mínimo
                     total = round(max(2000.0, total - credito_amount), 2)
                     # Sumar el crédito de puntos al descuento total para el registro en la reserva
                     descuento = float(descuento) + credito_amount
@@ -1875,7 +1886,7 @@ def reservar():
                     # Generar intención de pago en Nequi
                     preference = payment_service.generate_payment_link(reservation_data, user_data)
                     
-                    # Guardar ID de preferencia en la tabla pagos (usando la nueva columna preference_id) y reservas (mp_preference_id)
+                    # Guardar ID de preferencia en la tabla pagos (usando la nueva columna preference_id) y reservas (external_preference_id)
                     cur.execute("""
                         UPDATE pagos 
                         SET preference_id = %s 
@@ -1883,7 +1894,7 @@ def reservar():
                     """, (preference['id'], rid))
                     
                     cur.execute("""
-                        UPDATE reservas SET mp_preference_id = %s WHERE id = %s
+                        UPDATE reservas SET external_preference_id = %s WHERE id = %s
                     """, (preference['id'], rid))
                     
                     c.commit()
@@ -2077,12 +2088,12 @@ def mis_reservas():
                     COALESCE(h.hora_checkin, NULL) AS hora_checkin,
                     COALESCE(h.hora_checkout, NULL) AS hora_checkout,
                     COALESCE(i.url, ei.url) AS hosp_img,
-                    p.payment_id AS mp_payment_id,
-                    p.fecha_pago AS mp_fecha_pago,
-                    p.metodo AS mp_metodo,
-                    p.mp_status AS mp_estado_pago,
-                    p.monto AS mp_monto,
-                    p.currency AS mp_currency
+                    p.payment_id AS external_payment_id,
+                    p.fecha_pago AS external_fecha_pago,
+                    p.metodo AS external_metodo,
+                    p.external_status AS external_estado_pago,
+                    p.monto AS external_monto,
+                    p.currency AS external_currency
                 FROM reservas r
                 LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
@@ -2342,13 +2353,13 @@ def panel_anfitrion():
                 # Ingresos totales históricos (no se pierden aunque se deshabilite publicación)
                 cur.execute(f"""
                     SELECT
-                        COALESCE(SUM(CASE WHEN p.mp_status = 'approved' THEN p.monto ELSE 0 END), 0) AS ingresos_totales,
-                        COALESCE(SUM(CASE WHEN p.mp_status = 'approved'
+                        COALESCE(SUM(CASE WHEN p.external_status = 'approved' THEN p.monto ELSE 0 END), 0) AS ingresos_totales,
+                        COALESCE(SUM(CASE WHEN p.external_status = 'approved'
                             AND MONTH(p.fecha_pago) = MONTH(NOW())
                             AND YEAR(p.fecha_pago) = YEAR(NOW())
                             THEN p.monto ELSE 0 END), 0) AS ingresos_mes,
-                        COUNT(CASE WHEN p.mp_status = 'approved' THEN 1 END) AS pagos_aprobados,
-                        COUNT(CASE WHEN (p.mp_status = 'pending' OR p.estado = 'pending')
+                        COUNT(CASE WHEN p.external_status = 'approved' THEN 1 END) AS pagos_aprobados,
+                        COUNT(CASE WHEN (p.external_status = 'pending' OR p.estado = 'pending')
                             AND r.estado = 'pendiente_pago' THEN 1 END) AS pagos_pendientes_count
                     FROM pagos p
                     JOIN reservas r ON p.reserva_id = r.id
