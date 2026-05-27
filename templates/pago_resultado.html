@@ -198,22 +198,22 @@
                 {% endif %}
 
                 <!-- Estado del Pago -->
-                {% if pago and pago.mp_status %}
+                {% if pago and pago.external_status %}
                 <div class="pr-detail-row">
                     <span class="pr-detail-label">
                         <i class="ph ph-shield-check"></i> Estado del Pago
                     </span>
                     <span class="pr-detail-value">
-                        {% if pago.mp_status == 'approved' or pago.mp_status == 'pagado' %}
+                        {% if pago.external_status == 'approved' or pago.external_status == 'pagado' %}
                             <span style="color:#16a34a;font-weight:700;">✅ Aprobado</span>
-                        {% elif pago.mp_status == 'pending' %}
+                        {% elif pago.external_status == 'pending' %}
                             <span style="color:#d97706;font-weight:700;">⏳ En proceso</span>
-                        {% elif pago.mp_status == 'rejected' %}
+                        {% elif pago.external_status == 'rejected' %}
                             <span style="color:#dc2626;font-weight:700;">❌ Rechazado</span>
-                        {% elif pago.mp_status == 'cancelled' %}
+                        {% elif pago.external_status == 'cancelled' %}
                             <span style="color:#6b7280;font-weight:700;">⊘ Cancelado</span>
                         {% else %}
-                            {{ pago.mp_status }}
+                            {{ pago.external_status }}
                         {% endif %}
                     </span>
                 </div>

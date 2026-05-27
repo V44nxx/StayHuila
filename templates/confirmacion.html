@@ -147,7 +147,7 @@
         <p style="font-size: 0.95rem; line-height: 1.5; color: #78350f; margin-bottom: 1rem;">
             Por favor, completa el pago para confirmar tu reserva. El pago se realiza de forma directa y segura a través del enlace oficial de Nequi Negocios.
         </p>
-        {% if reserva.metodo_pago == 'nequi' or reserva.metodo_pago == 'mercadopago' or reserva.metodo_pago == 'efectivo' %}
+        {% if reserva.metodo_pago == 'nequi' or reserva.metodo_pago == 'efectivo' %}
         <div style="text-align: center; margin-top: 1rem;">
             <p style="font-size: 0.9rem; color: #555; margin-bottom: 1rem;">Haz clic abajo para ir al portal oficial de Nequi Negocios y realizar el pago.</p>
             <a href="/pagar/{{ reserva.id }}" 
@@ -157,7 +157,7 @@
         </div>
         {% endif %}
         
-        {% if reserva.metodo_pago != 'efectivo' and reserva.metodo_pago != 'mercadopago' and reserva.metodo_pago != 'nequi' %}
+        {% if reserva.metodo_pago != 'efectivo' and reserva.metodo_pago != 'nequi' %}
         <div style="margin: 1rem 0; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #fef3c7; display: grid; gap: 0.8rem; font-size: 0.95rem;">
             <div>
                 <strong>Instrucciones:</strong> El sistema está esperando la confirmación de tu pago.
@@ -213,7 +213,7 @@
             <strong>{% if reserva.estado == 'pendiente_pago' %}Total a pagar{% else %}Total pagado{% endif %}</strong>
             <strong>${{ "{:,.0f}".format(reserva.total).replace(',','.') }} COP</strong>
         </div>
-        {% set metodo_label = {'nequi':'Nequi','mercadopago':'Nequi','efectivo':'Efectivo'}.get(reserva.metodo_pago, reserva.metodo_pago) %}
+        {% set metodo_label = {'nequi':'Nequi','efectivo':'Efectivo'}.get(reserva.metodo_pago, reserva.metodo_pago) %}
         {% if reserva.estado == 'pendiente_pago' %}
             <div style="margin-top:.8rem;font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.4rem;"><i class="ph ph-shield-warning" style="color:#f59e0b"></i> Tu reserva está pre-reservada · Método: {{ metodo_label }}</div>
         {% else %}
@@ -229,7 +229,7 @@
             <div class="step">
                 <div class="step-num">1</div>
                 <div class="step-content">
-                    {% if reserva.metodo_pago == 'nequi' or reserva.metodo_pago == 'mercadopago' %}
+                    {% if reserva.metodo_pago == 'nequi' %}
                     <strong>Paga con Nequi</strong>
                     <p>Completa tu pago de forma segura usando tu número celular o código QR.</p>
                     {% else %}
