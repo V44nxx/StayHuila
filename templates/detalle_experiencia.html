@@ -31,6 +31,15 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+    <style>
+        .action-btn.active {
+            color: #ff385c !important;
+            border-color: #ff385c !important;
+        }
+        .action-btn.active i {
+            color: #ff385c !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -106,7 +115,10 @@
             </div>
             <div class="detalle-actions">
                 <button class="action-btn" id="btn-compartir"><i class="ph ph-share-network"></i> <span data-i18n="detail.share">Compartir</span></button>
-                <button class="action-btn" id="btn-favorito"><i class="ph ph-heart"></i> <span data-i18n="detail.save">Guardar</span></button>
+                <button class="action-btn {{ 'active' if es_favorito }}" id="btn-favorito" onclick="toggleFavorito('experiencia', {{ experiencia.id }})">
+                    <i class="{{ 'ph-fill' if es_favorito else 'ph' }} ph-heart"></i> 
+                    <span id="fav-text">{{ 'Guardado' if es_favorito else 'Guardar' }}</span>
+                </button>
             </div>
         </div>
 
@@ -234,23 +246,27 @@
             <!-- INFO BÁSICA -->
             <div class="detalle-card info-card">
                 <div class="host-row">
-                    <div>
-                        <h2 class="hosted-by">{{ experiencia.tipo }} en {{ experiencia.municipio }} — Anfitrión: {{
-                            experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</h2>
-                        <div class="capacidad-row">
-                            <span><i class="ph ph-users"></i> Máx. {{ experiencia.capacidad_max }} personas</span>
-                            <span>·</span>
-                            <span><i class="ph ph-clock"></i> {{ experiencia.duracion_horas }} horas de duración</span>
-                            <span>·</span>
-                            <span><i class="ph ph-users-three"></i> Min. {{ experiencia.capacidad_min }} personas</span>
+                    <a href="/anfitrion/{{ experiencia.anfitrion_id }}" style="text-decoration: none; color: inherit; flex: 1;">
+                        <div>
+                            <h2 class="hosted-by">{{ experiencia.tipo }} en {{ experiencia.municipio }} — Anfitrión: {{
+                                experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</h2>
+                            <div class="capacidad-row">
+                                <span><i class="ph ph-users"></i> Máx. {{ experiencia.capacidad_max }} personas</span>
+                                <span>·</span>
+                                <span><i class="ph ph-clock"></i> {{ experiencia.duracion_horas }} horas de duración</span>
+                                <span>·</span>
+                                <span><i class="ph ph-users-three"></i> Min. {{ experiencia.capacidad_min }} personas</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="host-avatar-wrap">
-                        <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}"
-                            alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="host-avatar">
-                        {% if experiencia.super_anfitrion %}<div class="super-badge-avatar"><i
-                                class="ph-fill ph-medal"></i></div>{% endif %}
-                    </div>
+                    </a>
+                    <a href="/anfitrion/{{ experiencia.anfitrion_id }}" style="text-decoration: none;">
+                        <div class="host-avatar-wrap">
+                            <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}"
+                                alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="host-avatar">
+                            {% if experiencia.super_anfitrion %}<div class="super-badge-avatar"><i
+                                    class="ph-fill ph-medal"></i></div>{% endif %}
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -539,20 +555,22 @@
             </div>
 
             <!-- Card anfitrión -->
-            <div class="host-card">
-                <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}" alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="hc-avatar">
-                <div class="hc-info">
-                    <strong>{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</strong>
-                    <p>Anfitrión desde {{ experiencia.anf_desde[:4] if experiencia.anf_desde else '' }}</p>
-                    <div class="hc-stats">
-                        <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ experiencia.anf_cal or
-                            experiencia.calificacion }}</span>
-                        <span>·</span>
-                        <span>{{ experiencia.anf_res or experiencia.total_resenas }} reseñas</span>
+            <a href="/anfitrion/{{ experiencia.anfitrion_id }}" style="text-decoration: none; color: inherit;">
+                <div class="host-card">
+                    <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}" alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="hc-avatar">
+                    <div class="hc-info">
+                        <strong>{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</strong>
+                        <p>Anfitrión desde {{ experiencia.anf_desde[:4] if experiencia.anf_desde else '' }}</p>
+                        <div class="hc-stats">
+                            <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ experiencia.anf_cal or
+                                experiencia.calificacion }}</span>
+                            <span>·</span>
+                            <span>{{ experiencia.anf_res or experiencia.total_resenas }} reseñas</span>
+                        </div>
                     </div>
+                    <button class="contact-host-btn"><i class="ph ph-chat-circle"></i> Contactar</button>
                 </div>
-                <button class="contact-host-btn"><i class="ph ph-chat-circle"></i> Contactar</button>
-            </div>
+            </a>
         </div>
 
     </div><!-- end layout -->
@@ -606,6 +624,48 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/detalle_experiencia.js') }}"></script>
 
+    <script>
+        async function toggleFavorito(tipo, id) {
+            const btn = document.getElementById('btn-favorito');
+            const icon = btn.querySelector('i');
+            const text = document.getElementById('fav-text');
+            
+            if (btn.classList.contains('processing')) return;
+            btn.classList.add('processing');
+
+            try {
+                const res = await fetch('/api/favoritos/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, tipo: tipo })
+                });
+
+                if (res.status === 401) {
+                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+
+                const data = await res.json();
+                if (data.success) {
+                    const isAdded = data.status === 'added';
+                    btn.classList.toggle('active', isAdded);
+                    if (isAdded) {
+                        icon.classList.remove('ph');
+                        icon.classList.add('ph-fill');
+                        text.textContent = 'Guardado';
+                    } else {
+                        icon.classList.remove('ph-fill');
+                        icon.classList.add('ph');
+                        text.textContent = 'Guardar';
+                    }
+                }
+            } catch (err) {
+                console.error('Error:', err);
+            } finally {
+                btn.classList.remove('processing');
+            }
+        }
+    </script>
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 

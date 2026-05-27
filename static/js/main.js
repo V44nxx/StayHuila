@@ -73,6 +73,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         icon.classList.add('ph');
                         icon.style.color = '';
                         if(btn.id === 'btn-favorito') btn.innerHTML = '<i class="ph ph-heart"></i> Guardar';
+                        
+                        // Si estamos en la página de favoritos, eliminar la tarjeta automáticamente
+                        if (window.location.pathname === '/favoritos') {
+                            const card = btn.closest('.listing-card');
+                            if (card) {
+                                card.style.transition = 'all 0.4s ease';
+                                card.style.opacity = '0';
+                                card.style.transform = 'scale(0.9)';
+                                setTimeout(() => {
+                                    card.remove();
+                                    // Si no quedan tarjetas, recargar para mostrar el empty state
+                                    if (document.querySelectorAll('.listing-card').length === 0) {
+                                        window.location.reload();
+                                    }
+                                }, 400);
+                            }
+                        }
                     }
                 } else {
                     if(data.error === 'No autenticado' || res.status === 401) {

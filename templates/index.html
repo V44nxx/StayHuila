@@ -72,6 +72,12 @@
                 opacity: 0;
             }
         }
+
+        .favorite-btn.processing {
+            cursor: wait;
+            opacity: 0.7;
+            pointer-events: none;
+        }
     </style>
 </head>
 
@@ -272,8 +278,9 @@
                 <p style="color:var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus gustos</p>
             </div>
             <main class="listings-container" id="hospedajes">
+        {# Renderizado inicial: Hospedajes #}
         {% for h in hospedajes %}
-        <!-- Card {{ h.id }} -->
+        <!-- Card H-{{ h.id }} -->
         <article class="listing-card" onclick="window.location.href='/hospedaje/{{ h.id }}'" style="cursor:pointer;">
             <div class="image-wrapper">
                 <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
@@ -284,7 +291,6 @@
                 {% if h.descuento_porcentaje %}
                 <div class="discount-badge">-{{ h.descuento_porcentaje }}% Hoy</div>
                 {% endif %}
-                <button class="favorite-btn" onclick="event.stopPropagation()"><i class="ph ph-heart"></i></button>
             </div>
             <div class="listing-info">
                 <div class="listing-header">
@@ -297,6 +303,29 @@
                 <p class="price"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche
                 </p>
                 <a href="/hospedaje/{{ h.id }}" class="book-now-btn"
+                    style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
+            </div>
+        </article>
+        {% endfor %}
+
+        {# Renderizado inicial: Experiencias #}
+        {% for e in experiencias %}
+        <!-- Card E-{{ e.id }} -->
+        <article class="listing-card" onclick="window.location.href='/experiencia/{{ e.id }}'" style="cursor:pointer;">
+            <div class="image-wrapper">
+                <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
+                    alt="{{ e.tipo }}">
+            </div>
+            <div class="listing-info">
+                <div class="listing-header">
+                    <h3>{{ e.nombre }}</h3>
+                    <span class="rating"><i class="ph-fill ph-star"></i> {{ e.calificacion }} ({{ e.total_resenas or 0 }})</span>
+                </div>
+                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ e.municipio }}, Huila</p>
+                <p class="details">{{ e.descripcion_corta or e.tipo }}</p>
+                <p class="price"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> persona
+                </p>
+                <a href="/experiencia/{{ e.id }}" class="book-now-btn"
                     style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
             </div>
         </article>
@@ -446,7 +475,8 @@
                     "lng": {{ h.longitud or -75.5 }},
                     "precio": {{ h.precio_noche }},
                     "image": "{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}",
-                    "descuento_porcentaje": {{ h.descuento_porcentaje or 0 }}
+                    "descuento_porcentaje": {{ h.descuento_porcentaje or 0 }},
+                    "is_fav": {{ 1 if h.id in fav_hospedajes else 0 }}
                 }{% if not loop.last %},{% endif %}
                 {% endfor %}
             ],
@@ -465,7 +495,8 @@
                     "lat": {{ e.latitud or 2.5 }},
                     "lng": {{ e.longitud or -75.5 }},
                     "precio": {{ e.precio_persona }},
-                    "image": "{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
+                    "image": "{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}",
+                    "is_fav": {{ 1 if e.id in fav_experiencias else 0 }}
                 }{% if not loop.last %},{% endif %}
                 {% endfor %}
             ]
@@ -561,7 +592,6 @@
                         ${repairHtml}
                         ${badgeHtml}
                         ${discountHtml}
-                        <button class="favorite-btn" data-id="${item.id}" data-tipo="${item.tipo_publicacion}" onclick="toggleFavInline(event, this)"><i class="ph ph-heart"></i></button>
                     </div>
                     <div class="listing-info">
                         <div class="listing-header">
@@ -582,10 +612,13 @@
         async function toggleFavInline(e, btn) {
             e.preventDefault();
             e.stopPropagation();
+            if (btn.classList.contains('processing')) return;
+            
             let id = btn.getAttribute('data-id');
             let tipo = btn.getAttribute('data-tipo');
             if (!id || !tipo) return;
 
+            btn.classList.add('processing');
             try {
                 const res = await fetch('/api/favoritos/toggle', {
                     method: 'POST',
@@ -598,13 +631,23 @@
                 }
                 const data = await res.json();
                 if (data.success) {
-                    btn.classList.toggle('active');
+                    const isAdded = data.status === 'added';
+                    
+                    // Actualizar estado en el array global allItems para que persista al filtrar
+                    const item = allItems.find(i => String(i.id) === String(id) && i.tipo_publicacion === tipo);
+                    if (item) {
+                        item.is_fav = isAdded ? 1 : 0;
+                    }
+
+                    // Actualizar UI del botón actual de forma determinista
                     const icon = btn.querySelector('i');
-                    if (data.status === 'added') {
+                    if (isAdded) {
+                        btn.classList.add('active');
                         icon.classList.remove('ph');
                         icon.classList.add('ph-fill');
                         icon.style.color = '#ff385c';
                     } else {
+                        btn.classList.remove('active');
                         icon.classList.remove('ph-fill');
                         icon.classList.add('ph');
                         icon.style.color = '';
@@ -612,6 +655,8 @@
                 }
             } catch (err) {
                 console.error(err);
+            } finally {
+                btn.classList.remove('processing');
             }
         }
 

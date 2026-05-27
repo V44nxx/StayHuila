@@ -12,6 +12,7 @@ import requests
 import hashlib
 import hmac
 import traceback
+import time
 from payment_service import PaymentService, NequiProvider
 # Módulo de validación y optimización de imágenes (OpenCV + Pillow)
 from image_optimizer import process_image
@@ -142,8 +143,8 @@ def db():
 
 def _ensure_columns():
     """Auto-migra columnas opcionales y tablas nuevas (seguro ejecutar varias veces)."""
+    c = db()
     try:
-        c = db()
         with c.cursor() as cur:
             # ── Crédito de descuento en usuarios ─────────────────────────────
             cur.execute("SHOW COLUMNS FROM usuarios LIKE 'credito_descuento'")
@@ -177,6 +178,11 @@ def _ensure_columns():
                     INDEX idx_exp_fecha (experiencia_id, fecha)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+
+            # ── Columna tiempo_respuesta en anfitriones ──────────────────────
+            cur.execute("SHOW COLUMNS FROM anfitriones LIKE 'tiempo_respuesta'")
+            if not cur.fetchone():
+                cur.execute("ALTER TABLE anfitriones ADD COLUMN tiempo_respuesta VARCHAR(50) NULL DEFAULT 'Pocas horas'")
 
             # ── Columna sesion_id en reservas ────────────────────────────────
             cur.execute("SHOW COLUMNS FROM reservas LIKE 'sesion_id'")
@@ -285,9 +291,10 @@ def _ensure_columns():
             """)
 
         c.commit()
+    except Exception as e:
+        print(f"Error en _ensure_columns: {e}")
+    finally:
         c.close()
-    except Exception:
-        pass
 _ensure_columns()
 
 def serialize(obj):
@@ -322,6 +329,7 @@ class User(UserMixin):
         self.id = d['id']; self.nombre = d['nombre']; self.apellido = d['apellido']
         self.email = d['email']; self.tipo = d['tipo']; self.puntos = d['puntos_gamificacion']
         self.foto_perfil = d.get('foto_perfil')
+        self.telefono = d.get('telefono')
         self.credito_descuento = float(d.get('credito_descuento') or 0)
 
 @login_manager.user_loader
@@ -1164,7 +1172,18 @@ def home():
                 WHERE e.activo=1 AND e.eliminado=0 AND e.estado='abierta' AND e.verificado=1
                 ORDER BY e.destacado DESC,e.calificacion DESC""")
             experiencias = serialize(cur.fetchall())
-        return render_template('index.html', hospedajes=hospedajes, experiencias=experiencias)
+
+            # Obtener favoritos del usuario si está autenticado
+            fav_hospedajes = []
+            fav_experiencias = []
+            if current_user.is_authenticated:
+                cur.execute("SELECT hospedaje_id FROM favoritos WHERE usuario_id=%s AND tipo='hospedaje' AND hospedaje_id IS NOT NULL", (current_user.id,))
+                fav_hospedajes = [f['hospedaje_id'] for f in cur.fetchall()]
+                cur.execute("SELECT experiencia_id FROM favoritos WHERE usuario_id=%s AND tipo='experiencia' AND experiencia_id IS NOT NULL", (current_user.id,))
+                fav_experiencias = [f['experiencia_id'] for f in cur.fetchall()]
+
+        return render_template('index.html', hospedajes=hospedajes, experiencias=experiencias, 
+                               fav_hospedajes=fav_hospedajes, fav_experiencias=fav_experiencias)
     finally:
         c.close()
 
@@ -1261,7 +1280,7 @@ def detalle_hospedaje(id):
             cur.execute("SELECT * FROM hospedaje_imagenes WHERE hospedaje_id=%s ORDER BY orden", (id,))
             imgs = cur.fetchall()
             cur.execute("SELECT servicio FROM hospedaje_servicios WHERE hospedaje_id=%s", (id,))
-            servicios = [r['servicio'] for r in cur.fetchall()]
+            servicios = [r['servicio'] for r in cur.fetchall() if r['servicio'] and r['servicio'].strip()]
             cur.execute("""SELECT r.*,u.nombre,u.apellido,u.foto_perfil FROM resenas r
                 JOIN usuarios u ON r.usuario_id=u.id
                 WHERE r.hospedaje_id=%s AND r.publicada=1 ORDER BY r.fecha_resena DESC LIMIT 6""", (id,))
@@ -1273,17 +1292,23 @@ def detalle_hospedaje(id):
                 ORDER BY RAND() LIMIT 3""", (id,))
             sugerencias = cur.fetchall()
             ya_reseno = False
+            es_favorito = False
             if current_user.is_authenticated:
                 cur.execute("SELECT id FROM resenas WHERE hospedaje_id=%s AND usuario_id=%s LIMIT 1",
                             (id, current_user.id))
                 ya_reseno = cur.fetchone() is not None
+                
+                cur.execute("SELECT id FROM favoritos WHERE usuario_id=%s AND hospedaje_id=%s LIMIT 1",
+                            (current_user.id, id))
+                es_favorito = cur.fetchone() is not None
+
             hosp = serialize(hosp)
             imgs = serialize(cur.fetchall()) if False else serialize(imgs)
             sugerencias = serialize(sugerencias)
         return render_template('detalle_hospedaje.html', hospedaje=hosp,
                                imagenes=imgs, servicios=servicios,
                                resenas=resenas, sugerencias=sugerencias,
-                               ya_reseno=ya_reseno)
+                               ya_reseno=ya_reseno, es_favorito=es_favorito)
     finally:
         c.close()
 
@@ -1364,16 +1389,22 @@ def detalle_experiencia(id):
                 ORDER BY RAND() LIMIT 3""", (id,))
             sugerencias = cur.fetchall()
             ya_reseno = False
+            es_favorito = False
             if current_user.is_authenticated:
                 cur.execute("SELECT id FROM resenas WHERE experiencia_id=%s AND usuario_id=%s LIMIT 1",
                             (id, current_user.id))
                 ya_reseno = cur.fetchone() is not None
+
+                cur.execute("SELECT id FROM favoritos WHERE usuario_id=%s AND experiencia_id=%s LIMIT 1",
+                            (current_user.id, id))
+                es_favorito = cur.fetchone() is not None
+
             exp = serialize(exp)
             imgs = serialize(imgs)
             sugerencias = serialize(sugerencias)
         return render_template('detalle_experiencia.html', experiencia=exp,
                                imagenes=imgs, resenas=resenas, sugerencias=sugerencias,
-                               ya_reseno=ya_reseno)
+                               ya_reseno=ya_reseno, es_favorito=es_favorito)
     finally:
         c.close()
 
@@ -1493,6 +1524,89 @@ def logout():
 def mis_puntos():
     return render_template('mis_puntos.html')
 
+@app.route('/anfitrion/<int:id>')
+def perfil_anfitrion(id):
+    """Muestra el perfil público de un anfitrión con sus publicaciones y estadísticas."""
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # 1. Información del usuario y estadísticas de anfitrión
+            cur.execute("""
+                SELECT u.id, u.nombre, u.apellido, u.foto_perfil, u.bio, u.idiomas, u.fecha_registro, u.telefono,
+                       a.super_anfitrion, a.calificacion_promedio, a.total_resenas, a.tiempo_respuesta
+                FROM usuarios u
+                LEFT JOIN anfitriones a ON u.id = a.usuario_id
+                WHERE u.id = %s AND u.activo = 1
+            """, (id,))
+            host = cur.fetchone()
+            
+            if not host:
+                flash('Anfitrión no encontrado.', 'error')
+                return redirect(url_for('home'))
+
+            # 2. Hospedajes del anfitrión
+            cur.execute("""
+                SELECT h.*, i.url as image
+                FROM hospedajes h
+                LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                WHERE h.anfitrion_id = %s AND h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
+            """, (id,))
+            hospedajes = serialize(cur.fetchall())
+
+            # 3. Experiencias del anfitrión
+            cur.execute("""
+                SELECT e.*, i.url as image
+                FROM experiencias e
+                LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
+                WHERE e.anfitrion_id = %s AND e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
+            """, (id,))
+            experiencias = serialize(cur.fetchall())
+
+            # 4. Reseñas recibidas (de todos sus hospedajes/experiencias)
+            cur.execute("""
+                (SELECT r.*, u.nombre, u.apellido, u.foto_perfil, h.nombre as pub_nombre, 'hospedaje' as pub_tipo
+                 FROM resenas r
+                 JOIN usuarios u ON r.usuario_id = u.id
+                 JOIN hospedajes h ON r.hospedaje_id = h.id
+                 WHERE h.anfitrion_id = %s AND r.publicada = 1)
+                UNION
+                (SELECT r.*, u.nombre, u.apellido, u.foto_perfil, e.nombre as pub_nombre, 'experiencia' as pub_tipo
+                 FROM resenas r
+                 JOIN usuarios u ON r.usuario_id = u.id
+                 JOIN experiencias e ON r.experiencia_id = e.id
+                 WHERE e.anfitrion_id = %s AND r.publicada = 1)
+                ORDER BY fecha_resena DESC LIMIT 10
+            """, (id, id))
+            resenas = cur.fetchall()
+
+            # 5. Calcular estadísticas reales (promedio y total de reseñas)
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    AVG(calificacion_general) as promedio
+                FROM (
+                    SELECT r.calificacion_general
+                    FROM resenas r
+                    JOIN hospedajes h ON r.hospedaje_id = h.id
+                    WHERE h.anfitrion_id = %s AND r.publicada = 1
+                    UNION ALL
+                    SELECT r.calificacion_general
+                    FROM resenas r
+                    JOIN experiencias e ON r.experiencia_id = e.id
+                    WHERE e.anfitrion_id = %s AND r.publicada = 1
+                ) as todas_resenas
+            """, (id, id))
+            stats_reales = cur.fetchone()
+            
+            # Actualizar el objeto host con las estadísticas reales para el template
+            host['total_resenas'] = stats_reales['total'] or 0
+            host['calificacion_promedio'] = float(stats_reales['promedio'] or 5.0)
+
+        return render_template('perfil_anfitrion.html', host=host, hospedajes=hospedajes, 
+                               experiencias=experiencias, resenas=resenas)
+    finally:
+        c.close()
+
 @app.route('/perfil', methods=['GET', 'POST'])
 @login_required
 def perfil():
@@ -1501,6 +1615,10 @@ def perfil():
         apellido = request.form.get('apellido', '').strip()[:40]
         telefono = request.form.get('telefono', '').strip()
         telefono = ''.join(c for c in telefono if c.isdigit())[:10]
+        
+        if telefono and len(telefono) < 10:
+            flash('El número de teléfono debe tener 10 dígitos', 'error')
+            return redirect(url_for('perfil'))
         new_pw = request.form.get('new_password', '')
         conf_pw = request.form.get('confirm_password', '')
         
@@ -1579,37 +1697,63 @@ def toggle_favorito():
     tipo = data.get('tipo')
     item_id = data.get('id')
     
-    c = db()
-    try:
-        with c.cursor() as cur:
-            if tipo == 'hospedaje':
-                cur.execute("SELECT id FROM favoritos WHERE usuario_id=%s AND hospedaje_id=%s", (current_user.id, item_id))
-                fav = cur.fetchone()
-                if fav:
-                    cur.execute("DELETE FROM favoritos WHERE id=%s", (fav['id'],))
-                    status = 'removed'
+    # Reintento automático en caso de Deadlock (error 1213)
+    for attempt in range(3):
+        c = db()
+        try:
+            with c.cursor() as cur:
+                if tipo == 'hospedaje':
+                    # Intentar eliminar primero para toggle
+                    cur.execute("DELETE FROM favoritos WHERE usuario_id=%s AND hospedaje_id=%s", (current_user.id, item_id))
+                    if cur.rowcount > 0:
+                        status = 'removed'
+                    else:
+                        try:
+                            cur.execute("INSERT INTO favoritos (usuario_id, tipo, hospedaje_id) VALUES (%s, %s, %s)", (current_user.id, tipo, item_id))
+                            status = 'added'
+                        except pymysql.err.IntegrityError as e:
+                            if e.args[0] == 1062: # Duplicate entry
+                                status = 'added'
+                            else:
+                                raise e
+                elif tipo == 'experiencia':
+                    cur.execute("DELETE FROM favoritos WHERE usuario_id=%s AND experiencia_id=%s", (current_user.id, item_id))
+                    if cur.rowcount > 0:
+                        status = 'removed'
+                    else:
+                        try:
+                            cur.execute("INSERT INTO favoritos (usuario_id, tipo, experiencia_id) VALUES (%s, %s, %s)", (current_user.id, tipo, item_id))
+                            status = 'added'
+                        except pymysql.err.IntegrityError as e:
+                            if e.args[0] == 1062:
+                                status = 'added'
+                            else:
+                                raise e
                 else:
-                    cur.execute("INSERT INTO favoritos (usuario_id, tipo, hospedaje_id) VALUES (%s, %s, %s)", (current_user.id, tipo, item_id))
-                    status = 'added'
-            elif tipo == 'experiencia':
-                cur.execute("SELECT id FROM favoritos WHERE usuario_id=%s AND experiencia_id=%s", (current_user.id, item_id))
-                fav = cur.fetchone()
-                if fav:
-                    cur.execute("DELETE FROM favoritos WHERE id=%s", (fav['id'],))
-                    status = 'removed'
-                else:
-                    cur.execute("INSERT INTO favoritos (usuario_id, tipo, experiencia_id) VALUES (%s, %s, %s)", (current_user.id, tipo, item_id))
-                    status = 'added'
-            else:
-                return jsonify({'success': False, 'error': 'Tipo no válido'}), 400
-            
-            c.commit()
-            return jsonify({'success': True, 'status': status})
-    except Exception as e:
-        c.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
-    finally:
-        c.close()
+                    return jsonify({'success': False, 'error': 'Tipo no válido'}), 400
+                
+                c.commit()
+                return jsonify({'success': True, 'status': status})
+        except (pymysql.err.OperationalError, pymysql.OperationalError) as e:
+            if e.args[0] in (1213, 1205): # Deadlock o Lock wait timeout
+                app.logger.warning(f"Conflicto de bloqueo en toggle_favorito (intento {attempt+1}). Reintentando...")
+                time.sleep(0.2 * (attempt + 1))
+                continue
+            raise e
+        except (pymysql.err.IntegrityError, pymysql.IntegrityError) as e:
+            if e.args[0] == 1062: # Duplicate entry
+                status = 'added'
+                c.commit()
+                return jsonify({'success': True, 'status': status})
+            raise e
+        except Exception as e:
+            if 'c' in locals(): c.rollback()
+            app.logger.error(f"Error en toggle_favorito: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+        finally:
+            if 'c' in locals(): c.close()
+    
+    return jsonify({'success': False, 'error': 'Error de concurrencia persistente'}), 500
 
 @app.route('/favoritos')
 @login_required
