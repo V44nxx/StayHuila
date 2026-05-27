@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil de {{ host.nombre }} | StayHuila</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --primary: #2C4A3B;
+            --secondary: #E36414;
+            --text-main: #1A1A1A;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --bg-color: #F8F9FA;
+        }
+
+        /* Corregir Navbar en Perfil */
+        .navbar-solid {
+            background: white !important;
+            color: var(--text-main) !important;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+        .navbar-solid .nav-links a, 
+        .navbar-solid .logo span,
+        .navbar-solid .user-menu {
+            color: var(--text-main) !important;
+        }
+        .navbar-solid .profile-btn {
+            background: #f3f4f6;
+            border: 1px solid var(--border);
+        }
+
+        .profile-container {
+            max-width: 1200px;
+            margin: 120px auto 50px;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 4rem;
+        }
+
+        @media (max-width: 992px) {
+            .profile-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        /* Sidebar Card */
+        .profile-sidebar-card {
+            background: white;
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            text-align: center;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .host-avatar-large {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 1.2rem;
+        }
+
+        .host-name-large {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .host-badge-super {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+            text-align: left;
+        }
+
+        .stat-item strong {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .stat-item span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Main Content */
+        .profile-main-content h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .bio-section {
+            margin-bottom: 3rem;
+        }
+
+        .bio-text {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #4b5563;
+        }
+
+        .idiomas-list {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .idioma-tag {
+            background: #f3f4f6;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        .listings-section {
+            margin-bottom: 3rem;
+        }
+
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Listing Mini Card */
+        .mini-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mini-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+
+        .mini-card-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .mini-card:hover .mini-card-img {
+            transform: scale(1.05);
+        }
+
+        .mini-card-info {
+            padding: 1.2rem;
+        }
+
+        .mini-card-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mini-card-price {
+            font-size: 1rem;
+            color: var(--primary);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Review Styles */
+        .reviews-section {
+            margin-top: 4rem;
+        }
+
+        .review-card-modern {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        .review-card-modern:hover {
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .review-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+
+        .review-user-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            display: block;
+        }
+
+        .review-date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .review-content {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #4b5563;
+        }
+
+        .review-pub {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f3f4f6;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Perfil Buttons */
+        .btn-perfil-pri {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            transition: all 0.3s ease;
+        }
+        .btn-perfil-pri:hover {
+            background: #1a2e24;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(44, 74, 59, 0.2);
+        }
+
+        .btn-perfil-sec {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 12px;
+            background: white;
+            color: var(--text-main);
+            border: 1.5px solid var(--border);
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            transition: all 0.3s ease;
+        }
+        .btn-perfil-sec:hover {
+            background: #f9fafb;
+            border-color: var(--text-main);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    {% include '_flash_toasts.html' %}
+
+    <header class="navbar navbar-solid" id="navbar">
+        <div class="logo" onclick="window.location.href='/'">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img"
+                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <span>StayHuila</span>
+        </div>
+        <nav class="nav-links">
+            <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
+            <a href="/experiencias" data-i18n="nav.experiences">Experiencias</a>
+            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;" data-i18n="nav.host_panel">Panel
+                Anfitrion</a>
+        </nav>
+        <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            {% if current_user.is_authenticated %}
+            <div class="profile-btn" style="position:relative;"
+                onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <i class="ph ph-list"></i>
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
+                    alt="Avatar"
+                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+
+                <!-- Dropdown -->
+                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                    <div class="dropdown-header">
+                        <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                        <span>{{ current_user.email }}</span>
+                    </div>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span
+                            data-i18n="nav.my_profile">Mi Perfil</span></a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span
+                            data-i18n="nav.my_bookings">Mis Reservas</span></a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span
+                            data-i18n="nav.my_favorites">Mis Favoritos</span></a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span
+                            data-i18n="nav.host_panel">Panel Anfitrión</span></a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span
+                            data-i18n="nav.logout">Cerrar Sesión</span></a>
+                </div>
+            </div>
+            {% else %}
+            <div class="profile-btn" onclick="window.location.href='/login'">
+                <i class="ph ph-list"></i>
+                <i class="ph-fill ph-user-circle"></i>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="profile-container">
+        <!-- Sidebar -->
+        <aside class="profile-sidebar">
+            <div class="profile-sidebar-card">
+                <img src="{{ host.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ host.nombre ~ '&background=random' }}" alt="{{ host.nombre }}" class="host-avatar-large">
+                <h1 class="host-name-large">{{ host.nombre }}</h1>
+                
+                {% if host.super_anfitrion %}
+                <div class="host-badge-super">
+                    <i class="ph-fill ph-medal"></i> SuperAnfitrión
+                </div>
+                {% endif %}
+
+                <div class="sidebar-stats">
+                    <div class="stat-item">
+                        <strong>{{ host.total_resenas or 0 }}</strong>
+                        <span>Reseñas</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>{{ "%.1f"|format(host.calificacion_promedio or 5.0) }}</strong>
+                        <span>Promedio</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem; display: flex; flex-direction: column; gap: 0.8rem;">
+                    <button class="btn-perfil-sec" onclick="window.navigator.share({title: 'Perfil de {{ host.nombre }} en StayHuila', url: window.location.href})">
+                        <i class="ph ph-share-network"></i> Compartir perfil
+                    </button>
+                    <button class="btn-perfil-pri" onclick="window.location.href='https://wa.me/{{ host.telefono }}'">
+                        <i class="ph ph-chat-circle"></i> Contactar anfitrión
+                    </button>
+                </div>
+                
+                <div style="margin-top: 2rem; text-align: left; font-size: 0.9rem; color: var(--text-muted); background: #f8fafc; padding: 1rem; border-radius: 12px;">
+                    <p style="margin-bottom: 0.8rem;"><i class="ph ph-calendar" style="color: var(--primary);"></i> En StayHuila desde {{ host.fecha_registro.year if host.fecha_registro else '2024' }}</p>
+                    <p style="margin-bottom: 0.8rem;"><i class="ph ph-clock" style="color: var(--primary);"></i> Responde en {{ host.tiempo_respuesta or 'pocas horas' }}</p>
+                    <p style="margin: 0;"><i class="ph ph-shield-check" style="color: var(--primary);"></i> Identidad verificada</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="profile-main-content">
+            <div class="bio-section">
+                <h2>Acerca de {{ host.nombre }}</h2>
+                <p class="bio-text">
+                    {{ host.bio or 'Este anfitrión aún no ha añadido una biografía, pero está listo para recibirte con la mejor hospitalidad del Huila.' }}
+                </p>
+                {% if host.idiomas %}
+                <div class="idiomas-list">
+                    {% for idioma in host.idiomas.split(',') %}
+                    <span class="idioma-tag"><i class="ph ph-translate"></i> {{ idioma.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if hospedajes %}
+            <div class="listings-section">
+                <h2>Hospedajes de {{ host.nombre }}</h2>
+                <div class="listings-grid">
+                    {% for h in hospedajes %}
+                    <div class="mini-card" onclick="window.location.href='/hospedaje/{{ h.id }}'">
+                        <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}" class="mini-card-img" alt="{{ h.nombre }}">
+                        <div class="mini-card-info">
+                            <div class="mini-card-title">{{ h.nombre }}</div>
+                            <div class="mini-card-price">${{ "{:,.0f}".format(h.precio_noche).replace(',','.') }} COP</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if experiencias %}
+            <div class="listings-section">
+                <h2>Experiencias de {{ host.nombre }}</h2>
+                <div class="listings-grid">
+                    {% for e in experiencias %}
+                    <div class="mini-card" onclick="window.location.href='/experiencia/{{ e.id }}'">
+                        <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}" class="mini-card-img" alt="{{ e.nombre }}">
+                        <div class="mini-card-info">
+                            <div class="mini-card-title">{{ e.nombre }}</div>
+                            <div class="mini-card-price">${{ "{:,.0f}".format(e.precio_persona).replace(',','.') }} COP</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if resenas %}
+            <div class="reviews-section">
+                <h2>Lo que dicen los huéspedes</h2>
+                <div style="display: grid; gap: 1rem;">
+                    {% for r in resenas %}
+                    <div class="review-card-modern">
+                        <div class="review-header">
+                            <img src="{{ r.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ r.nombre ~ '&background=random' }}" class="review-avatar" alt="{{ r.nombre }}">
+                            <div>
+                                <span class="review-user-name">{{ r.nombre }} {{ r.apellido }}</span>
+                                <span class="review-date">{{ r.fecha_resena.strftime('%B %Y') if r.fecha_resena else '' }}</span>
+                            </div>
+                            <div style="margin-left: auto; color: #F59E0B;">
+                                {% for i in range(r.calificacion_general|int) %}<i class="ph-fill ph-star"></i>{% endfor %}
+                            </div>
+                        </div>
+                        <p class="review-content">{{ r.comentario }}</p>
+                        <p class="review-pub"><i class="ph ph-tag"></i> Sobre: {{ r.pub_nombre }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="reviews-section">
+                <h2>Reseñas</h2>
+                <p class="text-muted">Este anfitrión aún no tiene reseñas, ¡sé el primero en visitarlo!</p>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+</body>
+</html>

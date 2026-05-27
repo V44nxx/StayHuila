@@ -31,6 +31,15 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+    <style>
+        .action-btn.active {
+            color: #ff385c !important;
+            border-color: #ff385c !important;
+        }
+        .action-btn.active i {
+            color: #ff385c !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -106,7 +115,10 @@
             </div>
             <div class="detalle-actions">
                 <button class="action-btn" id="btn-compartir"><i class="ph ph-share-network"></i> <span data-i18n="detail.share">Compartir</span></button>
-                <button class="action-btn" id="btn-favorito"><i class="ph ph-heart"></i> <span data-i18n="detail.save">Guardar</span></button>
+                <button class="action-btn {{ 'active' if es_favorito }}" id="btn-favorito" onclick="toggleFavorito('hospedaje', {{ hospedaje.id }})">
+                    <i class="{{ 'ph-fill' if es_favorito else 'ph' }} ph-heart"></i> 
+                    <span id="fav-text">{{ 'Guardado' if es_favorito else 'Guardar' }}</span>
+                </button>
             </div>
         </div>
 
@@ -150,25 +162,29 @@
             <!-- INFO BÁSICA -->
             <div class="detalle-card info-card">
                 <div class="host-row">
-                    <div>
-                        <h2 class="hosted-by">{{ hospedaje.tipo }} en {{ hospedaje.municipio }} — Anfitrión: {{
-                            hospedaje.anf_nombre ~ " " ~ hospedaje.anf_apellido }}</h2>
-                        <div class="capacidad-row">
-                            <span><i class="ph ph-users"></i> {{ hospedaje.capacidad_max }} huéspedes</span>
-                            <span>·</span>
-                            <span><i class="ph ph-door"></i> {{ hospedaje.num_habitaciones }} habitaciones</span>
-                            <span>·</span>
-                            <span><i class="ph ph-bed"></i> {{ hospedaje.num_habitaciones }} camas</span>
-                            <span>·</span>
-                            <span><i class="ph ph-bathtub"></i> {{ hospedaje.num_banos }} baños</span>
+                    <a href="/anfitrion/{{ hospedaje.anfitrion_id }}" style="text-decoration: none; color: inherit; flex: 1;">
+                        <div>
+                            <h2 class="hosted-by">{{ hospedaje.tipo }} en {{ hospedaje.municipio }} — Anfitrión: {{
+                                hospedaje.anf_nombre ~ " " ~ hospedaje.anf_apellido }}</h2>
+                            <div class="capacidad-row">
+                                <span><i class="ph ph-users"></i> {{ hospedaje.capacidad_max }} huéspedes</span>
+                                <span>·</span>
+                                <span><i class="ph ph-door"></i> {{ hospedaje.num_habitaciones }} habitaciones</span>
+                                <span>·</span>
+                                <span><i class="ph ph-bed"></i> {{ hospedaje.num_habitaciones }} camas</span>
+                                <span>·</span>
+                                <span><i class="ph ph-bathtub"></i> {{ hospedaje.num_banos }} baños</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="host-avatar-wrap">
-                        <img src="{{ hospedaje.anf_foto or 'https://ui-avatars.com/api/?name=' ~ hospedaje.anf_nombre ~ '&background=random' }}"
-                            alt="{{ hospedaje.anf_nombre ~ ' ' ~ hospedaje.anf_apellido }}" class="host-avatar">
-                        {% if hospedaje.super_anfitrion %}<div class="super-badge-avatar"><i
-                                class="ph-fill ph-medal"></i></div>{% endif %}
-                    </div>
+                    </a>
+                    <a href="/anfitrion/{{ hospedaje.anfitrion_id }}" style="text-decoration: none;">
+                        <div class="host-avatar-wrap">
+                            <img src="{{ hospedaje.anf_foto or 'https://ui-avatars.com/api/?name=' ~ hospedaje.anf_nombre ~ '&background=random' }}"
+                                alt="{{ hospedaje.anf_nombre ~ ' ' ~ hospedaje.anf_apellido }}" class="host-avatar">
+                            {% if hospedaje.super_anfitrion %}<div class="super-badge-avatar"><i
+                                    class="ph-fill ph-medal"></i></div>{% endif %}
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -255,12 +271,13 @@
                     'vistas_montaña': ('ph-mountains', 'Vistas a la montaña')
                     } %}
                     {% for s in servicios %}
-                    {% set icon = amenity_map.get(s, ('ph-check-circle', s))[0] %}
-                    {% set label = amenity_map.get(s, ('ph-check-circle', s))[1] %}
+                    {% set am_data = amenity_map.get(s, ('ph-check-circle', s)) %}
+                    {% if am_data[1] and am_data[1]|trim %}
                     <div class="amenidad-item">
-                        <i class="ph {{ icon }}"></i>
-                        <span>{{ label }}</span>
+                        <i class="ph {{ am_data[0] }}"></i>
+                        <span>{{ am_data[1] }}</span>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -499,20 +516,22 @@
             </div>
 
             <!-- Card anfitrión -->
-            <div class="host-card">
-                <img src="{{ hospedaje.anf_foto or 'https://ui-avatars.com/api/?name=' ~ hospedaje.anf_nombre ~ '&background=random' }}" alt="{{ hospedaje.anf_nombre ~ ' ' ~ hospedaje.anf_apellido }}" class="hc-avatar">
-                <div class="hc-info">
-                    <strong>{{ hospedaje.anf_nombre ~ " " ~ hospedaje.anf_apellido }}</strong>
-                    <p>Anfitrión desde {{ hospedaje.anf_desde[:4] if hospedaje.anf_desde else '' }}</p>
-                    <div class="hc-stats">
-                        <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ hospedaje.anf_cal or
-                            hospedaje.calificacion }}</span>
-                        <span>·</span>
-                        <span>{{ hospedaje.anf_res or hospedaje.total_resenas }} reseñas</span>
+            <a href="/anfitrion/{{ hospedaje.anfitrion_id }}" style="text-decoration: none; color: inherit;">
+                <div class="host-card">
+                    <img src="{{ hospedaje.anf_foto or 'https://ui-avatars.com/api/?name=' ~ hospedaje.anf_nombre ~ '&background=random' }}" alt="{{ hospedaje.anf_nombre ~ ' ' ~ hospedaje.anf_apellido }}" class="hc-avatar">
+                    <div class="hc-info">
+                        <strong>{{ hospedaje.anf_nombre ~ " " ~ hospedaje.anf_apellido }}</strong>
+                        <p>Anfitrión desde {{ hospedaje.anf_desde[:4] if hospedaje.anf_desde else '' }}</p>
+                        <div class="hc-stats">
+                            <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ hospedaje.anf_cal or
+                                hospedaje.calificacion }}</span>
+                            <span>·</span>
+                            <span>{{ hospedaje.anf_res or hospedaje.total_resenas }} reseñas</span>
+                        </div>
                     </div>
+                    <button class="contact-host-btn"><i class="ph ph-chat-circle"></i> Contactar</button>
                 </div>
-                <button class="contact-host-btn"><i class="ph ph-chat-circle"></i> Contactar</button>
-            </div>
+            </a>
         </div>
 
     </div><!-- end layout -->
@@ -568,6 +587,48 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/detalle.js') }}"></script>
 
+    <script>
+        async function toggleFavorito(tipo, id) {
+            const btn = document.getElementById('btn-favorito');
+            const icon = btn.querySelector('i');
+            const text = document.getElementById('fav-text');
+            
+            if (btn.classList.contains('processing')) return;
+            btn.classList.add('processing');
+
+            try {
+                const res = await fetch('/api/favoritos/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, tipo: tipo })
+                });
+
+                if (res.status === 401) {
+                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+
+                const data = await res.json();
+                if (data.success) {
+                    const isAdded = data.status === 'added';
+                    btn.classList.toggle('active', isAdded);
+                    if (isAdded) {
+                        icon.classList.remove('ph');
+                        icon.classList.add('ph-fill');
+                        text.textContent = 'Guardado';
+                    } else {
+                        icon.classList.remove('ph-fill');
+                        icon.classList.add('ph');
+                        text.textContent = 'Guardar';
+                    }
+                }
+            } catch (err) {
+                console.error('Error:', err);
+            } finally {
+                btn.classList.remove('processing');
+            }
+        }
+    </script>
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
 
