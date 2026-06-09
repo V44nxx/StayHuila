@@ -3,12 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check-in | StayHuila</title>
+    <title>{% if es_anfitrion %}Recibir Huésped{% else %}Check-in{% endif %} | StayHuila</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/checkin.css') }}">
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+    <style>
+        /* Variante para anfitrión */
+        .ci-hero.host{background:linear-gradient(135deg,#6d28d9,#8b5cf6);}
+        .ci-hero.host::after{content:'🔑';}
+        .guest-card{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;}
+        .guest-avatar{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #ede9fe;}
+        .guest-info strong{display:block;font-size:1.15rem;}
+        .guest-info span{color:var(--text-muted);font-size:.9rem;display:block;margin-top:.15rem;}
+        .quick-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem;}
+        .qa-btn{flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1rem;border-radius:12px;border:1.5px solid var(--border);background:white;cursor:pointer;font-family:inherit;font-weight:600;font-size:.9rem;color:var(--text-main);text-decoration:none;transition:all .2s;}
+        .qa-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08);}
+        .qa-btn.wa{background:#25D366;color:white;border-color:#25D366;}
+        .qa-btn.tel{background:var(--primary);color:white;border-color:var(--primary);}
+        .qa-btn.mail{background:#3b82f6;color:white;border-color:#3b82f6;}
+        .reserva-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;}
+        .rs-item{background:var(--bg-color);border-radius:12px;padding:.9rem;text-align:center;}
+        .rs-item strong{display:block;font-size:.7rem;color:var(--text-muted);letter-spacing:.05em;margin-bottom:.3rem;}
+        .rs-item span{font-weight:700;font-size:.95rem;color:var(--text-main);}
+        .btn-ci.host{background:linear-gradient(135deg,#6d28d9,#8b5cf6);box-shadow:0 4px 15px rgba(139,92,246,.3);}
+        .btn-ci.host:hover:not(:disabled){box-shadow:0 8px 25px rgba(139,92,246,.4);}
+    </style>
 </head>
 <body>
 {% include '_flash_toasts.html' %}
@@ -17,49 +38,147 @@
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
         <span>StayHuila</span>
     </div>
-                    <div class="user-menu">
-            <div class="language-selector">
-                <i class="ph ph-globe"></i> ES
-            </div>
-            {% if current_user.is_authenticated %}
-                {% if current_user.tipo in ['anfitrion','admin'] %}
-                <a href="/panel-anfitrion" class="host-btn" style="text-decoration:none;">Panel Anfitrión</a>
-                {% endif %}
-                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
-                    <i class="ph ph-list"></i>
-                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
-                    
-                    <!-- Dropdown -->
-                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
-                        <div class="dropdown-header">
-                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
-                            <span>{{ current_user.email }}</span>
-                        </div>
-                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
-                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
-                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
-                        <div class="dropdown-divider"></div>
-                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+    <div class="user-menu">
+        <div class="language-selector">
+            <i class="ph ph-globe"></i> ES
+        </div>
+        {% if current_user.is_authenticated %}
+            {% if current_user.tipo in ['anfitrion','admin'] %}
+            <a href="/panel-anfitrion" class="host-btn" style="text-decoration:none;">Panel Anfitrión</a>
+            {% endif %}
+            <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <i class="ph ph-list"></i>
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                    <div class="dropdown-header">
+                        <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                        <span>{{ current_user.email }}</span>
                     </div>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
                 </div>
-            {% else %}
-                <button class="host-btn" onclick="window.location.href='/login?tab=register'">Pon tu espacio en StayHuila</button>
-                <div class="profile-btn" onclick="window.location.href='/login'">
-                    <i class="ph ph-list"></i>
-                    <i class="ph-fill ph-user-circle"></i>
-                </div>
+            </div>
+        {% endif %}
+    </div>
+</header>
+
+<div class="ci-page">
+
+{% if es_anfitrion %}
+    {# ════════════════════════════════════════════════════════════════ #}
+    {# ═══════════════════ VISTA DEL ANFITRIÓN ═══════════════════════ #}
+    {# ════════════════════════════════════════════════════════════════ #}
+
+    <!-- Hero Anfitrión -->
+    <div class="ci-hero host">
+        <div class="ci-hero-icon"><i class="ph-fill ph-house-line"></i></div>
+        <div>
+            <h1>Recibir a {{ reserva.huesped_nombre }}</h1>
+            <p>Confirma la llegada y entrega de tu propiedad <strong>{{ reserva.hosp_nombre }}</strong></p>
+            <div class="ci-code">Reserva: {{ reserva.codigo_reserva }}</div>
+        </div>
+    </div>
+
+    <!-- Tarjeta del Huésped -->
+    <div class="ci-card">
+        <h2><i class="ph-fill ph-user-circle"></i> Información del huésped</h2>
+        <div class="guest-card">
+            <img src="{{ reserva.huesped_foto or 'https://ui-avatars.com/api/?name=' ~ reserva.huesped_nombre ~ '+' ~ reserva.huesped_apellido ~ '&background=8b5cf6&color=fff&size=120' }}" class="guest-avatar" alt="{{ reserva.huesped_nombre }}">
+            <div class="guest-info" style="flex:1;min-width:200px;">
+                <strong>{{ reserva.huesped_nombre }} {{ reserva.huesped_apellido }}</strong>
+                <span><i class="ph ph-envelope-simple"></i> {{ reserva.huesped_email }}</span>
+                {% if reserva.huesped_tel %}
+                <span><i class="ph ph-phone"></i> {{ reserva.huesped_tel }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="quick-actions">
+            {% if reserva.huesped_tel %}
+            <a class="qa-btn wa" href="https://wa.me/57{{ reserva.huesped_tel }}" target="_blank"><i class="ph-fill ph-whatsapp-logo"></i> WhatsApp</a>
+            <a class="qa-btn tel" href="tel:{{ reserva.huesped_tel }}"><i class="ph-fill ph-phone"></i> Llamar</a>
+            {% endif %}
+            {% if reserva.huesped_email %}
+            <a class="qa-btn mail" href="mailto:{{ reserva.huesped_email }}"><i class="ph-fill ph-envelope-simple"></i> Email</a>
             {% endif %}
         </div>
-    </header>
-    
-<div class="ci-page">
-    <!-- Hero -->
+    </div>
+
+    <!-- Detalles de la Reserva -->
+    <div class="ci-card">
+        <h2><i class="ph-fill ph-calendar"></i> Detalles de la estadía</h2>
+        <div class="reserva-summary">
+            <div class="rs-item">
+                <strong>LLEGADA</strong>
+                <span>{{ reserva.fecha_checkin }}</span>
+            </div>
+            <div class="rs-item">
+                <strong>HORA</strong>
+                <span>{{ reserva.hora_checkin or '15:00' }} h</span>
+            </div>
+            <div class="rs-item">
+                <strong>SALIDA</strong>
+                <span>{{ reserva.fecha_checkout }}</span>
+            </div>
+            <div class="rs-item">
+                <strong>HUÉSPEDES</strong>
+                <span>{{ reserva.num_huespedes }}</span>
+            </div>
+            <div class="rs-item" style="background:#ecfdf5;">
+                <strong>TOTAL</strong>
+                <span style="color:#059669;">${{ "{:,.0f}".format(reserva.total).replace(',','.') }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checklist del Anfitrión -->
+    <div class="ci-card">
+        <h2><i class="ph-fill ph-check-square"></i> Antes de entregar el lugar</h2>
+        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1rem;">Verifica que todo esté listo para recibir a tu huésped:</p>
+        <div class="checklist" id="checklist">
+            <label class="check-item" onclick="toggleCheck(this)">
+                <input type="checkbox"> <span>El lugar está limpio y ordenado</span>
+            </label>
+            <label class="check-item" onclick="toggleCheck(this)">
+                <input type="checkbox"> <span>Llaves o método de acceso preparado</span>
+            </label>
+            <label class="check-item" onclick="toggleCheck(this)">
+                <input type="checkbox"> <span>Amenidades disponibles (toallas, jabón, papel)</span>
+            </label>
+            <label class="check-item" onclick="toggleCheck(this)">
+                <input type="checkbox"> <span>WiFi funcionando correctamente</span>
+            </label>
+            <label class="check-item" onclick="toggleCheck(this)">
+                <input type="checkbox"> <span>Verifiqué la identidad del huésped</span>
+            </label>
+            <label class="check-item" onclick="toggleCheck(this)">
+                <input type="checkbox"> <span>Expliqué las normas y funcionamiento del lugar</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Botón confirmar -->
+    <form method="POST" action="/checkin/{{ reserva.id }}">
+        <button type="submit" class="btn-ci host" id="ci-btn">
+            <i class="ph-fill ph-key"></i> Confirmar entrega del lugar
+        </button>
+    </form>
+    <p class="ci-note">Al confirmar, registrarás la llegada del huésped y se activará su estadía.</p>
+
+{% else %}
+    {# ════════════════════════════════════════════════════════════════ #}
+    {# ═════════════════════ VISTA DEL HUÉSPED ══════════════════════ #}
+    {# ════════════════════════════════════════════════════════════════ #}
+
+    <!-- Hero Huésped -->
     <div class="ci-hero">
         <div class="ci-hero-icon"><i class="ph-fill ph-sign-in"></i></div>
         <div>
-            <h1>Check-in en {{ reserva.hosp_nombre }}</h1>
-            <p>Bienvenido a tu hospedaje en {{ reserva.municipio }}, Huila</p>
+            <h1>¡Bienvenido a {{ reserva.hosp_nombre }}!</h1>
+            <p>Tu hospedaje en {{ reserva.municipio }}, Huila te espera 🌿</p>
             <div class="ci-code">Reserva: {{ reserva.codigo_reserva }}</div>
         </div>
     </div>
@@ -111,15 +230,17 @@
 
         {% if reserva.wifi_nombre %}
         <div style="margin-top:1.2rem;">
-            <div style="font-weight:700;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem;"><i class="ph-fill ph-wifi" style="color:var(--primary)"></i> Acceso WiFi</div>
+            <div style="font-weight:700;margin-bottom:.6rem;display:flex;align-items:center;gap:.5rem;"><i class="ph-fill ph-wifi-high" style="color:var(--primary)"></i> Acceso WiFi</div>
             <div class="wifi-card">
-                <div class="wifi-icon"><i class="ph ph-wifi"></i></div>
+                <div class="wifi-icon"><i class="ph ph-wifi-high"></i></div>
                 <div class="wifi-info">
                     <strong>RED</strong>
                     <div class="wifi-name">{{ reserva.wifi_nombre }}</div>
                     <div class="wifi-pass">🔑 {{ reserva.wifi_password or 'Consultar con el anfitrión' }}</div>
                 </div>
+                {% if reserva.wifi_password %}
                 <button class="copy-btn" onclick="copyWifi('{{ reserva.wifi_password }}')"><i class="ph ph-copy"></i> Copiar</button>
+                {% endif %}
             </div>
         </div>
         {% endif %}
@@ -135,8 +256,8 @@
                 <span>Anfitrión verificado en StayHuila</span>
             </div>
             {% if reserva.anf_tel %}
-            <button class="btn-contact" onclick="window.open('tel:{{ reserva.anf_tel }}')">
-                <i class="ph ph-phone"></i> {{ reserva.anf_tel }}
+            <button class="btn-contact" onclick="window.open('https://wa.me/57{{ reserva.anf_tel }}','_blank')">
+                <i class="ph-fill ph-whatsapp-logo" style="color:#25D366;"></i> Contactar
             </button>
             {% endif %}
         </div>
@@ -167,17 +288,21 @@
     <!-- Botón confirmar check-in -->
     <form method="POST" action="/checkin/{{ reserva.id }}">
         <button type="submit" class="btn-ci" id="ci-btn">
-            <i class="ph-fill ph-sign-in"></i> Confirmar Check-in
+            <i class="ph-fill ph-sign-in"></i> Confirmar mi llegada
         </button>
     </form>
-    <p class="ci-note">Al confirmar, se registrará tu hora de llegada en el sistema</p>
+    <p class="ci-note">Al confirmar, se registrará tu hora de llegada en el sistema.</p>
+{% endif %}
+
 </div>
 
 <script src="{{ url_for('static', filename='js/checkin.js') }}"></script>
 <script>
     const checkoutDate = "{{ reserva.fecha_checkout }}T{{ reserva.hora_checkout or '11:00' }}:00";
-    updateCountdown(checkoutDate);
-    setInterval(() => updateCountdown(checkoutDate), 60000);
+    if (typeof updateCountdown === 'function' && document.getElementById('countdown')) {
+        updateCountdown(checkoutDate);
+        setInterval(() => updateCountdown(checkoutDate), 60000);
+    }
 </script>
 </body>
 </html>

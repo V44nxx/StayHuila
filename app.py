@@ -134,6 +134,46 @@ def send_reset_email(to_email, codigo):
         server.sendmail(MAIL_FROM, to_email, msg.as_string())
 
 
+def send_email_change_code(to_email, codigo):
+    """Envía el código de verificación para cambio de correo electrónico."""
+    if not MAIL_USERNAME or not MAIL_PASSWORD:
+        raise RuntimeError('El servicio de correo no está configurado en el servidor.')
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'Verificación de cambio de correo — StayHuila'
+    msg['From']    = f'StayHuila <{MAIL_FROM}>'
+    msg['To']      = to_email
+    html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family:'Outfit',Arial,sans-serif;background:#f5f5f0;margin:0;padding:24px;">
+  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#2C4A3B,#3d6b52);padding:32px;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:1.6rem;letter-spacing:-.02em;">🌿 StayHuila</h1>
+      <p style="color:rgba(255,255,255,.8);margin:6px 0 0;font-size:.95rem;">Cambio de correo electrónico</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="color:#333;font-size:1rem;margin-bottom:.6rem;">Hola,</p>
+      <p style="color:#555;font-size:.95rem;line-height:1.6;">Recibimos una solicitud para vincular este correo electrónico a tu cuenta StayHuila. Usa el siguiente código de verificación para confirmar el cambio:</p>
+      <div style="background:#f0f7f4;border:2px dashed #2C4A3B;border-radius:12px;padding:28px;text-align:center;margin:24px 0;">
+        <span style="font-size:2.6rem;font-weight:800;letter-spacing:.35em;color:#2C4A3B;">{codigo}</span>
+      </div>
+      <p style="color:#888;font-size:.85rem;">⏱ Este código expira en <strong>15 minutos</strong>.</p>
+      <p style="color:#888;font-size:.85rem;margin-top:.5rem;">Si no solicitaste este cambio, puedes ignorar este correo con seguridad.</p>
+    </div>
+    <div style="background:#f5f5f0;padding:16px;text-align:center;">
+      <p style="color:#aaa;font-size:.78rem;margin:0;">© 2024 StayHuila · Huila, Colombia</p>
+    </div>
+  </div>
+</body>
+</html>"""
+    msg.attach(MIMEText(html, 'html'))
+    with smtplib.SMTP(MAIL_SERVER, MAIL_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(MAIL_USERNAME, MAIL_PASSWORD)
+        server.sendmail(MAIL_FROM, to_email, msg.as_string())
+
+
+
 
 DB = dict(host='localhost', user='root', password='', database='StayHuila',
           charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
@@ -150,6 +190,20 @@ def _ensure_columns():
             cur.execute("SHOW COLUMNS FROM usuarios LIKE 'credito_descuento'")
             if not cur.fetchone():
                 cur.execute("ALTER TABLE usuarios ADD COLUMN credito_descuento DECIMAL(5,2) DEFAULT 0")
+
+            # ── Tabla de respuestas a reseñas (anfitrión y huésped) ──────────
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS resena_respuestas (
+                    id              INT AUTO_INCREMENT PRIMARY KEY,
+                    resena_id       INT NOT NULL,
+                    usuario_id      INT NOT NULL,
+                    comentario      TEXT NOT NULL,
+                    fecha_respuesta DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (resena_id)  REFERENCES resenas(id)  ON DELETE CASCADE,
+                    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                    INDEX idx_resena (resena_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
 
             # ── Estadía mínima y máxima en hospedajes ────────────────────────
             # estadia_minima: cantidad mínima de noches requerida (default 1)
@@ -1255,9 +1309,21 @@ def hospedajes():
 
             cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
+            
+            # Buscar sugerencias en experiencias si hay query de búsqueda
+            sugerencias_experiencias = []
+            if q:
+                cur.execute("""SELECT e.*, i.url as image
+                    FROM experiencias e
+                    LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
+                    WHERE (e.municipio LIKE %s OR e.nombre LIKE %s OR e.tipo LIKE %s)
+                        AND e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
+                    LIMIT 3""", (f"%{q}%", f"%{q}%", f"%{q}%"))
+                sugerencias_experiencias = serialize(cur.fetchall())
+            
         return render_template('hospedajes.html', hospedajes=data,
             search_query=q, checkin=checkin, checkout=checkout,
-            huespedes=huespedes, cat=cat)
+            huespedes=huespedes, cat=cat, sugerencias_experiencias=sugerencias_experiencias)
     finally:
         c.close()
 
@@ -1285,6 +1351,7 @@ def detalle_hospedaje(id):
                 JOIN usuarios u ON r.usuario_id=u.id
                 WHERE r.hospedaje_id=%s AND r.publicada=1 ORDER BY r.fecha_resena DESC LIMIT 6""", (id,))
             resenas = cur.fetchall()
+            resenas = cargar_respuestas_resenas(cur, list(resenas))
             cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                 -- Sugerencias solo de publicaciones disponibles
@@ -1357,9 +1424,21 @@ def experiencias():
 
             cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
+            
+            # Buscar sugerencias en hospedajes si hay query de búsqueda
+            sugerencias_hospedajes = []
+            if q:
+                cur.execute("""SELECT h.*, i.url as image
+                    FROM hospedajes h
+                    LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                    WHERE (h.municipio LIKE %s OR h.nombre LIKE %s OR h.tipo LIKE %s)
+                        AND h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
+                    LIMIT 3""", (f"%{q}%", f"%{q}%", f"%{q}%"))
+                sugerencias_hospedajes = serialize(cur.fetchall())
+            
         return render_template('experiencias.html', experiencias=data,
             search_query=q, checkin=checkin, checkout=checkout,
-            huespedes=huespedes)
+            huespedes=huespedes, sugerencias_hospedajes=sugerencias_hospedajes)
     finally:
         c.close()
 
@@ -1383,6 +1462,7 @@ def detalle_experiencia(id):
                 JOIN usuarios u ON r.usuario_id=u.id
                 WHERE r.experiencia_id=%s AND r.tipo='experiencia' AND r.publicada=1 ORDER BY r.fecha_resena DESC LIMIT 6""", (id,))
             resenas = cur.fetchall()
+            resenas = cargar_respuestas_resenas(cur, list(resenas))
             cur.execute("""SELECT e.*,i.url as image FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
                 WHERE e.id!=%s AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
@@ -1578,6 +1658,7 @@ def perfil_anfitrion(id):
                 ORDER BY fecha_resena DESC LIMIT 10
             """, (id, id))
             resenas = cur.fetchall()
+            resenas = cargar_respuestas_resenas(cur, list(resenas))
 
             # 5. Calcular estadísticas reales (promedio y total de reseñas)
             cur.execute("""
@@ -1689,6 +1770,109 @@ def eliminar_foto():
     finally:
         c.close()
     return redirect(url_for('perfil'))
+
+
+@app.route('/api/cambiar-email', methods=['POST'])
+@login_required
+def api_cambiar_email():
+    """Genera un código de 6 dígitos y lo envía al nuevo correo para verificar el cambio."""
+    data = request.get_json(silent=True) or {}
+    new_email = data.get('new_email', '').strip().lower()
+
+    if not new_email:
+        return jsonify({'success': False, 'error': 'Ingresa el nuevo correo electrónico.'}), 400
+
+    # Validación básica de formato
+    if '@' not in new_email or '.' not in new_email.split('@')[-1]:
+        return jsonify({'success': False, 'error': 'El formato del correo no es válido.'}), 400
+
+    # No permitir el mismo correo actual
+    if new_email == current_user.email:
+        return jsonify({'success': False, 'error': 'El nuevo correo debe ser diferente al actual.'}), 400
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            # Verificar que el nuevo correo no esté en uso por otra cuenta
+            cur.execute("SELECT id FROM usuarios WHERE email=%s AND activo=1", (new_email,))
+            if cur.fetchone():
+                return jsonify({'success': False, 'error': 'Este correo ya está asociado a otra cuenta.'}), 409
+
+        codigo = ''.join(random.choices(string.digits, k=6))
+        expiry = int((datetime.now() + timedelta(minutes=15)).timestamp())
+        token = f'EMAIL_CHANGE:{codigo}:{expiry}:{new_email}'
+
+        with c.cursor() as cur:
+            cur.execute("UPDATE usuarios SET token_verificacion=%s WHERE id=%s",
+                        (token, current_user.id))
+            c.commit()
+
+        send_email_change_code(new_email, codigo)
+        return jsonify({'success': True})
+
+    except RuntimeError as e:
+        return jsonify({'success': False, 'error': str(e)}), 503
+    except Exception as e:
+        c.rollback()
+        app.logger.error(f'[cambiar_email] {e}')
+        return jsonify({'success': False, 'error': 'No se pudo enviar el código. Intenta más tarde.'}), 500
+    finally:
+        c.close()
+
+
+@app.route('/api/verificar-cambio-email', methods=['POST'])
+@login_required
+def api_verificar_cambio_email():
+    """Verifica el código y actualiza el correo del usuario."""
+    data = request.get_json(silent=True) or {}
+    codigo = data.get('codigo', '').strip()
+
+    if not codigo or len(codigo) != 6:
+        return jsonify({'success': False, 'error': 'Ingresa el código de 6 dígitos.'}), 400
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("SELECT id, token_verificacion FROM usuarios WHERE id=%s AND activo=1", (current_user.id,))
+            user = cur.fetchone()
+
+        if not user or not (user.get('token_verificacion') or '').startswith('EMAIL_CHANGE:'):
+            return jsonify({'success': False, 'error': 'No hay una solicitud de cambio de correo activa.'}), 400
+
+        parts = user['token_verificacion'].split(':')
+        if len(parts) != 4:
+            return jsonify({'success': False, 'error': 'Solicitud inválida.'}), 400
+
+        _, stored_code, expiry_ts, new_email = parts
+
+        if int(datetime.now().timestamp()) > int(expiry_ts):
+            return jsonify({'success': False, 'error': 'El código ha expirado. Solicita uno nuevo.'}), 400
+
+        if codigo != stored_code:
+            return jsonify({'success': False, 'error': 'Código incorrecto. Verifica e intenta de nuevo.'}), 400
+
+        # Verificar de nuevo que el correo sigue disponible
+        with c.cursor() as cur:
+            cur.execute("SELECT id FROM usuarios WHERE email=%s AND activo=1", (new_email,))
+            if cur.fetchone():
+                return jsonify({'success': False, 'error': 'Este correo ya fue tomado por otra cuenta.'}), 409
+
+        with c.cursor() as cur:
+            cur.execute("UPDATE usuarios SET email=%s, token_verificacion=NULL WHERE id=%s",
+                        (new_email, current_user.id))
+            c.commit()
+
+        # Actualizar en memoria
+        current_user.email = new_email
+        return jsonify({'success': True, 'new_email': new_email})
+
+    except Exception as e:
+        c.rollback()
+        app.logger.error(f'[verificar_cambio_email] {e}')
+        return jsonify({'success': False, 'error': 'Error interno. Intenta más tarde.'}), 500
+    finally:
+        c.close()
+
 
 @app.route('/api/favoritos/toggle', methods=['POST'])
 @login_required
@@ -2282,7 +2466,12 @@ def checkin(id):
                 COALESCE(i.url, ei.url) as hosp_img, 
                 COALESCE(u.nombre, ue.nombre) as anf_nombre, 
                 COALESCE(u.telefono, ue.telefono) as anf_tel,
-                COALESCE(u.foto_perfil, ue.foto_perfil) as anf_foto
+                COALESCE(u.foto_perfil, ue.foto_perfil) as anf_foto,
+                u_guest.nombre as huesped_nombre,
+                u_guest.apellido as huesped_apellido,
+                u_guest.email as huesped_email,
+                u_guest.telefono as huesped_tel,
+                u_guest.foto_perfil as huesped_foto
                 FROM reservas r 
                 LEFT JOIN hospedajes h ON r.hospedaje_id=h.id
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
@@ -2290,6 +2479,7 @@ def checkin(id):
                 LEFT JOIN experiencias e ON r.experiencia_id=e.id
                 LEFT JOIN experiencia_imagenes ei ON e.id=ei.experiencia_id AND ei.es_portada=1
                 LEFT JOIN usuarios ue ON e.anfitrion_id=ue.id
+                LEFT JOIN usuarios u_guest ON r.usuario_id=u_guest.id
                 WHERE r.id=%s AND (r.usuario_id=%s OR h.anfitrion_id=%s OR e.anfitrion_id=%s)""", 
                 (id, current_user.id, current_user.id, current_user.id))
             reserva = cur.fetchone()
@@ -2331,7 +2521,8 @@ def checkin(id):
             finally:
                 c2.close()
                 
-        return render_template('checkin.html', reserva=reserva)
+        es_anfitrion = (reserva['usuario_id'] != current_user.id)
+        return render_template('checkin.html', reserva=reserva, es_anfitrion=es_anfitrion)
     finally:
         c.close()
 
@@ -3141,21 +3332,47 @@ def disponibilidad(id):
 @app.route('/api/buscar')
 def api_buscar():
     q = request.args.get('q', '')
+    tipo = request.args.get('tipo', 'hospedaje')  # 'hospedaje' or 'experiencia'
     c = db()
     try:
         with c.cursor() as cur:
-            cur.execute("""SELECT h.id,h.nombre,h.municipio,h.precio_noche as precio,'hospedaje' as tipo,i.url as imagen
-                FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                -- Solo resultados disponibles: activos, no eliminados, estado abierta
-                WHERE (h.nombre LIKE %s OR h.municipio LIKE %s)
-                    AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
-                UNION ALL
-                SELECT e.id,e.nombre,e.municipio,e.precio_persona as precio,'experiencia' as tipo,i.url as imagen
-                FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                WHERE (e.nombre LIKE %s OR e.municipio LIKE %s)
-                    AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta' LIMIT 8""",
-                (f'%{q}%', f'%{q}%', f'%{q}%', f'%{q}%'))
-            return jsonify(cur.fetchall())
+            # Buscar en el tipo seleccionado
+            if tipo == 'hospedaje':
+                cur.execute("""SELECT h.id,h.nombre,h.municipio,h.precio_noche as precio,'hospedaje' as tipo,i.url as imagen
+                    FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
+                    WHERE (h.nombre LIKE %s OR h.municipio LIKE %s)
+                        AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
+                    LIMIT 8""", (f'%{q}%', f'%{q}%'))
+                resultados = cur.fetchall()
+                
+                # Buscar sugerencias en el otro tipo (experiencias)
+                cur.execute("""SELECT e.id,e.nombre,e.municipio,e.precio_persona as precio,'experiencia' as tipo,i.url as imagen
+                    FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
+                    WHERE (e.nombre LIKE %s OR e.municipio LIKE %s)
+                        AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
+                    LIMIT 3""", (f'%{q}%', f'%{q}%'))
+                sugerencias = cur.fetchall()
+            else:
+                cur.execute("""SELECT e.id,e.nombre,e.municipio,e.precio_persona as precio,'experiencia' as tipo,i.url as imagen
+                    FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
+                    WHERE (e.nombre LIKE %s OR e.municipio LIKE %s)
+                        AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
+                    LIMIT 8""", (f'%{q}%', f'%{q}%'))
+                resultados = cur.fetchall()
+                
+                # Buscar sugerencias en el otro tipo (hospedajes)
+                cur.execute("""SELECT h.id,h.nombre,h.municipio,h.precio_noche as precio,'hospedaje' as tipo,i.url as imagen
+                    FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
+                    WHERE (h.nombre LIKE %s OR h.municipio LIKE %s)
+                        AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
+                    LIMIT 3""", (f'%{q}%', f'%{q}%'))
+                sugerencias = cur.fetchall()
+            
+            return jsonify({
+                'resultados': resultados,
+                'sugerencias': sugerencias,
+                'tipo_buscado': tipo
+            })
     finally:
         c.close()
 
@@ -3448,6 +3665,84 @@ def dejar_resena_directa(tipo, id):
         
     return redirect(f"/{tipo}/{id}")
 
+
+def cargar_respuestas_resenas(cur, resenas):
+    """Inyecta una lista 'respuestas' en cada reseña con los datos del autor."""
+    if not resenas:
+        return resenas
+    ids = [r['id'] for r in resenas if r.get('id')]
+    if not ids:
+        for r in resenas:
+            r['respuestas'] = []
+        return resenas
+    placeholders = ','.join(['%s'] * len(ids))
+    cur.execute(f"""
+        SELECT rr.id, rr.resena_id, rr.usuario_id, rr.comentario, rr.fecha_respuesta,
+               u.nombre, u.apellido, u.foto_perfil
+        FROM resena_respuestas rr
+        JOIN usuarios u ON rr.usuario_id = u.id
+        WHERE rr.resena_id IN ({placeholders})
+        ORDER BY rr.fecha_respuesta ASC
+    """, tuple(ids))
+    rows = cur.fetchall()
+    by_resena = {}
+    for row in rows:
+        by_resena.setdefault(row['resena_id'], []).append(row)
+    for r in resenas:
+        r['respuestas'] = by_resena.get(r['id'], [])
+    return resenas
+
+
+@app.route('/resena/<int:resena_id>/responder', methods=['POST'])
+@login_required
+def responder_resena(resena_id):
+    comentario = (request.form.get('comentario') or '').strip()
+    if not comentario:
+        flash('La respuesta no puede estar vacía.', 'error')
+        return redirect(request.referrer or url_for('home'))
+    if len(comentario) > 1000:
+        comentario = comentario[:1000]
+
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                SELECT r.id, r.usuario_id, r.hospedaje_id, r.experiencia_id,
+                       h.anfitrion_id AS hosp_anfitrion, e.anfitrion_id AS exp_anfitrion
+                FROM resenas r
+                LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                WHERE r.id=%s
+            """, (resena_id,))
+            resena = cur.fetchone()
+            if not resena:
+                flash('Reseña no encontrada.', 'error')
+                return redirect(request.referrer or url_for('home'))
+
+            anfitrion_id = resena['hosp_anfitrion'] or resena['exp_anfitrion']
+            autor_id = resena['usuario_id']
+            if current_user.id not in (anfitrion_id, autor_id):
+                flash('Solo el anfitrión o el autor de la reseña pueden responder.', 'error')
+                return redirect(request.referrer or url_for('home'))
+
+            cur.execute("""INSERT INTO resena_respuestas (resena_id, usuario_id, comentario)
+                           VALUES (%s, %s, %s)""", (resena_id, current_user.id, comentario))
+            c.commit()
+            flash('Respuesta publicada.', 'success')
+
+            # Redirigir a la página de la publicación correspondiente
+            if resena['hospedaje_id']:
+                return redirect(url_for('detalle_hospedaje', id=resena['hospedaje_id']) + f"#resena-{resena_id}")
+            if resena['experiencia_id']:
+                return redirect(url_for('detalle_experiencia', id=resena['experiencia_id']) + f"#resena-{resena_id}")
+    except Exception as e:
+        c.rollback()
+        flash('Error al publicar la respuesta.', 'error')
+    finally:
+        c.close()
+    return redirect(request.referrer or url_for('home'))
+
+
 @app.route('/api/canjear-puntos', methods=['POST'])
 @login_required
 def api_canjear_puntos():
@@ -3496,8 +3791,7 @@ def api_recuperar_contrasena():
             user = cur.fetchone()
 
         if not user:
-            # Por seguridad no revelamos si el email existe o no
-            return jsonify({'success': True})
+            return jsonify({'success': False, 'error': 'Este correo no está asociado a ninguna cuenta registrada.'}), 404
 
         codigo = ''.join(random.choices(string.digits, k=6))
         expiry = int((datetime.now() + timedelta(minutes=15)).timestamp())

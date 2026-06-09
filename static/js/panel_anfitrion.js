@@ -484,13 +484,15 @@
                             transition: all 0.2s;
                         `;
                         
+                        const [y, m, d] = s.fecha.split('-').map(Number);
+                        const localDate = new Date(y, m - 1, d);
                         const isPast = new Date(s.fecha + 'T' + s.hora_inicio) < new Date();
                         const statusColor = s.estado === 'disponible' ? '#15803d' : (s.estado === 'lleno' ? '#b91c1c' : '#64748b');
                         
                         item.innerHTML = `
                             <div style="display:flex; flex-direction:column; gap:0.2rem;">
                                 <div style="font-weight:700; color:var(--text-main); font-size:0.95rem;">
-                                    ${new Date(s.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })} | ${s.hora_inicio}
+                                    ${localDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })} | ${s.hora_inicio}
                                 </div>
                                 <div style="font-size:0.8rem; color:var(--text-muted);">
                                     <i class="ph ph-users"></i> ${s.cupos_disponibles} / ${s.cupos_totales} cupos

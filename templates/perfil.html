@@ -58,7 +58,7 @@
                     <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
                         <div class="dropdown-header">
                             <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
-                            <span>{{ current_user.email }}</span>
+                            <span id="dropdown-email-display">{{ current_user.email }}</span>
                         </div>
                         <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span data-i18n="nav.my_profile">Mi Perfil</span></a>
                         <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span data-i18n="nav.my_bookings">Mis Reservas</span></a>
@@ -162,7 +162,12 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label data-i18n="login.email">Correo Electrónico</label>
-                            <input type="email" value="{{ current_user.email }}" readonly title="El correo no se puede cambiar">
+                            <div class="email-field-wrapper">
+                                <input type="email" value="{{ current_user.email }}" readonly title="Usa el botón para cambiar tu correo" id="perfil-email-display">
+                                <button type="button" class="btn-change-email" onclick="openEmailChangeModal()" title="Cambiar correo electrónico">
+                                    <i class="ph ph-pencil-simple"></i> Cambiar
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label data-i18n="form.phone">Teléfono</label>
@@ -359,6 +364,189 @@
                 reader.readAsDataURL(input.files[0]);
             }
         }
+    </script>
+
+    <!-- Modal de cambio de correo electrónico -->
+    <div class="email-change-modal" id="email-change-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Cambiar correo electrónico">
+        <div class="email-change-backdrop" onclick="closeEmailChangeModal()"></div>
+        <div class="email-change-panel">
+            <button type="button" class="email-change-close" onclick="closeEmailChangeModal()" aria-label="Cerrar">
+                <i class="ph ph-x"></i>
+            </button>
+
+            <div class="email-change-header">
+                <div class="email-change-icon"><i class="ph ph-envelope-simple"></i></div>
+                <h3>Cambiar correo electrónico</h3>
+                <p>Te enviaremos un código de verificación al nuevo correo para confirmar el cambio.</p>
+            </div>
+
+            <!-- Paso 1: Ingresar nuevo correo -->
+            <div id="email-step1">
+                <div class="email-change-field">
+                    <label>Correo actual</label>
+                    <input type="email" value="{{ current_user.email }}" readonly class="email-current" id="perfil-email-modal-current">
+                </div>
+                <div class="email-change-field">
+                    <label>Nuevo correo electrónico</label>
+                    <input type="email" id="new-email-input" placeholder="nuevo@correo.com" autocomplete="off">
+                </div>
+                <div class="email-change-error" id="email-error1" style="display:none;"></div>
+                <button type="button" class="email-change-btn" id="btn-send-email-code" onclick="sendEmailCode(false)">
+                    <i class="ph ph-paper-plane-tilt"></i> Enviar código de verificación
+                </button>
+            </div>
+
+            <!-- Paso 2: Verificar código -->
+            <div id="email-step2" style="display:none;">
+                <div class="email-change-info">
+                    <i class="ph ph-check-circle"></i>
+                    <span id="email-step2-sub">Código enviado correctamente</span>
+                </div>
+                <div class="email-change-field">
+                    <label>Código de verificación (6 dígitos)</label>
+                    <input type="text" id="email-code-input" placeholder="000000" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)" autocomplete="off">
+                </div>
+                <div class="email-change-error" id="email-error2" style="display:none;"></div>
+                <button type="button" class="email-change-btn" id="btn-verify-email-code" onclick="verifyEmailCode()">
+                    <i class="ph ph-shield-check"></i> Verificar y cambiar correo
+                </button>
+                <div class="email-change-resend">
+                    <span>¿No recibiste el código?</span>
+                    <button type="button" onclick="sendEmailCode(true)">Reenviar código</button>
+                    <span>o</span>
+                    <button type="button" onclick="emailBackToStep1()">Cambiar correo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ── Cambio de correo electrónico ── */
+        var _pendingNewEmail = '';
+
+        function openEmailChangeModal() {
+            var modal = document.getElementById('email-change-modal');
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+            document.getElementById('email-step1').style.display = '';
+            document.getElementById('email-step2').style.display = 'none';
+            document.getElementById('new-email-input').value = '';
+            document.getElementById('email-error1').style.display = 'none';
+            setTimeout(function(){ document.getElementById('new-email-input').focus(); }, 200);
+        }
+
+        function closeEmailChangeModal() {
+            var modal = document.getElementById('email-change-modal');
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        }
+
+        function emailBackToStep1() {
+            document.getElementById('email-step2').style.display = 'none';
+            document.getElementById('email-step1').style.display = '';
+            document.getElementById('email-error1').style.display = 'none';
+        }
+
+        function setEmailBtn(id, loading) {
+            var btn = document.getElementById(id);
+            if (loading) {
+                btn.disabled = true;
+                btn.style.opacity = '.65';
+                btn.style.cursor = 'wait';
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '';
+                btn.style.cursor = '';
+            }
+        }
+
+        async function sendEmailCode(resend) {
+            var errEl = document.getElementById('email-error1');
+            errEl.style.display = 'none';
+
+            var newEmail = resend ? _pendingNewEmail : document.getElementById('new-email-input').value.trim();
+            if (!newEmail) {
+                errEl.textContent = 'Ingresa el nuevo correo electrónico.';
+                errEl.style.display = '';
+                return;
+            }
+
+            setEmailBtn('btn-send-email-code', true);
+            try {
+                var res = await fetch('/api/cambiar-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_email: newEmail })
+                });
+                var data = await res.json();
+                if (!res.ok || !data.success) {
+                    errEl.textContent = data.error || 'Error al enviar el código.';
+                    errEl.style.display = '';
+                } else {
+                    _pendingNewEmail = newEmail;
+                    document.getElementById('email-step2-sub').textContent =
+                        'Ingresa el código de 6 dígitos enviado a ' + newEmail;
+                    document.getElementById('email-code-input').value = '';
+                    document.getElementById('email-error2').style.display = 'none';
+                    document.getElementById('email-step1').style.display = 'none';
+                    document.getElementById('email-step2').style.display = '';
+                    if (resend) showToast('Código reenviado a ' + newEmail, 'success');
+                    setTimeout(function(){ document.getElementById('email-code-input').focus(); }, 200);
+                }
+            } catch (e) {
+                errEl.textContent = 'No se pudo conectar al servidor.';
+                errEl.style.display = '';
+            } finally {
+                setEmailBtn('btn-send-email-code', false);
+            }
+        }
+
+        async function verifyEmailCode() {
+            var codigo = document.getElementById('email-code-input').value.trim();
+            var errEl = document.getElementById('email-error2');
+            errEl.style.display = 'none';
+
+            if (!codigo || codigo.length !== 6) {
+                errEl.textContent = 'Ingresa el código de 6 dígitos.';
+                errEl.style.display = '';
+                return;
+            }
+
+            setEmailBtn('btn-verify-email-code', true);
+            try {
+                var res = await fetch('/api/verificar-cambio-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo: codigo })
+                });
+                var data = await res.json();
+                if (!res.ok || !data.success) {
+                    errEl.textContent = data.error || 'Error al verificar el código.';
+                    errEl.style.display = '';
+                } else {
+                    showToast('¡Correo actualizado exitosamente a ' + data.new_email + '!', 'success');
+                    document.getElementById('perfil-email-display').value = data.new_email;
+                    var dropdownEmail = document.getElementById('dropdown-email-display');
+                    if (dropdownEmail) dropdownEmail.textContent = data.new_email;
+                    var modalCurrentEmail = document.getElementById('perfil-email-modal-current');
+                    if (modalCurrentEmail) modalCurrentEmail.value = data.new_email;
+                    closeEmailChangeModal();
+                }
+            } catch (e) {
+                errEl.textContent = 'No se pudo conectar al servidor.';
+                errEl.style.display = '';
+            } finally {
+                setEmailBtn('btn-verify-email-code', false);
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeEmailChangeModal();
+            }
+        });
     </script>
 
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>

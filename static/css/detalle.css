@@ -569,3 +569,129 @@
     .detalle-titulo { font-size: 1.4rem; }
     .section-title { font-size: 1.2rem; }
 }
+
+/* Nested Review Responses */
+.resena-respuestas {
+    margin-top: 1rem;
+    padding-left: 1.2rem;
+    border-left: 3px solid var(--border);
+}
+.resena-respuesta {
+    background: var(--bg-color);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+}
+.resena-respuesta:last-child { margin-bottom: 0; }
+.respuesta-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+.respuesta-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.respuesta-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.respuesta-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+.respuesta-rol {
+    font-size: 0.75rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+.respuesta-fecha {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+.respuesta-texto {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-main);
+}
+
+/* Reply Form */
+.responder-form {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg-color);
+    border-radius: 12px;
+}
+.responder-form textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.responder-form textarea:focus {
+    border-color: var(--primary);
+}
+.responder-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+}
+.responder-btn-cancel {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+.responder-btn-cancel:hover {
+    background: rgba(0,0,0,0.05);
+}
+.responder-btn-submit {
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+.responder-btn-submit:hover {
+    background: #2c4a3b;
+}
+.mostrar-respuesta-btn {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 0;
+    margin-top: 0.5rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.mostrar-respuesta-btn:hover {
+    color: #2c4a3b;
+}
