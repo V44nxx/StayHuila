@@ -178,6 +178,40 @@
                 </article>
                 {% endfor %}
             </main>
+
+            <!-- Sugerencias de Experiencias -->
+            {% if sugerencias_experiencias and sugerencias_experiencias|length > 0 %}
+            <section style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border);">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h2 style="font-size: 1.4rem; color: var(--primary); margin-bottom: 0.5rem;">
+                        <i class="ph ph-shooting-star"></i> También te podría interesar
+                    </h2>
+                    <p style="color: var(--text-muted);">Encontramos experiencias relacionadas con "{{ search_query }}"</p>
+                </div>
+                <div class="grid-half" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+                    {% for e in sugerencias_experiencias %}
+                    <article class="listing-card" style="margin:0;cursor:pointer;" onclick="window.location.href='/experiencia/{{ e.id }}'">
+                        <div class="image-wrapper" style="position:relative;">
+                            <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}" alt="{{ e.tipo }}">
+                            <div class="badge" style="position:absolute; top:10px; left:10px; background:var(--secondary); color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600;">
+                                <i class="ph ph-shooting-star"></i> Experiencia
+                            </div>
+                        </div>
+                        <div class="listing-info" style="padding-top: 0;">
+                            <div class="listing-header">
+                                <h3 style="font-size: 1rem;">{{ e.nombre }}</h3>
+                                <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ e.calificacion }}</span>
+                            </div>
+                            <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}, Huila</p>
+                            <p class="details" style="font-size:0.8rem;">{{ e.descripcion_corta or e.tipo }}</p>
+                            <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> persona</p>
+                            <a href="/experiencia/{{ e.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()">Ver detalles</a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
         </section>
 
     </div>

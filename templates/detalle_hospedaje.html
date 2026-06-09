@@ -325,7 +325,7 @@
                 </div>
                 <div class="resenas-grid">
                     {% for r in resenas %}
-                    <div class="resena-card">
+                    <div class="resena-card" id="resena-{{ r.id }}">
                         <div class="resena-header">
                             <img src="{{ r.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ r.nombre ~ '&background=random' }}"
                                 alt="{{ r.nombre }}" class="resena-avatar">
@@ -340,6 +340,38 @@
                             </div>
                         </div>
                         <p class="resena-texto">{{ r.comentario or '' }}</p>
+
+                        {# ── Hilo de respuestas ── #}
+                        {% if r.respuestas %}
+                        <div class="resena-respuestas">
+                            {% for resp in r.respuestas %}
+                            {% set es_anf = (resp.usuario_id == hospedaje.anfitrion_id) %}
+                            <div class="resena-respuesta {{ 'es-anfitrion' if es_anf else 'es-huesped' }}">
+                                <img src="{{ resp.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ resp.nombre ~ '&background=random' }}"
+                                     alt="{{ resp.nombre }}" class="resp-avatar">
+                                <div class="resp-body">
+                                    <div class="resp-meta">
+                                        <strong>{{ resp.nombre }} {{ resp.apellido }}</strong>
+                                        <span class="resp-badge {{ 'badge-anf' if es_anf else 'badge-huesp' }}">
+                                            {% if es_anf %}<i class="ph-fill ph-house-line"></i> Anfitrión{% else %}<i class="ph-fill ph-user"></i> Huésped{% endif %}
+                                        </span>
+                                        <span class="resp-fecha">{{ resp.fecha_respuesta.strftime('%d %b %Y') if resp.fecha_respuesta else '' }}</span>
+                                    </div>
+                                    <p class="resp-texto">{{ resp.comentario }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {# ── Formulario de respuesta ── #}
+                        {% if current_user.is_authenticated and (current_user.id == hospedaje.anfitrion_id or current_user.id == r.usuario_id) %}
+                        <form action="/resena/{{ r.id }}/responder" method="POST" class="resena-respuesta-form">
+                            <textarea name="comentario" rows="2" required maxlength="1000"
+                                placeholder="{% if current_user.id == hospedaje.anfitrion_id %}Responde como anfitrión...{% else %}Añade una respuesta...{% endif %}"></textarea>
+                            <button type="submit"><i class="ph ph-paper-plane-tilt"></i> Responder</button>
+                        </form>
+                        {% endif %}
                     </div>
                     {% endfor %}
                     {% if not resenas %}
