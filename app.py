@@ -3502,9 +3502,13 @@ def api_comunidad_comentarios(post_id):
         with c.cursor() as cur:
             if request.method == 'GET':
                 cur.execute("""
-                    SELECT c.*, u.nombre, u.apellido, u.foto_perfil
+                    SELECT c.*, u.nombre, u.apellido, u.foto_perfil,
+                           cp.usuario_id as parent_usuario_id,
+                           up.nombre as parent_nombre, up.apellido as parent_apellido
                     FROM comunidad_comentarios c
                     JOIN usuarios u ON c.usuario_id = u.id
+                    LEFT JOIN comunidad_comentarios cp ON c.parent_id = cp.id
+                    LEFT JOIN usuarios up ON cp.usuario_id = up.id
                     WHERE c.post_id = %s
                     ORDER BY c.fecha_creacion ASC
                 """, (post_id,))
@@ -3934,6 +3938,9 @@ def api_translate():
         app.logger.error(f"[TRANSLATE] Error traduciendo textos: {e}")
         # En caso de error, devolvemos el texto original como fallback para que no falle la interfaz
         return jsonify({'success': True, 'translations': texts, 'error': str(e)})
+
+
+
 
 
 if __name__ == '__main__':

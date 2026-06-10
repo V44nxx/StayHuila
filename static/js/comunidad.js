@@ -22,7 +22,10 @@ function formatDate(isoString) {
 
 function getAvatar(obj) {
     const name = (obj.nombre || '') + ' ' + (obj.apellido || '');
-    return obj.foto_perfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=random`;
+    if (!obj.foto_perfil || obj.foto_perfil === 'None' || obj.foto_perfil === 'null' || obj.foto_perfil.trim() === '') {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=2C4A3B&color=fff`;
+    }
+    return obj.foto_perfil;
 }
 
 function escapeHtml(str) {
@@ -244,12 +247,19 @@ function loadComments(postId) {
             wrapper.style.marginBottom = isReply ? '0.5rem' : '1rem';
             wrapper.style.position = 'relative';
 
+            let authorHtml = `<a href="/anfitrion/${c.usuario_id}" class="comment-author-link">${escapeHtml(c.nombre)} ${escapeHtml(c.apellido)}</a>`;
+            if (isReply && c.parent_nombre) {
+                authorHtml += ` <span class="comment-reply-to">responde a</span> <a href="/anfitrion/${c.parent_usuario_id}" class="comment-author-link">${escapeHtml(c.parent_nombre)} ${escapeHtml(c.parent_apellido)}</a>`;
+            }
+
             wrapper.innerHTML = `
                 <div class="comment" style="margin-bottom: 0.3rem;">
-                    <img src="${getAvatar(c)}" alt="${escapeHtml(c.nombre)}">
+                    <a href="/anfitrion/${c.usuario_id}" class="comment-avatar-link">
+                        <img src="${getAvatar(c)}" alt="${escapeHtml(c.nombre)}">
+                    </a>
                     <div class="comment-bubble" style="width: 100%;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                            <strong>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido)}</strong>
+                            <strong>${authorHtml}</strong>
                             ${delBtn}
                         </div>
                         <p style="margin-top:0.2rem;">${escapeHtml(c.contenido)}</p>
@@ -395,9 +405,11 @@ function renderPost(post) {
 
     div.innerHTML = `
         <div class="post-header">
-            <img src="${getAvatar(post)}" alt="${escapeHtml(post.nombre)}">
+            <a href="/anfitrion/${post.usuario_id}" class="post-avatar-link">
+                <img src="${getAvatar(post)}" alt="${escapeHtml(post.nombre)}">
+            </a>
             <div class="post-meta" style="flex:1;">
-                <strong>${escapeHtml(post.nombre)} ${escapeHtml(post.apellido)}</strong>
+                <strong><a href="/anfitrion/${post.usuario_id}" class="post-author-link">${escapeHtml(post.nombre)} ${escapeHtml(post.apellido)}</a></strong>
                 <span>${formatDate(post.fecha_creacion)}</span>
             </div>
             ${deletePostBtn}
