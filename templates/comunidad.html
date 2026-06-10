@@ -56,7 +56,7 @@
                 onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
                 <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                 <i class="ph ph-list"></i>
-                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=2C4A3B&color=fff' }}"
                     alt="Avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-left:5px;">
                 <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
                     <div class="dropdown-header">
@@ -107,7 +107,7 @@
         <aside class="comunidad-sidebar">
             {% if current_user.is_authenticated %}
             <div class="profile-card">
-                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Tu perfil">
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=2C4A3B&color=fff' }}" alt="Tu perfil">
                 <h3>{{ current_user.nombre }} {{ current_user.apellido }}</h3>
                 <p>@{{ current_user.nombre|lower }}{{ current_user.id }}</p>
                 <div style="color:var(--secondary);font-weight:600;font-size:0.9rem;">
@@ -138,7 +138,7 @@
                 {% if current_user.is_authenticated %}
                 <div class="create-post">
                     <div class="create-post-header">
-                        <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Tu perfil">
+                        <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=2C4A3B&color=fff' }}" alt="Tu perfil">
                         <textarea id="post-content" rows="3" placeholder="¿Qué quieres compartir sobre el Huila, {{ current_user.nombre }}?"></textarea>
                     </div>
 
