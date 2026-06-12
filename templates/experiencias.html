@@ -120,7 +120,7 @@
                             <h3 style="font-size: 1rem;">{{ e.nombre }}</h3>
                             <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ e.calificacion or '5.0' }}</span>
                         </div>
-                        <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}, Huila</p>
+                        <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}</p>
                         <p class="details" style="font-size:0.8rem;">{{ e.duracion_horas }} horas · {{ e.tipo }}</p>
                         <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> <span data-i18n="general.per_person">por persona</span></p>
                         <a href="/experiencia/{{ e.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()"><span data-i18n="listings.btn">Ver detalles</span></a>
@@ -152,7 +152,7 @@
                                 <h3 style="font-size: 1rem;">{{ h.nombre }}</h3>
                                 <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ h.calificacion }}</span>
                             </div>
-                            <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}, Huila</p>
+                            <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}</p>
                             <p class="details" style="font-size:0.8rem;">{{ h.descripcion_corta or h.tipo }}</p>
                             <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche</p>
                             <a href="/hospedaje/{{ h.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()">Ver detalles</a>

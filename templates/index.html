@@ -298,7 +298,7 @@
                     <span class="rating"><i class="ph-fill ph-star"></i> {{ h.calificacion }} ({{ h.total_resenas
                         }})</span>
                 </div>
-                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ h.municipio }}, Huila</p>
+                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ h.municipio }}</p>
                 <p class="details">{{ h.descripcion_corta or h.tipo }}</p>
                 <p class="price"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche
                 </p>
@@ -321,7 +321,7 @@
                     <h3>{{ e.nombre }}</h3>
                     <span class="rating"><i class="ph-fill ph-star"></i> {{ e.calificacion }} ({{ e.total_resenas or 0 }})</span>
                 </div>
-                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ e.municipio }}, Huila</p>
+                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ e.municipio }}</p>
                 <p class="details">{{ e.descripcion_corta or e.tipo }}</p>
                 <p class="price"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> persona
                 </p>
@@ -579,7 +579,7 @@
             items.forEach(item => {
                 const isHospedaje = item.tipo_publicacion === 'hospedaje';
                 const url = `/${item.tipo_publicacion}/${item.id}`;
-                const locationText = item.distanceText ? item.distanceText : `${item.municipio}, Huila`;
+                const locationText = item.distanceText ? item.distanceText : `${item.municipio}`;
                 const priceText = isHospedaje ? 'noche' : 'persona';
                 const badgeHtml = item.es_eco ? '<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>' : '';
                 const discountHtml = item.descuento_porcentaje ? `<div class="discount-badge">-${item.descuento_porcentaje}% Hoy</div>` : '';

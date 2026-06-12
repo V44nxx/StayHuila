@@ -124,12 +124,61 @@
 
         .bio-section {
             margin-bottom: 3rem;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+
+        .bio-section h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
         }
 
         .bio-text {
-            font-size: 1.05rem;
-            line-height: 1.6;
+            font-size: 1rem;
+            line-height: 1.7;
             color: #4b5563;
+        }
+
+        .host-info-box {
+            margin-top: 2rem;
+            text-align: left;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            padding: 1.2rem;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+        }
+
+        .host-info-box p {
+            margin: 0 0 0.7rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .host-info-box p:last-child { margin-bottom: 0; }
+
+        .host-info-box i {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .reviews-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .review-stars {
+            margin-left: auto;
+            font-size: 0.9rem;
+            color: #F59E0B;
+            display: flex;
+            gap: 0.1rem;
         }
 
         .idiomas-list {
@@ -211,34 +260,35 @@
 
         /* Review Styles */
         .reviews-section {
-            margin-top: 4rem;
+            margin-top: 3rem;
         }
 
         .review-card-modern {
             background: #fff;
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
+            border-radius: 16px;
+            padding: 1.6rem;
+            margin-bottom: 1.2rem;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
 
         .review-card-modern:hover {
-            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
             transform: translateY(-2px);
+            border-color: #d1d5db;
         }
 
         .review-header {
             display: flex;
             align-items: center;
-            gap: 1.2rem;
-            margin-bottom: 1.2rem;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
         .review-avatar {
-            width: 56px;
-            height: 56px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--border);
@@ -246,31 +296,136 @@
 
         .review-user-name {
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--text-main);
             display: block;
+            line-height: 1.3;
         }
 
         .review-date {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
         }
 
         .review-content {
-            font-size: 1.05rem;
+            font-size: 1rem;
             line-height: 1.6;
             color: #4b5563;
+            margin-bottom: 0.8rem;
         }
 
         .review-pub {
-            margin-top: 1rem;
-            padding-top: 1rem;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
             border-top: 1px solid #f3f4f6;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: var(--text-muted);
             display: flex;
             align-items: center;
             gap: 0.4rem;
+        }
+
+        /* Nested Review Responses (profile page) */
+        .resena-respuestas {
+            margin-top: 0.8rem;
+            padding-left: 1rem;
+            border-left: 3px solid var(--border);
+        }
+        .resena-respuesta {
+            background: var(--bg-color);
+            border-radius: 12px;
+            padding: 0.9rem;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+        }
+        .resena-respuesta:last-child { margin-bottom: 0; }
+        .resp-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .resp-body { flex: 1; }
+        .resp-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-bottom: 0.2rem;
+        }
+        .resp-meta strong {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .resp-badge {
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 0.12rem 0.45rem;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        .badge-anf { background: #dcfce7; color: #166534; }
+        .badge-huesp { background: #f3f4f6; color: #4b5563; }
+        .resp-fecha {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        .resp-texto {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            margin: 0;
+        }
+        .resena-respuesta-form {
+            margin-top: 0.8rem;
+            padding: 0.9rem;
+            background: var(--bg-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .resena-respuesta-form textarea {
+            width: 100%;
+            min-height: 52px;
+            padding: 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .resena-respuesta-form textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(44,74,59,0.08);
+        }
+        .resena-respuesta-form button {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.45rem 1rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .resena-respuesta-form button:hover {
+            background: #1f3a2e;
         }
 
         /* Perfil Buttons */
@@ -412,10 +567,10 @@
                     </button>
                 </div>
                 
-                <div style="margin-top: 2rem; text-align: left; font-size: 0.9rem; color: var(--text-muted); background: #f8fafc; padding: 1rem; border-radius: 12px;">
-                    <p style="margin-bottom: 0.8rem;"><i class="ph ph-calendar" style="color: var(--primary);"></i> En StayHuila desde {{ host.fecha_registro.year if host.fecha_registro else '2024' }}</p>
-                    <p style="margin-bottom: 0.8rem;"><i class="ph ph-clock" style="color: var(--primary);"></i> Responde en {{ host.tiempo_respuesta or 'pocas horas' }}</p>
-                    <p style="margin: 0;"><i class="ph ph-shield-check" style="color: var(--primary);"></i> Identidad verificada</p>
+                <div class="host-info-box">
+                    <p><i class="ph ph-calendar"></i> En StayHuila desde {{ host.fecha_registro.year if host.fecha_registro else '2024' }}</p>
+                    <p><i class="ph ph-clock"></i> Responde en {{ host.tiempo_respuesta or 'pocas horas' }}</p>
+                    <p><i class="ph ph-shield-check"></i> Identidad verificada</p>
                 </div>
             </div>
         </aside>
@@ -425,7 +580,7 @@
             <div class="bio-section">
                 <h2>Acerca de {{ host.nombre }}</h2>
                 <p class="bio-text">
-                    {{ host.bio or 'Este anfitrión aún no ha añadido una biografía, pero está listo para recibirte con la mejor hospitalidad del Huila.' }}
+                    {{ host.bio or 'Este anfitrión aún no ha añadido una biografía, pero está listo para recibirte con la mejor hospitalidad.' }}
                 </p>
                 {% if host.idiomas %}
                 <div class="idiomas-list">
@@ -473,7 +628,7 @@
             {% if resenas %}
             <div class="reviews-section">
                 <h2>Lo que dicen los huéspedes</h2>
-                <div style="display: grid; gap: 1rem;">
+                <div class="reviews-grid">
                     {% for r in resenas %}
                     <div class="review-card-modern" id="resena-{{ r.id }}">
                         <div class="review-header">
@@ -482,7 +637,7 @@
                                 <span class="review-user-name">{{ r.nombre }} {{ r.apellido }}</span>
                                 <span class="review-date">{{ r.fecha_resena.strftime('%B %Y') if r.fecha_resena else '' }}</span>
                             </div>
-                            <div style="margin-left: auto; color: #F59E0B;">
+                            <div class="review-stars">
                                 {% for i in range(r.calificacion_general|int) %}<i class="ph-fill ph-star"></i>{% endfor %}
                             </div>
                         </div>
@@ -511,10 +666,10 @@
                         </div>
                         {% endif %}
 
-                        {% if current_user.is_authenticated and (current_user.id == host.id or current_user.id == r.usuario_id) %}
+                        {% if current_user.is_authenticated and current_user.id == host.id %}
                         <form action="/resena/{{ r.id }}/responder" method="POST" class="resena-respuesta-form">
                             <textarea name="comentario" rows="2" required maxlength="1000"
-                                placeholder="{% if current_user.id == host.id %}Responde como anfitrión...{% else %}Añade una respuesta...{% endif %}"></textarea>
+                                placeholder="Responde como anfitrión..."></textarea>
                             <button type="submit"><i class="ph ph-paper-plane-tilt"></i> Responder</button>
                         </form>
                         {% endif %}
@@ -525,7 +680,10 @@
             {% else %}
             <div class="reviews-section">
                 <h2>Reseñas</h2>
-                <p class="text-muted">Este anfitrión aún no tiene reseñas, ¡sé el primero en visitarlo!</p>
+                <div class="review-card-modern" style="text-align:center; padding:2.5rem 1rem;">
+                    <i class="ph ph-chat-circle-text" style="font-size:2.5rem; color:var(--border); margin-bottom:0.8rem; display:block;"></i>
+                    <p style="color:var(--text-muted); margin:0;">Este anfitrión aún no tiene reseñas, ¡sé el primero en visitarlo!</p>
+                </div>
             </div>
             {% endif %}
         </main>

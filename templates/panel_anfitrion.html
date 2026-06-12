@@ -160,7 +160,7 @@
                 </div>
                 <div class="list-info">
                     <h3>{{ h.nombre }}</h3>
-                    <p>{{ h.municipio }}, Huila</p>
+                    <p>{{ h.municipio }}</p>
                     <button type="button" class="btn-edit-pub" onclick="editPublicacion('hospedaje', {{ h.id }})">
                         <i class="ph ph-pencil-simple"></i> Editar
                     </button>
@@ -185,7 +185,7 @@
                 </div>
                     <div class="list-info">
                     <h3>{{ e.nombre }}</h3>
-                    <p>{{ e.municipio }}, Huila (Experiencia)</p>
+                    <p>{{ e.municipio }} (Experiencia)</p>
                     <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
                         <button type="button" class="btn-edit-pub" onclick="editPublicacion('experiencia', {{ e.id }})" style="flex:1;">
                             <i class="ph ph-pencil-simple"></i> Editar

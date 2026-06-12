@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+﻿from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 import pymysql
@@ -1214,18 +1214,30 @@ def home():
     try:
         with c.cursor() as cur:
             # Solo muestra hospedajes activos, no deshabilitados y no eliminados
-            cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
+            cur.execute("""SELECT h.*,i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1), 0) as calificacion_real
+                FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                 WHERE h.activo=1 AND h.eliminado=0 AND h.estado='abierta' AND h.verificado=1
                 ORDER BY h.destacado DESC,h.calificacion DESC""")
             hospedajes = serialize(cur.fetchall())
+            for h in hospedajes:
+                h['total_resenas'] = h.get('total_resenas_real', 0)
+                h['calificacion'] = h.get('calificacion_real', 0)
 
             # Solo muestra experiencias activas, no deshabilitadas y no eliminadas
-            cur.execute("""SELECT e.*,i.url as image FROM experiencias e
+            cur.execute("""SELECT e.*,i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
+                FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
                 WHERE e.activo=1 AND e.eliminado=0 AND e.estado='abierta' AND e.verificado=1
                 ORDER BY e.destacado DESC,e.calificacion DESC""")
             experiencias = serialize(cur.fetchall())
+            for e in experiencias:
+                e['total_resenas'] = e.get('total_resenas_real', 0)
+                e['calificacion'] = e.get('calificacion_real', 0)
 
             # Obtener favoritos del usuario si está autenticado
             fav_hospedajes = []
@@ -1255,7 +1267,9 @@ def hospedajes():
     try:
         with c.cursor() as cur:
             query = """
-                SELECT h.*, i.url as image
+                SELECT h.*, i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1), 0) as calificacion_real
                 FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
                 WHERE h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
@@ -1309,7 +1323,10 @@ def hospedajes():
 
             cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
-            
+            for h in data:
+                h['total_resenas'] = h.get('total_resenas_real', 0)
+                h['calificacion'] = h.get('calificacion_real', 0)
+
             # Buscar sugerencias en experiencias si hay query de búsqueda
             sugerencias_experiencias = []
             if q:
@@ -1343,13 +1360,19 @@ def detalle_hospedaje(id):
             hosp = cur.fetchone()
             if not hosp:
                 return redirect(url_for('hospedajes'))
+            recalcular_resenas(cur, 'hospedaje', id)
+            cur.execute("SELECT calificacion, total_resenas FROM hospedajes WHERE id=%s", (id,))
+            fresh = cur.fetchone()
+            if fresh:
+                hosp['calificacion'] = fresh['calificacion']
+                hosp['total_resenas'] = fresh['total_resenas']
             cur.execute("SELECT * FROM hospedaje_imagenes WHERE hospedaje_id=%s ORDER BY orden", (id,))
             imgs = cur.fetchall()
             cur.execute("SELECT servicio FROM hospedaje_servicios WHERE hospedaje_id=%s", (id,))
             servicios = [r['servicio'] for r in cur.fetchall() if r['servicio'] and r['servicio'].strip()]
             cur.execute("""SELECT r.*,u.nombre,u.apellido,u.foto_perfil FROM resenas r
                 JOIN usuarios u ON r.usuario_id=u.id
-                WHERE r.hospedaje_id=%s AND r.publicada=1 ORDER BY r.fecha_resena DESC LIMIT 6""", (id,))
+                WHERE r.hospedaje_id=%s AND r.tipo='hospedaje' AND r.publicada=1 ORDER BY r.fecha_resena DESC LIMIT 6""", (id,))
             resenas = cur.fetchall()
             resenas = cargar_respuestas_resenas(cur, list(resenas))
             cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
@@ -1392,7 +1415,9 @@ def experiencias():
     try:
         with c.cursor() as cur:
             query = """
-                SELECT e.*, i.url as image
+                SELECT e.*, i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
                 FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
                 WHERE e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
@@ -1424,7 +1449,10 @@ def experiencias():
 
             cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
-            
+            for e in data:
+                e['total_resenas'] = e.get('total_resenas_real', 0)
+                e['calificacion'] = e.get('calificacion_real', 0)
+
             # Buscar sugerencias en hospedajes si hay query de búsqueda
             sugerencias_hospedajes = []
             if q:
@@ -1456,6 +1484,12 @@ def detalle_experiencia(id):
             exp = cur.fetchone()
             if not exp:
                 return redirect(url_for('experiencias'))
+            recalcular_resenas(cur, 'experiencia', id)
+            cur.execute("SELECT calificacion, total_resenas FROM experiencias WHERE id=%s", (id,))
+            fresh = cur.fetchone()
+            if fresh:
+                exp['calificacion'] = fresh['calificacion']
+                exp['total_resenas'] = fresh['total_resenas']
             cur.execute("SELECT * FROM experiencia_imagenes WHERE experiencia_id=%s ORDER BY orden", (id,))
             imgs = cur.fetchall()
             cur.execute("""SELECT r.*,u.nombre,u.apellido,u.foto_perfil FROM resenas r
@@ -1626,21 +1660,31 @@ def perfil_anfitrion(id):
 
             # 2. Hospedajes del anfitrión
             cur.execute("""
-                SELECT h.*, i.url as image
+                SELECT h.*, i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1), 0) as calificacion_real
                 FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
                 WHERE h.anfitrion_id = %s AND h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
             """, (id,))
             hospedajes = serialize(cur.fetchall())
+            for h in hospedajes:
+                h['total_resenas'] = h.get('total_resenas_real', 0)
+                h['calificacion'] = h.get('calificacion_real', 0)
 
             # 3. Experiencias del anfitrión
             cur.execute("""
-                SELECT e.*, i.url as image
+                SELECT e.*, i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
                 FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
                 WHERE e.anfitrion_id = %s AND e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
             """, (id,))
             experiencias = serialize(cur.fetchall())
+            for e in experiencias:
+                e['total_resenas'] = e.get('total_resenas_real', 0)
+                e['calificacion'] = e.get('calificacion_real', 0)
 
             # 4. Reseñas recibidas (de todos sus hospedajes/experiencias)
             cur.execute("""
@@ -1785,6 +1829,12 @@ def api_cambiar_email():
     # Validación básica de formato
     if '@' not in new_email or '.' not in new_email.split('@')[-1]:
         return jsonify({'success': False, 'error': 'El formato del correo no es válido.'}), 400
+
+    # Solo se permiten dominios de proveedores oficiales
+    ALLOWED_EMAIL_DOMAINS = {'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'live.com', 'msn.com'}
+    email_domain = new_email.split('@')[-1]
+    if email_domain not in ALLOWED_EMAIL_DOMAINS:
+        return jsonify({'success': False, 'error': 'Solo se permiten correos de servicios oficiales: Gmail, Hotmail, Outlook, Yahoo, iCloud, Live o MSN.'}), 400
 
     # No permitir el mismo correo actual
     if new_email == current_user.email:
@@ -1946,22 +1996,32 @@ def favoritos():
     try:
         with c.cursor() as cur:
             cur.execute("""
-                SELECT f.id as fav_id, h.*, i.url as image 
-                FROM favoritos f 
-                JOIN hospedajes h ON f.hospedaje_id = h.id 
-                LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1 
+                SELECT f.id as fav_id, h.*, i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1), 0) as calificacion_real
+                FROM favoritos f
+                JOIN hospedajes h ON f.hospedaje_id = h.id
+                LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
                 WHERE f.usuario_id = %s AND f.tipo = 'hospedaje'
             """, (current_user.id,))
             hospedajes = serialize(cur.fetchall())
-            
+            for h in hospedajes:
+                h['total_resenas'] = h.get('total_resenas_real', 0)
+                h['calificacion'] = h.get('calificacion_real', 0)
+
             cur.execute("""
-                SELECT f.id as fav_id, e.*, i.url as image 
-                FROM favoritos f 
-                JOIN experiencias e ON f.experiencia_id = e.id 
-                LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1 
+                SELECT f.id as fav_id, e.*, i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
+                FROM favoritos f
+                JOIN experiencias e ON f.experiencia_id = e.id
+                LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
                 WHERE f.usuario_id = %s AND f.tipo = 'experiencia'
             """, (current_user.id,))
             experiencias = serialize(cur.fetchall())
+            for e in experiencias:
+                e['total_resenas'] = e.get('total_resenas_real', 0)
+                e['calificacion'] = e.get('calificacion_real', 0)
             
         return render_template('favoritos.html', hospedajes=hospedajes, experiencias=experiencias)
     finally:
@@ -2283,6 +2343,12 @@ def reservar():
                 hosp = cur.fetchone()
                 if not hosp:
                     return redirect(url_for('experiencias'))
+                recalcular_resenas(cur, 'experiencia', hid)
+                cur.execute("SELECT calificacion, total_resenas FROM experiencias WHERE id=%s", (hid,))
+                fresh = cur.fetchone()
+                if fresh:
+                    hosp['calificacion'] = fresh['calificacion']
+                    hosp['total_resenas'] = fresh['total_resenas']
                 
                 if sesion_id:
                     cur.execute("SELECT * FROM experiencia_sesiones WHERE id=%s", (sesion_id,))
@@ -2315,6 +2381,12 @@ def reservar():
                 hosp = cur.fetchone()
                 if not hosp:
                     return redirect(url_for('hospedajes'))
+                recalcular_resenas(cur, 'hospedaje', hid)
+                cur.execute("SELECT calificacion, total_resenas FROM hospedajes WHERE id=%s", (hid,))
+                fresh = cur.fetchone()
+                if fresh:
+                    hosp['calificacion'] = fresh['calificacion']
+                    hosp['total_resenas'] = fresh['total_resenas']
                     
                 if hosp['anfitrion_id'] == current_user.id:
                     flash('No puedes reservar tu propia publicación.', 'error')
@@ -2629,17 +2701,29 @@ def panel_anfitrion():
         with c.cursor() as cur:
             # El anfitrión ve TODAS sus publicaciones (incluso deshabilitadas),
             # pero NO las eliminadas lógicamente (eliminado=1) ya que fueron dadas de baja.
-            cur.execute("""SELECT h.*,i.url as image FROM hospedajes h
+            cur.execute("""SELECT h.*,i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1), 0) as calificacion_real
+                FROM hospedajes h
                 LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                 WHERE h.anfitrion_id=%s AND h.eliminado=0
                 ORDER BY h.fecha_creacion DESC""", (current_user.id,))
             mis_hospedajes = cur.fetchall()
+            for h in mis_hospedajes:
+                h['total_resenas'] = h.get('total_resenas_real', 0)
+                h['calificacion'] = h.get('calificacion_real', 0)
 
-            cur.execute("""SELECT e.*,i.url as image FROM experiencias e
+            cur.execute("""SELECT e.*,i.url as image,
+                (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
+                FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
                 WHERE e.anfitrion_id=%s AND e.eliminado=0
                 ORDER BY e.fecha_creacion DESC""", (current_user.id,))
             mis_experiencias = cur.fetchall()
+            for e in mis_experiencias:
+                e['total_resenas'] = e.get('total_resenas_real', 0)
+                e['calificacion'] = e.get('calificacion_real', 0)
 
             ids_hosp = [h['id'] for h in mis_hospedajes]
             ids_exp = [e['id'] for e in mis_experiencias]
@@ -2799,8 +2883,8 @@ def publicar():
         max_huespedes = bounded_int(request.form.get('max_huespedes'), 10, 1, 50)
         e_cap_min = min(e_cap_min, max_huespedes)
 
-    if not v_documento or not v_telefono:
-        return jsonify({"success": False, "error": "El documento y telefono deben contener solo numeros."})
+    if not v_documento or not v_telefono or len(v_documento) != 10:
+        return jsonify({"success": False, "error": "El documento debe tener exactamente 10 digitos y el telefono solo numeros."})
 
     # Amenities (JSON array string)
     import json
@@ -2813,6 +2897,8 @@ def publicar():
     # Las imágenes ya fueron validadas y optimizadas por /api/validar-imagen.
     # El frontend envía las URLs resultantes como lista de campos 'fotos_urls'.
     fotos_urls = request.form.getlist('fotos_urls')
+    if not fotos_urls:
+        return jsonify({"success": False, "error": "Debes subir al menos una imagen para crear la publicacion."})
 
     c = db()
     try:
@@ -3697,6 +3783,20 @@ def cargar_respuestas_resenas(cur, resenas):
     return resenas
 
 
+def recalcular_resenas(cur, tipo, pub_id):
+    """Recalcula y sincroniza calificacion/total_resenas desde la tabla resenas."""
+    if tipo == 'hospedaje':
+        cur.execute("""UPDATE hospedajes SET
+            calificacion=COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=%s AND tipo='hospedaje' AND publicada=1), 0),
+            total_resenas=(SELECT COUNT(*) FROM resenas WHERE hospedaje_id=%s AND tipo='hospedaje' AND publicada=1)
+            WHERE id=%s""", (pub_id, pub_id, pub_id))
+    elif tipo == 'experiencia':
+        cur.execute("""UPDATE experiencias SET
+            calificacion=COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=%s AND tipo='experiencia' AND publicada=1), 0),
+            total_resenas=(SELECT COUNT(*) FROM resenas WHERE experiencia_id=%s AND tipo='experiencia' AND publicada=1)
+            WHERE id=%s""", (pub_id, pub_id, pub_id))
+
+
 @app.route('/resena/<int:resena_id>/responder', methods=['POST'])
 @login_required
 def responder_resena(resena_id):
@@ -3724,9 +3824,8 @@ def responder_resena(resena_id):
                 return redirect(request.referrer or url_for('home'))
 
             anfitrion_id = resena['hosp_anfitrion'] or resena['exp_anfitrion']
-            autor_id = resena['usuario_id']
-            if current_user.id not in (anfitrion_id, autor_id):
-                flash('Solo el anfitrión o el autor de la reseña pueden responder.', 'error')
+            if current_user.id != anfitrion_id:
+                flash('Solo el dueño de la publicación puede responder a las reseñas.', 'error')
                 return redirect(request.referrer or url_for('home'))
 
             cur.execute("""INSERT INTO resena_respuestas (resena_id, usuario_id, comentario)
