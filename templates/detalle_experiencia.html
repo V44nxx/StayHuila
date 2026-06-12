@@ -109,7 +109,7 @@
                     <span class="meta-sep">·</span>
                     {% if experiencia.super_anfitrion %}<span class="meta-super"><i class="ph-fill ph-medal"></i>
                         <span data-i18n="detail.super_host">SuperAnfitrión</span></span><span class="meta-sep">·</span>{% endif %}
-                    <span class="meta-location"><i class="ph ph-map-pin"></i> {{ experiencia.municipio ~ ", Huila"
+                    <span class="meta-location"><i class="ph ph-map-pin"></i> {{ experiencia.municipio
                         }}</span>
                 </div>
             </div>
@@ -351,7 +351,7 @@
             <!-- MAPA -->
             <div class="detalle-card mapa-card">
                 <h2 class="section-title">¿Dónde estarás?</h2>
-                <p class="mapa-subtitle"><i class="ph ph-map-pin"></i> {{ experiencia.municipio ~ ", Huila" }} — La
+                <p class="mapa-subtitle"><i class="ph ph-map-pin"></i> {{ experiencia.municipio }} — La
                     dirección exacta se comparte tras la reserva.</p>
                 <div id="detalle-map"></div>
             </div>
@@ -376,7 +376,10 @@
                     {% endfor %}
                 </div>
                 <div class="resenas-grid">
+                    {% set visible_resenas = [] %}
                     {% for r in resenas %}
+                    {% if r.experiencia_id == experiencia.id %}
+                    {% set _ = visible_resenas.append(1) %}
                     <div class="resena-card" id="resena-{{ r.id }}">
                         <div class="resena-header">
                             <img src="{{ r.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ r.nombre ~ '&background=random' }}"
@@ -415,16 +418,17 @@
                         </div>
                         {% endif %}
 
-                        {% if current_user.is_authenticated and (current_user.id == experiencia.anfitrion_id or current_user.id == r.usuario_id) %}
+                        {% if current_user.is_authenticated and current_user.id == experiencia.anfitrion_id %}
                         <form action="/resena/{{ r.id }}/responder" method="POST" class="resena-respuesta-form">
                             <textarea name="comentario" rows="2" required maxlength="1000"
-                                placeholder="{% if current_user.id == experiencia.anfitrion_id %}Responde como anfitrión...{% else %}Añade una respuesta...{% endif %}"></textarea>
+                                placeholder="Responde como anfitrión..."></textarea>
                             <button type="submit"><i class="ph ph-paper-plane-tilt"></i> Responder</button>
                         </form>
                         {% endif %}
                     </div>
+                    {% endif %}
                     {% endfor %}
-                    {% if not resenas %}
+                    {% if not visible_resenas %}
                     <p style="color:var(--text-muted)">Sé el primero en dejar una reseña.</p>
                     {% endif %}
                 </div>
@@ -626,7 +630,7 @@
                         <h3>{{ s.nombre }}</h3>
                         <span class="rating"><i class="ph-fill ph-star"></i> {{ s.calificacion }}</span>
                     </div>
-                    <p class="location">{{ s.municipio ~ ", Huila" }}</p>
+                    <p class="location">{{ s.municipio }}</p>
                     <p class="details">{{ s.descripcion_corta or s.tipo }}</p>
                     <p class="price"><strong>${{ "{:,.0f}".format(s.precio_persona).replace(',', '.') }} COP</strong>
                         persona</p>

@@ -150,7 +150,7 @@
                         <h3 style="font-size: 1rem;">{{ h.nombre }}</h3>
                         <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ h.calificacion }}</span>
                     </div>
-                    <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}, Huila</p>
+                    <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}</p>
                     <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche</p>
                 </div>
             </article>
@@ -172,7 +172,7 @@
                         <h3 style="font-size: 1rem;">{{ e.nombre }}</h3>
                         <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ e.calificacion }}</span>
                     </div>
-                    <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}, Huila</p>
+                    <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}</p>
                     <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> por persona</p>
                 </div>
             </article>

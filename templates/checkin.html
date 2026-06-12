@@ -178,7 +178,7 @@
         <div class="ci-hero-icon"><i class="ph-fill ph-sign-in"></i></div>
         <div>
             <h1>¡Bienvenido a {{ reserva.hosp_nombre }}!</h1>
-            <p>Tu hospedaje en {{ reserva.municipio }}, Huila te espera 🌿</p>
+            <p>Tu hospedaje en {{ reserva.municipio }} te espera 🌿</p>
             <div class="ci-code">Reserva: {{ reserva.codigo_reserva }}</div>
         </div>
     </div>
@@ -190,7 +190,7 @@
             <img src="{{ reserva.hosp_img or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=400' }}" class="prop-img" alt="{{ reserva.hosp_nombre }}">
             <div class="prop-info">
                 <h3>{{ reserva.hosp_nombre }}</h3>
-                <div class="loc"><i class="ph ph-map-pin"></i> {{ reserva.municipio }}, Huila</div>
+                <div class="loc"><i class="ph ph-map-pin"></i> {{ reserva.municipio }}</div>
                 <div class="tiempo">
                     <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.4rem">Tiempo de estadía</div>
                     <div id="countdown" class="countdown"></div>

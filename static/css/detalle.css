@@ -1,4 +1,4 @@
-/* ==========================================
+﻿/* ==========================================
    DETALLE HOSPEDAJE - StayHuila
    ========================================== */
 
@@ -82,11 +82,11 @@
 /* Galería */
 .galeria-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 3fr 2fr;
     gap: 8px;
     border-radius: 20px;
     overflow: hidden;
-    height: 480px;
+    height: 560px;
 }
 .galeria-main {
     position: relative;
@@ -96,6 +96,7 @@
 .galeria-main img {
     width: 100%; height: 100%;
     object-fit: cover;
+    object-position: center 30%;
     transition: transform 0.4s ease;
 }
 .galeria-main:hover img { transform: scale(1.03); }
@@ -113,6 +114,8 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 8px;
+    height: 100%;
+    min-height: 0;
 }
 .galeria-thumb {
     position: relative; cursor: pointer; overflow: hidden;
@@ -120,6 +123,7 @@
 .galeria-thumb img {
     width: 100%; height: 100%;
     object-fit: cover;
+    object-position: center 30%;
     transition: transform 0.4s ease;
 }
 .galeria-thumb:hover img { transform: scale(1.05); }
@@ -581,90 +585,82 @@
     border-radius: 12px;
     padding: 1rem;
     margin-bottom: 0.8rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
 }
 .resena-respuesta:last-child { margin-bottom: 0; }
-.respuesta-header {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.5rem;
-}
-.respuesta-avatar {
-    width: 32px;
-    height: 32px;
+.resp-avatar {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
+    flex-shrink: 0;
 }
-.respuesta-info {
+.resp-body { flex: 1; }
+.resp-meta {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.3rem;
 }
-.respuesta-nombre {
+.resp-meta strong {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-main);
 }
-.respuesta-rol {
-    font-size: 0.75rem;
-    color: var(--primary);
-    font-weight: 500;
+.resp-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
 }
-.respuesta-fecha {
+.badge-anf { background: #dcfce7; color: #166534; }
+.badge-huesp { background: #f3f4f6; color: #4b5563; }
+.resp-fecha {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-left: auto;
 }
-.respuesta-texto {
-    font-size: 0.85rem;
+.resp-texto {
+    font-size: 0.88rem;
     line-height: 1.5;
     color: var(--text-main);
+    margin: 0;
 }
 
 /* Reply Form */
-.responder-form {
+.resena-respuesta-form {
     margin-top: 1rem;
     padding: 1rem;
     background: var(--bg-color);
     border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
 }
-.responder-form textarea {
+.resena-respuesta-form textarea {
     width: 100%;
-    min-height: 80px;
+    min-height: 60px;
     padding: 0.8rem;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     font-family: inherit;
     font-size: 0.9rem;
     resize: vertical;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
-.responder-form textarea:focus {
+.resena-respuesta-form textarea:focus {
     border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(44,74,59,0.08);
 }
-.responder-form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
-    margin-top: 0.6rem;
-}
-.responder-btn-cancel {
-    background: none;
-    border: none;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    transition: background 0.2s;
-}
-.responder-btn-cancel:hover {
-    background: rgba(0,0,0,0.05);
-}
-.responder-btn-submit {
+.resena-respuesta-form button {
+    align-self: flex-end;
     background: var(--primary);
     color: white;
     border: none;
@@ -672,26 +668,14 @@
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    padding: 0.4rem 1rem;
-    border-radius: 6px;
-    transition: background 0.2s;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    transition: background 0.2s, transform 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
-.responder-btn-submit:hover {
-    background: #2c4a3b;
-}
-.mostrar-respuesta-btn {
-    background: none;
-    border: none;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--primary);
-    cursor: pointer;
-    padding: 0;
-    margin-top: 0.5rem;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
-.mostrar-respuesta-btn:hover {
-    color: #2c4a3b;
+.resena-respuesta-form button:hover {
+    background: #1f3a2e;
+    transform: translateY(-1px);
 }

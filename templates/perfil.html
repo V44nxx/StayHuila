@@ -462,6 +462,14 @@
             }
         }
 
+        var _allowedEmailDomains = ['gmail.com','hotmail.com','outlook.com','yahoo.com','icloud.com','live.com','msn.com'];
+
+        function isOfficialEmail(email) {
+            var parts = email.toLowerCase().split('@');
+            if (parts.length !== 2) return false;
+            return _allowedEmailDomains.indexOf(parts[1]) !== -1;
+        }
+
         async function sendEmailCode(resend) {
             var errEl = document.getElementById('email-error1');
             errEl.style.display = 'none';
@@ -469,6 +477,12 @@
             var newEmail = resend ? _pendingNewEmail : document.getElementById('new-email-input').value.trim();
             if (!newEmail) {
                 errEl.textContent = 'Ingresa el nuevo correo electrónico.';
+                errEl.style.display = '';
+                return;
+            }
+
+            if (!resend && !isOfficialEmail(newEmail)) {
+                errEl.textContent = 'Solo se permiten correos de servicios oficiales: Gmail, Hotmail, Outlook, Yahoo, iCloud, Live o MSN.';
                 errEl.style.display = '';
                 return;
             }
