@@ -6,6 +6,11 @@ document.addEventListener('click', function (event) {
     }
 });
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 /* ── Tipo activo (hospedaje por defecto) ── */
 var _selectedTipo = 'hospedaje';
 
@@ -27,22 +32,9 @@ function _applyTipoStyle(btn, active) {
 
 /* ── Función principal de búsqueda ── */
 function doSearch() {
-    var q        = document.getElementById('sh-q')       ? document.getElementById('sh-q').value.trim()       : '';
-    var checkin  = document.getElementById('sh-checkin') ? document.getElementById('sh-checkin').value         : '';
-    var checkout = document.getElementById('sh-checkout')? document.getElementById('sh-checkout').value        : '';
-    var guests   = document.getElementById('sh-guests')  ? document.getElementById('sh-guests').value          : '';
-
-    if (checkin && checkout && checkin >= checkout) {
-        alert('La fecha de salida debe ser posterior a la de llegada.');
-        return;
-    }
-
+    var q = document.getElementById('sh-q') ? document.getElementById('sh-q').value.trim() : '';
     var params = new URLSearchParams();
-    if (q)        params.set('q',        q);
-    if (checkin)  params.set('checkin',  checkin);
-    if (checkout) params.set('checkout', checkout);
-    if (guests)   params.set('huespedes', guests);
-
+    if (q) params.set('q', q);
     var dest = _selectedTipo === 'experiencia' ? '/experiencias' : '/hospedajes';
     window.location.href = dest + (params.toString() ? '?' + params.toString() : '');
 }
@@ -60,15 +52,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 tipoBtns.forEach(function (b) { _applyTipoStyle(b, false); });
                 _applyTipoStyle(this, true);
 
-                // Mostrar/ocultar campos de fecha según tipo
-                var dateFields = document.querySelectorAll('.sh-date-field');
-                dateFields.forEach(function (f) {
-                    f.style.display = _selectedTipo === 'experiencia' ? 'none' : '';
-                });
-                var dateDividers = document.querySelectorAll('.sh-date-divider');
-                dateDividers.forEach(function (d) {
-                    d.style.display = _selectedTipo === 'experiencia' ? 'none' : '';
-                });
             });
         });
     }
@@ -77,26 +60,58 @@ document.addEventListener('DOMContentLoaded', function () {
     var submitBtn = document.getElementById('sh-submit');
     if (submitBtn) submitBtn.addEventListener('click', doSearch);
 
-    /* ── Enter en el campo de texto ── */
+    /* ── Enter en el campo de texto + sugerencias ── */
     var qInput = document.getElementById('sh-q');
-    if (qInput) qInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') doSearch();
-    });
+    var sugBox = document.getElementById('search-suggestions');
+    var searchTimeout = null;
 
-    /* ── Validación de fechas ── */
-    var ciInput = document.getElementById('sh-checkin');
-    var coInput = document.getElementById('sh-checkout');
-    var today = new Date().toISOString().split('T')[0];
-    if (ciInput) {
-        ciInput.min = today;
-        ciInput.addEventListener('change', function () {
-            if (coInput && coInput.value && coInput.value <= ciInput.value) {
-                coInput.value = '';
+    function renderSuggestions(items) {
+        if (!sugBox) return;
+        if (!items.length) { sugBox.style.display = 'none'; return; }
+        sugBox.innerHTML = '';
+        items.slice(0, 6).forEach(function(item) {
+            var div = document.createElement('div');
+            div.style.cssText = 'display:flex;align-items:center;gap:0.7rem;padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+            div.onmouseenter = function() { this.style.background = '#f9fafb'; };
+            div.onmouseleave = function() { this.style.background = 'white'; };
+            div.onclick = function() {
+                qInput.value = item.nombre;
+                sugBox.style.display = 'none';
+                doSearch();
+            };
+            var badge = item.tipo === 'hospedaje' ? 'Hospedaje' : 'Experiencia';
+            var badgeColor = item.tipo === 'hospedaje' ? '#2C4A3B' : '#F59E0B';
+            div.innerHTML = '<img src="' + (item.imagen || 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=60') + '" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;">' +
+                '<div style="flex:1;min-width:0;"><strong style="font-size:0.9rem;color:var(--text-main);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(item.nombre) + '</strong>' +
+                '<span style="font-size:0.78rem;color:var(--text-muted);">' + escapeHtml(item.municipio) + ' · <span style="color:' + badgeColor + ';font-weight:600;">' + badge + '</span></span></div>';
+            sugBox.appendChild(div);
+        });
+        sugBox.style.display = 'block';
+    }
+
+    if (qInput) {
+        qInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { sugBox.style.display = 'none'; doSearch(); }
+            if (e.key === 'Escape') { sugBox.style.display = 'none'; }
+        });
+        qInput.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            var val = this.value.trim();
+            if (!val) { sugBox.style.display = 'none'; return; }
+            searchTimeout = setTimeout(function () {
+                fetch('/api/buscar?q=' + encodeURIComponent(val))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) { renderSuggestions(data); })
+                    .catch(function() {});
+            }, 250);
+        });
+        // Cerrar sugerencias al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (sugBox && !qInput.contains(e.target) && !sugBox.contains(e.target)) {
+                sugBox.style.display = 'none';
             }
-            if (coInput) coInput.min = ciInput.value || today;
         });
     }
-    if (coInput) coInput.min = today;
 
     /* ── Categorías — filtran directamente en la página ── */
     document.querySelectorAll('.category-item[data-cat]').forEach(function (item) {

@@ -311,7 +311,7 @@
 
             <!-- DESCRIPCIÓN -->
             <div class="detalle-card desc-card">
-                <p class="desc-text" id="desc-text">{{ experiencia.descripcion }}</p>
+                <p class="desc-text" id="desc-text" data-i18n-dynamic>{{ experiencia.descripcion }}</p>
                 <button class="read-more-btn" id="read-more-btn" onclick="toggleDesc()">Mostrar más <i
                         class="ph ph-caret-down"></i></button>
             </div>
@@ -319,12 +319,12 @@
             <!-- QUÉ INCLUYE -->
             <div class="detalle-card amenidades-card">
                 <h2 class="section-title">Qué incluye esta experiencia</h2>
-                <div style="margin-top:1rem; line-height:1.6; color:var(--text-main);">
+                <div style="margin-top:1rem; line-height:1.6; color:var(--text-main);" data-i18n-dynamic>
                     {{ experiencia.que_incluye or "El anfitrión no ha detallado qué incluye." }}
                 </div>
                 
                 <h2 class="section-title" style="margin-top:2rem;">Qué debes traer</h2>
-                <div style="margin-top:1rem; line-height:1.6; color:var(--text-main);">
+                <div style="margin-top:1rem; line-height:1.6; color:var(--text-main);" data-i18n-dynamic>
                     {{ experiencia.que_traer or "Ropa cómoda e hidratación recomendada." }}
                 </div>
                 
@@ -394,7 +394,7 @@
                                     style="color:#F59E0B;font-size:.8rem"></i>{% endfor %}
                             </div>
                         </div>
-                        <p class="resena-texto">{{ r.comentario or '' }}</p>
+                        <p class="resena-texto" data-i18n-dynamic>{{ r.comentario or '' }}</p>
 
                         {% if r.respuestas %}
                         <div class="resena-respuestas">
@@ -411,7 +411,7 @@
                                         </span>
                                         <span class="resp-fecha">{{ resp.fecha_respuesta.strftime('%d %b %Y') if resp.fecha_respuesta else '' }}</span>
                                     </div>
-                                    <p class="resp-texto">{{ resp.comentario }}</p>
+                                    <p class="resp-texto" data-i18n-dynamic>{{ resp.comentario }}</p>
                                 </div>
                             </div>
                             {% endfor %}

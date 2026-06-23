@@ -229,7 +229,7 @@
 
             <!-- DESCRIPCIÓN -->
             <div class="detalle-card desc-card">
-                <p class="desc-text" id="desc-text">{{ hospedaje.descripcion }}</p>
+                <p class="desc-text" id="desc-text" data-i18n-dynamic>{{ hospedaje.descripcion }}</p>
                 <button class="read-more-btn" id="read-more-btn" onclick="toggleDesc()"><span data-i18n="detail.more">Mostrar más</span> <i
                         class="ph ph-caret-down"></i></button>
             </div>
@@ -342,7 +342,7 @@
                                     style="color:#F59E0B;font-size:.8rem"></i>{% endfor %}
                             </div>
                         </div>
-                        <p class="resena-texto">{{ r.comentario or '' }}</p>
+                        <p class="resena-texto" data-i18n-dynamic>{{ r.comentario or '' }}</p>
 
                         {# ── Hilo de respuestas ── #}
                         {% if r.respuestas %}
@@ -360,7 +360,7 @@
                                         </span>
                                         <span class="resp-fecha">{{ resp.fecha_respuesta.strftime('%d %b %Y') if resp.fecha_respuesta else '' }}</span>
                                     </div>
-                                    <p class="resp-texto">{{ resp.comentario }}</p>
+                                    <p class="resp-texto" data-i18n-dynamic>{{ resp.comentario }}</p>
                                 </div>
                             </div>
                             {% endfor %}

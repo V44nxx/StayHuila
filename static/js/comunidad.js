@@ -221,7 +221,7 @@ function loadComments(postId) {
     .then(data => {
         list.innerHTML = '';
         if (!data.length) {
-            list.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:0.88rem; padding:0.5rem 0;">Sé el primero en comentar.</p>';
+            list.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:0.88rem; padding:0.5rem 0;" data-i18n-dynamic>Sé el primero en comentar.</p>';
             return;
         }
 
@@ -262,7 +262,7 @@ function loadComments(postId) {
                             <strong>${authorHtml}</strong>
                             ${delBtn}
                         </div>
-                        <p style="margin-top:0.2rem;">${escapeHtml(c.contenido)}</p>
+                        <p style="margin-top:0.2rem;" data-i18n-dynamic>${escapeHtml(c.contenido)}</p>
                         <div style="margin-top:0.3rem;display:flex;align-items:center;">
                             <span class="comment-time">${formatDate(c.fecha_creacion)}</span>
                             ${replyBtn}
@@ -284,6 +284,7 @@ function loadComments(postId) {
         }
 
         roots.forEach(c => renderComment(c, false));
+        if (window.I18n) window.I18n.translateDynamic();
     });
 }
 
@@ -414,7 +415,7 @@ function renderPost(post) {
             </div>
             ${deletePostBtn}
         </div>
-        ${post.contenido ? `<div class="post-content">${escapeHtml(post.contenido)}</div>` : ''}
+        ${post.contenido ? `<div class="post-content" data-i18n-dynamic>${escapeHtml(post.contenido)}</div>` : ''}
         ${post.imagen_url ? `<img src="${post.imagen_url}" class="post-image" alt="Foto del post">` : ''}
         ${recHTML}
 
@@ -462,12 +463,13 @@ function loadPosts() {
             container.innerHTML = `
                 <div style="text-align:center;padding:3rem;background:var(--card-bg);border-radius:16px;">
                     <i class="ph ph-chats" style="font-size:3rem;display:block;margin-bottom:1rem;color:var(--text-muted);"></i>
-                    <h3 style="color:var(--text-main)">¡Sé el primero en publicar!</h3>
-                    <p style="color:var(--text-muted)">Comparte una foto o recomendación del Huila.</p>
+                    <h3 style="color:var(--text-main)" data-i18n-dynamic>¡Sé el primero en publicar!</h3>
+                    <p style="color:var(--text-muted)" data-i18n-dynamic>Comparte una foto o recomendación del Huila.</p>
                 </div>`;
             return;
         }
         data.forEach(p => container.appendChild(renderPost(p)));
+        if (window.I18n) window.I18n.translateDynamic();
     })
     .catch(() => {
         document.getElementById('posts-container').innerHTML = '<p style="color:red;text-align:center;">Error al cargar. Recarga la página.</p>';
@@ -536,14 +538,17 @@ function loadFeedByType(tipo) {
 
 /* ── Lugares populares en la sidebar ─────────────────────────── */
 function loadPopularPlaces() {
-    fetch('/api/buscar?q=')
+    fetch('/api/comunidad/populares')
     .then(r => r.json())
     .then(data => {
         const container = document.getElementById('popular-places');
         if (!container) return;
-        const shown = data.slice(0, 4);
+        if (!data.length) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">Aún no hay recomendaciones.</p>';
+            return;
+        }
         container.innerHTML = '';
-        shown.forEach(item => {
+        data.forEach(item => {
             const url = item.tipo === 'hospedaje' ? `/hospedaje/${item.id}` : `/experiencia/${item.id}`;
             const div = document.createElement('div');
             div.style.cssText = 'display:flex;gap:0.7rem;align-items:center;margin-bottom:0.8rem;cursor:pointer;';
@@ -553,7 +558,7 @@ function loadPopularPlaces() {
                      style="width:44px;height:44px;border-radius:8px;object-fit:cover;">
                 <div style="flex:1;">
                     <strong style="display:block;font-size:0.88rem;color:var(--text-main)">${escapeHtml(item.nombre)}</strong>
-                    <span style="font-size:0.78rem;color:var(--text-muted)">${escapeHtml(item.municipio)}</span>
+                    <span style="font-size:0.78rem;color:var(--text-muted)">${escapeHtml(item.municipio)} · ${item.rec_count} recomendación${item.rec_count !== 1 ? 'es' : ''}</span>
                 </div>`;
             container.appendChild(div);
         });
