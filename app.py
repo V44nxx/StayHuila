@@ -1281,8 +1281,13 @@ def hospedajes():
                 params.extend([f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"])
 
             if huespedes:
-                query += " AND h.capacidad_max >= %s"
-                params.append(huespedes)
+                try:
+                    huespedes_int = int(huespedes)
+                    if huespedes_int > 0:
+                        query += " AND h.capacidad_max >= %s"
+                        params.append(huespedes_int)
+                except ValueError:
+                    pass
 
             if precio_max:
                 query += " AND h.precio_noche <= %s"
@@ -1433,17 +1438,22 @@ def experiencias():
                 params.append(precio_max)
 
             if huespedes:
-                query += " AND e.capacidad_max >= %s"
-                params.append(huespedes)
+                try:
+                    huespedes_int = int(huespedes)
+                    if huespedes_int > 0:
+                        query += " AND e.capacidad_max >= %s"
+                        params.append(huespedes_int)
+                except ValueError:
+                    pass
 
             if checkin and checkout:
                 query += """ AND e.id NOT IN (
                     SELECT experiencia_id FROM reservas
                     WHERE estado IN ('pendiente_pago','confirmada','check_in')
-                      AND fecha_checkin < %s AND fecha_checkout > %s
+                      AND DATE(fecha_experiencia) BETWEEN %s AND %s
                       AND experiencia_id IS NOT NULL
                 )"""
-                params.extend([checkout, checkin])
+                params.extend([checkin, checkout])
 
             query += " ORDER BY e.destacado DESC, e.calificacion DESC"
 
@@ -3418,47 +3428,26 @@ def disponibilidad(id):
 @app.route('/api/buscar')
 def api_buscar():
     q = request.args.get('q', '')
-    tipo = request.args.get('tipo', 'hospedaje')  # 'hospedaje' or 'experiencia'
+    tipo = request.args.get('tipo', None)
     c = db()
     try:
         with c.cursor() as cur:
-            # Buscar en el tipo seleccionado
-            if tipo == 'hospedaje':
+            resultados = []
+            if tipo is None or tipo == 'hospedaje':
                 cur.execute("""SELECT h.id,h.nombre,h.municipio,h.precio_noche as precio,'hospedaje' as tipo,i.url as imagen
                     FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
                     WHERE (h.nombre LIKE %s OR h.municipio LIKE %s)
                         AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
                     LIMIT 8""", (f'%{q}%', f'%{q}%'))
-                resultados = cur.fetchall()
-                
-                # Buscar sugerencias en el otro tipo (experiencias)
-                cur.execute("""SELECT e.id,e.nombre,e.municipio,e.precio_persona as precio,'experiencia' as tipo,i.url as imagen
-                    FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                    WHERE (e.nombre LIKE %s OR e.municipio LIKE %s)
-                        AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
-                    LIMIT 3""", (f'%{q}%', f'%{q}%'))
-                sugerencias = cur.fetchall()
-            else:
+                resultados.extend(cur.fetchall())
+            if tipo is None or tipo == 'experiencia':
                 cur.execute("""SELECT e.id,e.nombre,e.municipio,e.precio_persona as precio,'experiencia' as tipo,i.url as imagen
                     FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
                     WHERE (e.nombre LIKE %s OR e.municipio LIKE %s)
                         AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
                     LIMIT 8""", (f'%{q}%', f'%{q}%'))
-                resultados = cur.fetchall()
-                
-                # Buscar sugerencias en el otro tipo (hospedajes)
-                cur.execute("""SELECT h.id,h.nombre,h.municipio,h.precio_noche as precio,'hospedaje' as tipo,i.url as imagen
-                    FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                    WHERE (h.nombre LIKE %s OR h.municipio LIKE %s)
-                        AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
-                    LIMIT 3""", (f'%{q}%', f'%{q}%'))
-                sugerencias = cur.fetchall()
-            
-            return jsonify({
-                'resultados': resultados,
-                'sugerencias': sugerencias,
-                'tipo_buscado': tipo
-            })
+                resultados.extend(cur.fetchall())
+            return jsonify(resultados)
     finally:
         c.close()
 
@@ -3685,6 +3674,32 @@ def api_comunidad_tendencias():
                 })
             
             return jsonify(result)
+    finally:
+        c.close()
+
+@app.route('/api/comunidad/populares')
+def api_comunidad_populares():
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                (SELECT h.id, h.nombre, h.municipio, 'hospedaje' as tipo, hi.url as imagen, COUNT(*) as rec_count
+                 FROM comunidad_posts cp
+                 JOIN hospedajes h ON cp.hospedaje_id = h.id
+                 LEFT JOIN hospedaje_imagenes hi ON h.id = hi.hospedaje_id AND hi.es_portada = 1
+                 WHERE cp.tipo_recomendacion = 'hospedaje' AND h.activo=1 AND h.eliminado=0
+                 GROUP BY h.id, h.nombre, h.municipio, hi.url)
+                UNION ALL
+                (SELECT e.id, e.nombre, e.municipio, 'experiencia' as tipo, ei.url as imagen, COUNT(*) as rec_count
+                 FROM comunidad_posts cp
+                 JOIN experiencias e ON cp.experiencia_id = e.id
+                 LEFT JOIN experiencia_imagenes ei ON e.id = ei.experiencia_id AND ei.es_portada = 1
+                 WHERE cp.tipo_recomendacion = 'experiencia' AND e.activo=1 AND e.eliminado=0
+                 GROUP BY e.id, e.nombre, e.municipio, ei.url)
+                ORDER BY rec_count DESC
+                LIMIT 5
+            """)
+            return jsonify(serialize(cur.fetchall()))
     finally:
         c.close()
 

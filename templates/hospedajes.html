@@ -27,6 +27,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/hospedajes.css') }}">
+    <style>
+        .filter-chips { display:flex; flex-wrap:wrap; gap:.4rem; margin:.6rem 0 .4rem; align-items:center; }
+        .filter-chip { display:inline-flex; align-items:center; gap:.3rem; background:#e8f5e9; color:#2C4A3B; border:1px solid #c8e6c9; border-radius:50px; padding:.22rem .75rem; font-size:.78rem; font-weight:600; }
+        .clear-search { display:inline-flex; align-items:center; gap:.3rem; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:50px; padding:.22rem .75rem; font-size:.78rem; font-weight:600; text-decoration:none; transition:background .15s; }
+        .clear-search:hover { background:#fecaca; }
+    </style>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- Leaflet CSS para el Mapa Interactivo -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -148,6 +154,13 @@
             </div>
 
             <main class="grid-half" id="hospedajes-grid">
+                {% if not hospedajes %}
+                <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+                    <i class="ph ph-magnifying-glass" style="font-size:3rem;display:block;margin-bottom:1rem;"></i>
+                    <h3 style="margin-bottom:0.5rem;">No encontramos resultados</h3>
+                    <p>Prueba con otras fechas, ubicación o número de huéspedes.</p>
+                </div>
+                {% endif %}
                 {% for h in hospedajes %}
                 <article class="listing-card" id="card-{{ h.id }}" style="margin:0;cursor:pointer; {% if h.estado == 'reparacion' %}opacity:0.8;{% endif %}" onclick="window.location.href='/hospedaje/{{ h.id }}'">
                     <div class="image-wrapper" style="position:relative;">
@@ -171,7 +184,7 @@
                             <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ h.calificacion }}</span>
                         </div>
                         <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}</p>
-                        <p class="details" style="font-size:0.8rem;">{{ h.descripcion_corta or h.tipo }}</p>
+                        <p class="details" style="font-size:0.8rem;" data-i18n-dynamic>{{ h.descripcion_corta or h.tipo }}</p>
                         <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche</p>
                         <a href="/hospedaje/{{ h.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()"><span data-i18n="listings.btn">Ver detalles</span></a>
                     </div>
@@ -203,7 +216,7 @@
                                 <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ e.calificacion }}</span>
                             </div>
                             <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}</p>
-                            <p class="details" style="font-size:0.8rem;">{{ e.descripcion_corta or e.tipo }}</p>
+                            <p class="details" style="font-size:0.8rem;" data-i18n-dynamic>{{ e.descripcion_corta or e.tipo }}</p>
                             <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> persona</p>
                             <a href="/experiencia/{{ e.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()">Ver detalles</a>
                         </div>

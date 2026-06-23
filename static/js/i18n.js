@@ -356,6 +356,7 @@ const I18n = {
         localStorage.setItem('sh_lang', code);
         document.documentElement.lang = code;
         this.apply();
+        this.translateDynamic();
         this.updateSelector();
     },
 
@@ -384,7 +385,70 @@ const I18n = {
             });
         });
 
+        // 3. Legacy TEXT map for hard-coded Spanish text
+        const legacyMap = TEXT[this.current] || {};
+        document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div, a, button, label, strong, li').forEach(el => {
+            if (el.closest('[data-i18n]') || el.closest('[data-i18n-dynamic]')) return;
+            const text = el.textContent.trim();
+            if (legacyMap[text] && el.children.length === 0) {
+                el.textContent = legacyMap[text];
+            }
+        });
+    },
 
+    async translateDynamic() {
+        if (this.current === 'es') {
+            // Restaurar textos originales
+            document.querySelectorAll('[data-i18n-original]').forEach(el => {
+                if (el.dataset.i18nOriginal) {
+                    el.textContent = el.dataset.i18nOriginal;
+                    delete el.dataset.i18nOriginal;
+                }
+            });
+            return;
+        }
+
+        const elements = Array.from(document.querySelectorAll('[data-i18n-dynamic]'));
+        if (!elements.length) return;
+
+        const texts = [];
+        const elems = [];
+        elements.forEach(el => {
+            // Preservar original si aún no se ha guardado
+            if (!el.dataset.i18nOriginal) {
+                el.dataset.i18nOriginal = el.textContent;
+            }
+            const original = el.dataset.i18nOriginal;
+            if (original && original.trim()) {
+                texts.push(original.trim());
+                elems.push(el);
+            }
+        });
+
+        if (!texts.length) return;
+
+        // Evitar traducir si ya están traducidos (evita loops)
+        const alreadyTranslated = elems.every(el => el.dataset.i18nTranslated === this.current);
+        if (alreadyTranslated) return;
+
+        try {
+            const resp = await fetch('/api/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ texts: texts, lang: this.current })
+            });
+            const data = await resp.json();
+            if (data.success && data.translations) {
+                data.translations.forEach((t, i) => {
+                    if (elems[i]) {
+                        elems[i].textContent = t;
+                        elems[i].dataset.i18nTranslated = this.current;
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('[i18n] translateDynamic failed:', e);
+        }
     },
 
     updateSelector() {
@@ -396,6 +460,7 @@ const I18n = {
     init() {
         document.documentElement.lang = this.current;
         this.apply();
+        this.translateDynamic();
         this.updateSelector();
     }
 };
