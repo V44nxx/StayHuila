@@ -3,11 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="Vive aventuras unicas en el Huila: senderismo, astronomia, kayak, recorridos culturales y mas.">
+    <meta name="description"
+        content="Vive aventuras unicas en el Huila: senderismo, astronomia, kayak, recorridos culturales y mas.">
     <meta property="og:title" content="Experiencias en el Huila | StayHuila">
-    <meta property="og:description" content="Vive aventuras unicas en el Huila: senderismo, astronomia, kayak, recorridos culturales y mas.">
+    <meta property="og:description"
+        content="Vive aventuras unicas en el Huila: senderismo, astronomia, kayak, recorridos culturales y mas.">
     <meta name="twitter:title" content="Experiencias en el Huila | StayHuila">
-    <meta name="twitter:description" content="Vive aventuras unicas en el Huila: senderismo, astronomia, kayak, recorridos culturales y mas.">
+    <meta name="twitter:description"
+        content="Vive aventuras unicas en el Huila: senderismo, astronomia, kayak, recorridos culturales y mas.">
     <!-- Favicon & Metadatos SEO -->
     <link rel="icon" type="image/png" href="/static/images/logo.png">
     <link rel="shortcut icon" href="/static/images/logo.png">
@@ -28,9 +31,32 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/experiencias.css') }}">
     <style>
-        .search-indicator { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem; }
-        .clear-search { display:inline-flex; align-items:center; gap:.3rem; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:50px; padding:.22rem .75rem; font-size:.78rem; font-weight:600; text-decoration:none; transition:background .15s; }
-        .clear-search:hover { background:#fecaca; }
+        .search-indicator {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            flex-wrap: wrap;
+            margin-bottom: .5rem;
+        }
+
+        .clear-search {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+            border-radius: 50px;
+            padding: .22rem .75rem;
+            font-size: .78rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background .15s;
+        }
+
+        .clear-search:hover {
+            background: #fecaca;
+        }
     </style>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -38,52 +64,65 @@
 </head>
 
 <body>
-{% include '_flash_toasts.html' %}
+    {% include '_flash_toasts.html' %}
     <header class="navbar navbar-hospedajes" id="navbar">
         <div class="logo" onclick="window.location.href='/'" style="cursor: pointer;">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img"
+                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
-            <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
-            <a href="/experiencias" style="font-weight:700; color:var(--primary);">Experiencias</a>
-
-            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" data-i18n="nav.host_panel">Panel Anfitrion</a>
+            <a href="/hospedajes">Hospedajes</a>
+            <a href="/experiencias">Experiencias</a>
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: black;">Panel Anfitrión</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
                 <i class="ph ph-globe"></i> ES
             </div>
             {% if current_user.is_authenticated %}
-                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
-                    <i class="ph ph-list"></i>
-                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
-                    
-                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
-                        <div class="dropdown-header">
-                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
-                            <span>{{ current_user.email }}</span>
-                        </div>
-                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span data-i18n="nav.my_profile">Mi Perfil</span></a>
-                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span data-i18n="nav.my_bookings">Mis Reservas</span></a>
-                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span data-i18n="nav.my_favorites">Mis Favoritos</span></a>
-                        <div class="dropdown-divider"></div>
-                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span data-i18n="nav.host_panel">Panel Anfitrión</span></a>
-                        <div class="dropdown-divider"></div>
-                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span data-i18n="nav.logout">Cerrar Sesión</span></a>
+            <div class="profile-btn" style="position:relative;"
+                onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <i class="ph ph-list"></i>
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
+                    alt="Avatar"
+                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+
+                <!-- Dropdown -->
+                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                    <div class="dropdown-header">
+                        <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                        <span>{{ current_user.email }}</span>
                     </div>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel
+                        Anfitrión</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
                 </div>
+            </div>
             {% else %}
-                <div class="profile-btn" onclick="window.location.href='/login'">
-                    <i class="ph ph-list"></i>
-                    <i class="ph-fill ph-user-circle"></i>
-                </div>
+            <div class="profile-btn" onclick="window.location.href='/login'">
+                <i class="ph ph-list"></i>
+                <i class="ph-fill ph-user-circle"></i>
+            </div>
             {% endif %}
         </div>
     </header>
-    
+
+    <script>
+        document.addEventListener('click', function (event) {
+            var dropdown = document.getElementById('user-dropdown');
+            if (dropdown && dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script>
     <div class="hospedajes-layout">
         <section class="hospedajes-map">
             <div id="interactive-map"></div>
@@ -92,18 +131,19 @@
         <section class="hospedajes-list">
             <div class="hospedajes-header">
                 {% if search_query %}
-                    <div class="search-indicator">
-                        <a href="/experiencias" class="clear-search"><i class="ph ph-x-circle"></i> <span data-i18n="search.clear">Limpiar filtros</span></a>
-                        <h1>Experiencias: "{{ search_query }}"</h1>
-                    </div>
+                <div class="search-indicator">
+                    <a href="/experiencias" class="clear-search"><i class="ph ph-x-circle"></i> <span
+                            data-i18n="search.clear">Limpiar filtros</span></a>
+                    <h1>Experiencias: "{{ search_query }}"</h1>
+                </div>
                 {% else %}
-                    <h1 data-i18n="page.exp.h1">Experiencias en el Huila</h1>
+                <h1 data-i18n="page.exp.h1">Experiencias en el Huila</h1>
                 {% endif %}
                 <p style="color: var(--text-muted); font-size: 1.05rem;">
                     {% if experiencias|length > 0 %}
-                        Se han encontrado {{ experiencias|length }} experiencias para tu aventura.
+                    Se han encontrado {{ experiencias|length }} experiencias para tu aventura.
                     {% else %}
-                        No se han encontrado resultados exactos, pero mira estas otras aventuras.
+                    No se han encontrado resultados exactos, pero mira estas otras aventuras.
                     {% endif %}
                 </p>
             </div>
@@ -117,25 +157,38 @@
                 </div>
                 {% endif %}
                 {% for e in experiencias %}
-                <article class="listing-card" id="card-{{ e.id }}" style="margin:0;cursor:pointer; {% if e.estado == 'reparacion' %}opacity:0.8;{% endif %}" onclick="window.location.href='/experiencia/{{ e.id }}'">
+                <article class="listing-card" id="card-{{ e.id }}"
+                    style="margin:0;cursor:pointer; {% if e.estado == 'reparacion' %}opacity:0.8;{% endif %}"
+                    onclick="window.location.href='/experiencia/{{ e.id }}'">
                     <div class="image-wrapper" style="position:relative;">
-                        <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600' }}" alt="{{ e.tipo }}" {% if e.estado == 'reparacion' %}style="filter: grayscale(80%);"{% endif %}>
+                        <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600' }}"
+                            alt="{{ e.tipo }}" {% if e.estado=='reparacion' %}style="filter: grayscale(80%);" {% endif
+                            %}>
                         {% if e.estado == 'reparacion' %}
-                        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); color:white; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.9rem; z-index:10; white-space:nowrap;">
+                        <div
+                            style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); color:white; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.9rem; z-index:10; white-space:nowrap;">
                             <i class="ph-fill ph-wrench"></i> En reparación
                         </div>
                         {% endif %}
-                        <button class="favorite-btn" onclick="event.stopPropagation()"><i class="ph ph-heart"></i></button>
+                        <button class="favorite-btn" onclick="event.stopPropagation()"><i
+                                class="ph ph-heart"></i></button>
                     </div>
                     <div class="listing-info" style="padding-top: 0;">
                         <div class="listing-header">
                             <h3 style="font-size: 1rem;">{{ e.nombre }}</h3>
-                            <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ e.calificacion or '5.0' }}</span>
+                            <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{
+                                e.calificacion or '5.0' }}</span>
                         </div>
-                        <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ e.municipio }}</p>
-                        <p class="details" style="font-size:0.8rem;" data-i18n-dynamic>{{ e.duracion_horas }} horas · {{ e.tipo }}</p>
-                        <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> <span data-i18n="general.per_person">por persona</span></p>
-                        <a href="/experiencia/{{ e.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()"><span data-i18n="listings.btn">Ver detalles</span></a>
+                        <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin"
+                                style="font-size:.8rem"></i> {{ e.municipio }}</p>
+                        <p class="details" style="font-size:0.8rem;" data-i18n-dynamic>{{ e.duracion_horas }} horas · {{
+                            e.tipo }}</p>
+                        <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{
+                                "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> <span
+                                data-i18n="general.per_person">por persona</span></p>
+                        <a href="/experiencia/{{ e.id }}" class="book-now-btn"
+                            style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;"
+                            onclick="event.stopPropagation()"><span data-i18n="listings.btn">Ver detalles</span></a>
                     </div>
                 </article>
                 {% endfor %}
@@ -148,26 +201,36 @@
                     <h2 style="font-size: 1.4rem; color: var(--primary); margin-bottom: 0.5rem;">
                         <i class="ph ph-house-line"></i> También te podría interesar
                     </h2>
-                    <p style="color: var(--text-muted);">Encontramos hospedajes relacionados con "{{ search_query }}"</p>
+                    <p style="color: var(--text-muted);">Encontramos hospedajes relacionados con "{{ search_query }}"
+                    </p>
                 </div>
                 <div class="grid-half" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
                     {% for h in sugerencias_hospedajes %}
-                    <article class="listing-card" style="margin:0;cursor:pointer;" onclick="window.location.href='/hospedaje/{{ h.id }}'">
+                    <article class="listing-card" style="margin:0;cursor:pointer;"
+                        onclick="window.location.href='/hospedaje/{{ h.id }}'">
                         <div class="image-wrapper" style="position:relative;">
-                            <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}" alt="{{ h.tipo }}">
-                            <div class="badge" style="position:absolute; top:10px; left:10px; background:var(--primary); color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600;">
+                            <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
+                                alt="{{ h.tipo }}">
+                            <div class="badge"
+                                style="position:absolute; top:10px; left:10px; background:var(--primary); color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600;">
                                 <i class="ph ph-house-line"></i> Hospedaje
                             </div>
                         </div>
                         <div class="listing-info" style="padding-top: 0;">
                             <div class="listing-header">
                                 <h3 style="font-size: 1rem;">{{ h.nombre }}</h3>
-                                <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{ h.calificacion }}</span>
+                                <span class="rating" style="font-size: 0.85rem;"><i class="ph-fill ph-star"></i> {{
+                                    h.calificacion }}</span>
                             </div>
-                            <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin" style="font-size:.8rem"></i> {{ h.municipio }}</p>
-                            <p class="details" style="font-size:0.8rem;" data-i18n-dynamic>{{ h.descripcion_corta or h.tipo }}</p>
-                            <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche</p>
-                            <a href="/hospedaje/{{ h.id }}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;" onclick="event.stopPropagation()">Ver detalles</a>
+                            <p class="location" style="font-size: 0.85rem;"><i class="ph ph-map-pin"
+                                    style="font-size:.8rem"></i> {{ h.municipio }}</p>
+                            <p class="details" style="font-size:0.8rem;" data-i18n-dynamic>{{ h.descripcion_corta or
+                                h.tipo }}</p>
+                            <p class="price" style="font-size: 0.95rem; margin-top: 0.3rem;"><strong>${{
+                                    "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche</p>
+                            <a href="/hospedaje/{{ h.id }}" class="book-now-btn"
+                                style="text-align:center;display:block;text-decoration:none;font-size:0.85rem;padding:0.5rem;"
+                                onclick="event.stopPropagation()">Ver detalles</a>
                         </div>
                     </article>
                     {% endfor %}
@@ -188,4 +251,5 @@
 
     <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </body>
+
 </html>

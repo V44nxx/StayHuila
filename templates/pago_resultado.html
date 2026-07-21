@@ -43,14 +43,50 @@
              onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
         <span>StayHuila</span>
     </div>
-    <div class="user-menu">
-        <a href="/mis-reservas" style="font-size:.9rem;font-weight:600;color:var(--primary);text-decoration:none;display:flex;align-items:center;gap:.4rem;">
-            <i class="ph ph-calendar-check"></i> Mis Reservas
-        </a>
-    </div>
-</header>
-
-<!-- Datos para JS -->
+            <div class="user-menu">
+            <div class="language-selector">
+                <i class="ph ph-globe"></i> ES
+            </div>
+            {% if current_user.is_authenticated %}
+                {% if current_user.tipo in ['anfitrion','admin'] %}
+                <a href="/panel-anfitrion" class="host-btn" style="text-decoration:none;">Panel Anfitrión</a>
+                {% endif %}
+                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <i class="ph ph-list"></i>
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                    
+                    <!-- Dropdown -->
+                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                        <div class="dropdown-header">
+                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                            <span>{{ current_user.email }}</span>
+                        </div>
+                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    </div>
+                </div>
+            {% else %}
+                <button class="host-btn" onclick="window.location.href='/login?tab=register'">Pon tu espacio en StayHuila</button>
+                <div class="profile-btn" onclick="window.location.href='/login'">
+                    <i class="ph ph-list"></i>
+                    <i class="ph-fill ph-user-circle"></i>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+    
+    <script>
+        document.addEventListener('click', function(event) {
+            var dropdown = document.getElementById('user-dropdown');
+            if (dropdown && dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script><!-- Datos para JS -->
 <div id="pr-resultado"
      data-resultado="{{ resultado }}"
      data-reserva-id="{{ reserva.id if reserva else '' }}"
