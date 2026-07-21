@@ -96,11 +96,10 @@
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
-            <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
-            <a href="/experiencias" data-i18n="nav.experiences">Experiencias</a>
-            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;" data-i18n="nav.host_panel">Panel
-                Anfitrion</a>
+            <a href="/hospedajes">Hospedajes</a>
+            <a href="/experiencias">Experiencias</a>
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: white;">Pon tu espacio en StayHuila</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
@@ -109,7 +108,7 @@
             {% if current_user.is_authenticated %}
             <div class="profile-btn" style="position:relative;"
                 onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                 <i class="ph ph-list"></i>
                 <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
                     alt="Avatar"
@@ -121,18 +120,14 @@
                         <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
                         <span>{{ current_user.email }}</span>
                     </div>
-                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span
-                            data-i18n="nav.my_profile">Mi Perfil</span></a>
-                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span
-                            data-i18n="nav.my_bookings">Mis Reservas</span></a>
-                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span
-                            data-i18n="nav.my_favorites">Mis Favoritos</span></a>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
                     <div class="dropdown-divider"></div>
-                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span
-                            data-i18n="nav.host_panel">Panel Anfitrión</span></a>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel
+                        Anfitrión</a>
                     <div class="dropdown-divider"></div>
-                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span
-                            data-i18n="nav.logout">Cerrar Sesión</span></a>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
                 </div>
             </div>
             {% else %}
@@ -144,6 +139,14 @@
         </div>
     </header>
 
+    <script>
+        document.addEventListener('click', function (event) {
+            var dropdown = document.getElementById('user-dropdown');
+            if (dropdown && dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script>
     <script src="{{ url_for('static', filename='js/index.js') }}"></script><!-- Hero Section -->
     <section class="hero">
         <div class="hero-overlay"></div>
@@ -171,7 +174,9 @@
                     <label data-i18n="hero.loc">Ubicación / Nombre</label>
                     <input type="text" id="sh-q" data-i18n="hero.loc_ph" data-i18n-attr="placeholder"
                         placeholder="Ej. Aventura en Tatacoa..." autocomplete="off">
-                    <div id="search-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100;max-height:280px;overflow-y:auto;margin-top:6px;"></div>
+                    <div id="search-suggestions"
+                        style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100;max-height:280px;overflow-y:auto;margin-top:6px;">
+                    </div>
                 </div>
                 <button class="search-btn" id="sh-submit">
                     <i class="ph-bold ph-magnifying-glass"></i>
@@ -258,62 +263,70 @@
         <!-- CONTENIDO PRINCIPAL -->
         <div class="listings-main">
             <div style="text-align:center; padding: 2rem 2rem 0;">
-                <h2 style="font-size:1.8rem; color:var(--primary);" data-i18n="listings.title">Recomendaciones para ti</h2>
-                <p style="color:var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus gustos</p>
+                <h2 style="font-size:1.8rem; color:var(--primary);" data-i18n="listings.title">Recomendaciones para ti
+                </h2>
+                <p style="color:var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus
+                    gustos</p>
             </div>
             <main class="listings-container" id="hospedajes">
-        {# Renderizado inicial: Hospedajes #}
-        {% for h in hospedajes %}
-        <!-- Card H-{{ h.id }} -->
-        <article class="listing-card" onclick="window.location.href='/hospedaje/{{ h.id }}'" style="cursor:pointer;">
-            <div class="image-wrapper">
-                <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
-                    alt="{{ h.tipo }}">
-                {% if h.es_eco %}
-                <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>
-                {% endif %}
-                {% if h.descuento_porcentaje %}
-                <div class="discount-badge">-{{ h.descuento_porcentaje }}% Hoy</div>
-                {% endif %}
-            </div>
-            <div class="listing-info">
-                <div class="listing-header">
-                    <h3>{{ h.nombre }}</h3>
-                    <span class="rating"><i class="ph-fill ph-star"></i> {{ h.calificacion }} ({{ h.total_resenas
-                        }})</span>
-                </div>
-                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ h.municipio }}</p>
-                <p class="details">{{ h.descripcion_corta or h.tipo }}</p>
-                <p class="price"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong> noche
-                </p>
-                <a href="/hospedaje/{{ h.id }}" class="book-now-btn"
-                    style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
-            </div>
-        </article>
-        {% endfor %}
+                {# Renderizado inicial: Hospedajes #}
+                {% for h in hospedajes %}
+                <!-- Card H-{{ h.id }} -->
+                <article class="listing-card" onclick="window.location.href='/hospedaje/{{ h.id }}'"
+                    style="cursor:pointer;">
+                    <div class="image-wrapper">
+                        <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
+                            alt="{{ h.tipo }}">
+                        {% if h.es_eco %}
+                        <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>
+                        {% endif %}
+                        {% if h.descuento_porcentaje %}
+                        <div class="discount-badge">-{{ h.descuento_porcentaje }}% Hoy</div>
+                        {% endif %}
+                    </div>
+                    <div class="listing-info">
+                        <div class="listing-header">
+                            <h3>{{ h.nombre }}</h3>
+                            <span class="rating"><i class="ph-fill ph-star"></i> {{ h.calificacion }} ({{
+                                h.total_resenas
+                                }})</span>
+                        </div>
+                        <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ h.municipio }}</p>
+                        <p class="details">{{ h.descripcion_corta or h.tipo }}</p>
+                        <p class="price"><strong>${{ "{:,.0f}".format(h.precio_noche).replace(',', '.') }} COP</strong>
+                            noche
+                        </p>
+                        <a href="/hospedaje/{{ h.id }}" class="book-now-btn"
+                            style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
+                    </div>
+                </article>
+                {% endfor %}
 
-        {# Renderizado inicial: Experiencias #}
-        {% for e in experiencias %}
-        <!-- Card E-{{ e.id }} -->
-        <article class="listing-card" onclick="window.location.href='/experiencia/{{ e.id }}'" style="cursor:pointer;">
-            <div class="image-wrapper">
-                <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
-                    alt="{{ e.tipo }}">
-            </div>
-            <div class="listing-info">
-                <div class="listing-header">
-                    <h3>{{ e.nombre }}</h3>
-                    <span class="rating"><i class="ph-fill ph-star"></i> {{ e.calificacion }} ({{ e.total_resenas or 0 }})</span>
-                </div>
-                <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ e.municipio }}</p>
-                <p class="details">{{ e.descripcion_corta or e.tipo }}</p>
-                <p class="price"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }} COP</strong> persona
-                </p>
-                <a href="/experiencia/{{ e.id }}" class="book-now-btn"
-                    style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
-            </div>
-        </article>
-        {% endfor %}
+                {# Renderizado inicial: Experiencias #}
+                {% for e in experiencias %}
+                <!-- Card E-{{ e.id }} -->
+                <article class="listing-card" onclick="window.location.href='/experiencia/{{ e.id }}'"
+                    style="cursor:pointer;">
+                    <div class="image-wrapper">
+                        <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
+                            alt="{{ e.tipo }}">
+                    </div>
+                    <div class="listing-info">
+                        <div class="listing-header">
+                            <h3>{{ e.nombre }}</h3>
+                            <span class="rating"><i class="ph-fill ph-star"></i> {{ e.calificacion }} ({{
+                                e.total_resenas or 0 }})</span>
+                        </div>
+                        <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ e.municipio }}</p>
+                        <p class="details">{{ e.descripcion_corta or e.tipo }}</p>
+                        <p class="price"><strong>${{ "{:,.0f}".format(e.precio_persona).replace(',', '.') }}
+                                COP</strong> persona
+                        </p>
+                        <a href="/experiencia/{{ e.id }}" class="book-now-btn"
+                            style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
+                    </div>
+                </article>
+                {% endfor %}
             </main>
         </div><!-- /.listings-main -->
     </div><!-- /.listings-wrapper -->
@@ -597,7 +610,7 @@
             e.preventDefault();
             e.stopPropagation();
             if (btn.classList.contains('processing')) return;
-            
+
             let id = btn.getAttribute('data-id');
             let tipo = btn.getAttribute('data-tipo');
             if (!id || !tipo) return;
@@ -616,7 +629,7 @@
                 const data = await res.json();
                 if (data.success) {
                     const isAdded = data.status === 'added';
-                    
+
                     // Actualizar estado en el array global allItems para que persista al filtrar
                     const item = allItems.find(i => String(i.id) === String(id) && i.tipo_publicacion === tipo);
                     if (item) {

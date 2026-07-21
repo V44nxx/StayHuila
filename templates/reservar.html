@@ -35,12 +35,11 @@
         <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
         <span>StayHuila</span>
     </div>
-            <nav class="nav-links">
+                            <nav class="nav-links">
             <a href="/hospedajes">Hospedajes</a>
             <a href="/experiencias">Experiencias</a>
-
             <a href="/comunidad">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: var(--primary);">Panel Anfitrion</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: black;">Pon tu espacio en StayHuila</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
@@ -48,7 +47,7 @@
             </div>
             {% if current_user.is_authenticated %}
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                    <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
                     <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
                     
@@ -76,7 +75,14 @@
         </div>
     </header>
     
-    <script src="{{ url_for('static', filename='js/reservar.js') }}"></script><div class="page-wrap">
+    <script>
+        document.addEventListener('click', function(event) {
+            var dropdown = document.getElementById('user-dropdown');
+            if (dropdown && dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script><script src="{{ url_for('static', filename='js/reservar.js') }}"></script><div class="page-wrap">
     <h1 class="page-title" data-i18n="booking.page_title">Confirma y paga tu reserva</h1>
     <p class="page-sub" data-i18n="booking.page_sub">Revisa los detalles antes de confirmar tu reserva</p>
 

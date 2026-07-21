@@ -485,56 +485,54 @@
                 onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
-        <nav class="nav-links">
-            <a href="/hospedajes" data-i18n="nav.lodgings">Hospedajes</a>
-            <a href="/experiencias" data-i18n="nav.experiences">Experiencias</a>
-            <a href="/comunidad" data-i18n="nav.community">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700;" data-i18n="nav.host_panel">Panel
-                Anfitrion</a>
+                        <nav class="nav-links">
+            <a href="/hospedajes">Hospedajes</a>
+            <a href="/experiencias">Experiencias</a>
+            <a href="/comunidad">Comunidad</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: black;">Pon tu espacio en StayHuila</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
                 <i class="ph ph-globe"></i> ES
             </div>
             {% if current_user.is_authenticated %}
-            <div class="profile-btn" style="position:relative;"
-                onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
-                <div class="gamification-points" onclick="event.stopPropagation();window.location.href='/mis-puntos'" style="cursor:pointer;" title="Ver mis puntos"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
-                <i class="ph ph-list"></i>
-                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}"
-                    alt="Avatar"
-                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
-
-                <!-- Dropdown -->
-                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
-                    <div class="dropdown-header">
-                        <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
-                        <span>{{ current_user.email }}</span>
+                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
+                    <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
+                    <i class="ph ph-list"></i>
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                    
+                    <!-- Dropdown -->
+                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                        <div class="dropdown-header">
+                            <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
+                            <span>{{ current_user.email }}</span>
+                        </div>
+                        <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
+                        <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
+                        <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
                     </div>
-                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span
-                            data-i18n="nav.my_profile">Mi Perfil</span></a>
-                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span
-                            data-i18n="nav.my_bookings">Mis Reservas</span></a>
-                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span
-                            data-i18n="nav.my_favorites">Mis Favoritos</span></a>
-                    <div class="dropdown-divider"></div>
-                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span
-                            data-i18n="nav.host_panel">Panel Anfitrión</span></a>
-                    <div class="dropdown-divider"></div>
-                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span
-                            data-i18n="nav.logout">Cerrar Sesión</span></a>
                 </div>
-            </div>
             {% else %}
-            <div class="profile-btn" onclick="window.location.href='/login'">
-                <i class="ph ph-list"></i>
-                <i class="ph-fill ph-user-circle"></i>
-            </div>
+                <div class="profile-btn" onclick="window.location.href='/login'">
+                    <i class="ph ph-list"></i>
+                    <i class="ph-fill ph-user-circle"></i>
+                </div>
             {% endif %}
         </div>
     </header>
-
-    <div class="profile-container">
+    
+    <script>
+        document.addEventListener('click', function(event) {
+            var dropdown = document.getElementById('user-dropdown');
+            if (dropdown && dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script><div class="profile-container">
         <!-- Sidebar -->
         <aside class="profile-sidebar">
             <div class="profile-sidebar-card">
