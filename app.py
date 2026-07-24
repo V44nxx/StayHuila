@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 import pymysql
@@ -9,8 +9,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
-import hashlib
-import hmac
 import traceback
 import time
 from payment_service import PaymentService, NequiProvider
@@ -33,7 +31,7 @@ genai.configure(api_key=API_KEY)
 
 
 app = Flask(__name__)
-app.secret_key = 'stayhuila_secret_2024_xk9'
+app.secret_key = os.environ.get('SECRET_KEY', 'stayhuila_secret_2024_xk9')
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -56,8 +54,8 @@ def add_header(response):
 
 # ── CONFIGURACIÓN SMTP (Gmail) ────────────────────────────────────────────────
 # ↓ PON TU CORREO DE GMAIL Y TU APP PASSWORD AQUÍ ↓
-MAIL_USERNAME = 'murciacorredoremerson@gmail.com'   # Ejemplo: 'miCorreo@gmail.com'
-MAIL_PASSWORD = 'rdvhjcbzixjmumfv'   # App Password de 16 caracteres (ver instrucciones abajo)
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'murciacorredoremerson@gmail.com')   # Ejemplo: 'miCorreo@gmail.com'
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'rdvhjcbzixjmumfv')   # App Password de 16 caracteres (ver instrucciones abajo)
 # ─────────────────────────────────────────────────────────────────────────────
 # Cómo obtener el App Password de Gmail:
 #   1. Ve a myaccount.google.com → Seguridad → Verificación en 2 pasos (actívala)
@@ -175,8 +173,28 @@ def send_email_change_code(to_email, codigo):
 
 
 
-DB = dict(host='localhost', user='root', password='', database='StayHuila',
-          charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_PORT = int(os.environ.get('DB_PORT', '3306'))
+DB_USER = os.environ.get('DB_USER', 'root')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
+DB_NAME = os.environ.get('DB_NAME', 'StayHuila')
+
+print("========== VARIABLES DE ENTORNO ==========")
+print("DB_HOST =", os.environ.get("DB_HOST"))
+print("DB_PORT =", os.environ.get("DB_PORT"))
+print("DB_USER =", os.environ.get("DB_USER"))
+print("DB_NAME =", os.environ.get("DB_NAME"))
+print("==========================================")
+
+DB = dict(
+    host=DB_HOST,
+    port=DB_PORT,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    database=DB_NAME,
+    charset='utf8mb4',
+    cursorclass=pymysql.cursors.DictCursor
+)
 
 def db():
     return pymysql.connect(**DB)
