@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -25,10 +25,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comunidad | StayHuila</title>
     <meta name="description" content="Conecta con otros viajeros, comparte tus experiencias y descubre los secretos del Huila.">
+        <!-- Preconnect a dominios externos criticos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="{{ url_for('static', filename='css/style.css') }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/comunidad.css') }}">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous" defer></script>
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </head>
 
@@ -38,7 +43,7 @@
     <!-- NAVBAR SÓLIDO -->
     <header class="navbar navbar-solid navbar-comunidad" id="navbar">
         <div class="logo" onclick="window.location.href='/'">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img"
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" loading="eager" fetchpriority="high"
                 onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
@@ -252,6 +257,6 @@
     </script>
     <script src="{{ url_for('static', filename='js/comunidad.js') }}"></script>
 
-    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
 </body>
 </html>

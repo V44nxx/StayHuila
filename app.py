@@ -12,8 +12,10 @@ import requests
 import traceback
 import time
 from payment_service import PaymentService, NequiProvider
-# Módulo de validación y optimización de imágenes (OpenCV + Pillow)
-from image_optimizer import process_image
+# Módulo de validación y optimización de imágenes (OpenCV + Pillow + WebP)
+from image_optimizer import process_image, thumb_url_from_url
+# Compresión gzip/brotli automática de respuestas HTML, CSS, JS, JSON
+from flask_compress import Compress
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env
@@ -38,18 +40,61 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar'
 login_manager.login_message_category = 'info'
 
+# ── COMPRESIÓN gzip / brotli ──────────────────────────────────────────────────
+# Flask-Compress comprime automáticamente respuestas HTML, CSS, JS y JSON.
+# El navegador envía 'Accept-Encoding: br, gzip' y Flask-Compress elige el mejor.
+# Brotli (br) ofrece 15-25% mejor compresión que gzip para texto.
+app.config['COMPRESS_REGISTER'] = False          # Registramos manualmente para control
+app.config['COMPRESS_MIMETYPES'] = [
+    'text/html', 'text/css', 'text/javascript',
+    'application/javascript', 'application/json',
+    'text/xml', 'application/xml', 'image/svg+xml',
+]
+app.config['COMPRESS_LEVEL'] = 6                 # Nivel de compresión gzip (1-9). 6 = balance óptimo
+app.config['COMPRESS_MIN_SIZE'] = 500            # No comprimir respuestas < 500 bytes (overhead no vale)
+compress = Compress()
+compress.init_app(app)
+
+# ── CACHÉ SELECTIVO ───────────────────────────────────────────────────────────
+# Estrategia:
+#   · Archivos estáticos (/static/): caché de 1 AÑO con immutable
+#     → El navegador NO hace ninguna petición en visitas repetidas
+#     → Si cambias un archivo, cambia su nombre/versión (Flask url_for lo gestiona)
+#   · Respuestas HTML dinámicas: no-cache (protege datos de sesión)
+#   · API JSON: no-cache (datos siempre frescos)
+#
+# Por qué NO aplicar no-cache a todo:
+#   El add_header() original aplicaba no-cache a TODAS las respuestas incluyendo
+#   imágenes y CSS, obligando al navegador a re-descargar 2-3 MB en cada visita.
+#   Esto era el principal culpable de los 7 segundos de carga.
 @app.after_request
 def add_header(response):
     """
-    Desactiva el caché del navegador para proteger la privacidad del usuario.
-    Esto evita que al cerrar sesión se pueda 'volver atrás' y ver datos sensibles.
-    También añade headers básicos de seguridad.
+    Caché selectivo:
+    - /static/ → Cache-Control público de 1 año (inmutable)
+    - Todo lo demás → no-cache (protege datos de sesión sensibles)
+    Siempre añade headers de seguridad básicos.
     """
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    # Headers de seguridad aplicados a todas las respuestas
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+
+    # Detectar si es un archivo estático
+    # request.path empieza con /static/ cuando Flask sirve archivos de la carpeta static/
+    if request.path.startswith('/static/'):
+        # Caché agresivo: 1 año (31536000 segundos)
+        # 'immutable' le dice al navegador que NUNCA verifique si cambió
+        # 'public' permite que proxies/CDN también guarden en caché
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        # Eliminar Pragma y Expires contradictorios si existen
+        response.headers.pop('Pragma', None)
+        response.headers.pop('Expires', None)
+    else:
+        # Rutas dinámicas (HTML, APIs): no-cache para proteger privacidad
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+
     return response
 
 # ── CONFIGURACIÓN SMTP (Gmail) ────────────────────────────────────────────────
@@ -1186,87 +1231,124 @@ def liberar_reservas_expiradas(cur):
     para completar el pago. No elimina registros físicamente.
     """
     limite = datetime.now() - timedelta(minutes=10)
-    
+
     # 1. Buscar las reservas a expirar
     cur.execute("""
-        SELECT id, sesion_id, num_huespedes FROM reservas 
+        SELECT id, sesion_id, num_huespedes FROM reservas
         WHERE estado = 'pendiente_pago' AND fecha_reserva < %s
     """, (limite,))
     expiradas = cur.fetchall()
-    
+
     if expiradas:
         ids = [r['id'] for r in expiradas]
         format_strings = ','.join(['%s'] * len(ids))
-        
+
         # 2. Si hay experiencias con sesiones, liberar cupos
         for r in expiradas:
             if r['sesion_id']:
                 cur.execute("""
-                    UPDATE experiencia_sesiones 
-                    SET cupos_disponibles = cupos_disponibles + %s, 
-                        estado = 'disponible' 
+                    UPDATE experiencia_sesiones
+                    SET cupos_disponibles = cupos_disponibles + %s,
+                        estado = 'disponible'
                     WHERE id = %s
                 """, (r['num_huespedes'], r['sesion_id']))
-        
+
         # 3. Actualizar estado de las reservas a 'cancelada'
         cur.execute(f"""
-            UPDATE reservas 
-            SET estado = 'cancelada', 
-                fecha_cancelacion = NOW(), 
-                motivo_cancelacion = 'Expiración automática por falta de pago (límite de 10 minutos superado).' 
+            UPDATE reservas
+            SET estado = 'cancelada',
+                fecha_cancelacion = NOW(),
+                motivo_cancelacion = 'Expiración automática por falta de pago (límite de 10 minutos superado).'
             WHERE id IN ({format_strings})
         """, tuple(ids))
-        
-        # 3. Actualizar estado de los pagos asociados a 'rechazado'
+
+        # 4. Actualizar estado de los pagos asociados a 'rechazado'
         cur.execute(f"""
-            UPDATE pagos 
-            SET estado = 'rechazado' 
+            UPDATE pagos
+            SET estado = 'rechazado'
             WHERE reserva_id IN ({format_strings}) AND estado = 'pendiente'
         """, tuple(ids))
 
 
-# ── HOME ──────────────────────────────────────────────────────
+# ── HOME ─────────────────────────────────────────────────────
 @app.route('/')
 def home():
     c = db()
     try:
         with c.cursor() as cur:
-            # Solo muestra hospedajes activos, no deshabilitados y no eliminados
-            cur.execute("""SELECT h.*,i.url as image,
-                (SELECT COUNT(*) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1) as total_resenas_real,
-                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1), 0) as calificacion_real
+            # Optimización: LEFT JOIN con subquery agregada (una pasada)
+            # En vez de 2 subqueries correlacionadas por fila (N+1 problem),
+            # usamos un JOIN con GROUP BY que MySQL ejecuta en una sola pasada.
+            cur.execute("""
+                SELECT h.*, i.url as image,
+                    COALESCE(r_agg.total, 0) as total_resenas_real,
+                    COALESCE(r_agg.avg_cal, 0) as calificacion_real
                 FROM hospedajes h
-                LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                WHERE h.activo=1 AND h.eliminado=0 AND h.estado='abierta' AND h.verificado=1
-                ORDER BY h.destacado DESC,h.calificacion DESC""")
+                LEFT JOIN hospedaje_imagenes i
+                    ON h.id = i.hospedaje_id AND i.es_portada = 1
+                LEFT JOIN (
+                    SELECT hospedaje_id,
+                           COUNT(*) as total,
+                           AVG(calificacion_general) as avg_cal
+                    FROM resenas
+                    WHERE tipo = 'hospedaje' AND publicada = 1
+                    GROUP BY hospedaje_id
+                ) r_agg ON h.id = r_agg.hospedaje_id
+                WHERE h.activo = 1 AND h.eliminado = 0
+                  AND h.estado = 'abierta' AND h.verificado = 1
+                ORDER BY h.destacado DESC, h.calificacion DESC
+            """)
             hospedajes = serialize(cur.fetchall())
             for h in hospedajes:
                 h['total_resenas'] = h.get('total_resenas_real', 0)
-                h['calificacion'] = h.get('calificacion_real', 0)
+                h['calificacion']  = h.get('calificacion_real', 0)
+                # Miniatura para las tarjetas de listado
+                h['image_thumb']   = thumb_url_from_url(h.get('image'))
 
-            # Solo muestra experiencias activas, no deshabilitadas y no eliminadas
-            cur.execute("""SELECT e.*,i.url as image,
-                (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
-                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
+            # Experiencias — misma optimización JOIN + GROUP BY
+            cur.execute("""
+                SELECT e.*, i.url as image,
+                    COALESCE(r_agg.total, 0) as total_resenas_real,
+                    COALESCE(r_agg.avg_cal, 0) as calificacion_real
                 FROM experiencias e
-                LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                WHERE e.activo=1 AND e.eliminado=0 AND e.estado='abierta' AND e.verificado=1
-                ORDER BY e.destacado DESC,e.calificacion DESC""")
+                LEFT JOIN experiencia_imagenes i
+                    ON e.id = i.experiencia_id AND i.es_portada = 1
+                LEFT JOIN (
+                    SELECT experiencia_id,
+                           COUNT(*) as total,
+                           AVG(calificacion_general) as avg_cal
+                    FROM resenas
+                    WHERE tipo = 'experiencia' AND publicada = 1
+                    GROUP BY experiencia_id
+                ) r_agg ON e.id = r_agg.experiencia_id
+                WHERE e.activo = 1 AND e.eliminado = 0
+                  AND e.estado = 'abierta' AND e.verificado = 1
+                ORDER BY e.destacado DESC, e.calificacion DESC
+            """)
             experiencias = serialize(cur.fetchall())
             for e in experiencias:
                 e['total_resenas'] = e.get('total_resenas_real', 0)
-                e['calificacion'] = e.get('calificacion_real', 0)
+                e['calificacion']  = e.get('calificacion_real', 0)
+                e['image_thumb']   = thumb_url_from_url(e.get('image'))
 
-            # Obtener favoritos del usuario si está autenticado
+            # Favoritos del usuario autenticado
             fav_hospedajes = []
             fav_experiencias = []
             if current_user.is_authenticated:
-                cur.execute("SELECT hospedaje_id FROM favoritos WHERE usuario_id=%s AND tipo='hospedaje' AND hospedaje_id IS NOT NULL", (current_user.id,))
+                cur.execute(
+                    "SELECT hospedaje_id FROM favoritos "
+                    "WHERE usuario_id=%s AND tipo='hospedaje' AND hospedaje_id IS NOT NULL",
+                    (current_user.id,)
+                )
                 fav_hospedajes = [f['hospedaje_id'] for f in cur.fetchall()]
-                cur.execute("SELECT experiencia_id FROM favoritos WHERE usuario_id=%s AND tipo='experiencia' AND experiencia_id IS NOT NULL", (current_user.id,))
+                cur.execute(
+                    "SELECT experiencia_id FROM favoritos "
+                    "WHERE usuario_id=%s AND tipo='experiencia' AND experiencia_id IS NOT NULL",
+                    (current_user.id,)
+                )
                 fav_experiencias = [f['experiencia_id'] for f in cur.fetchall()]
 
-        return render_template('index.html', hospedajes=hospedajes, experiencias=experiencias, 
+        return render_template('index.html', hospedajes=hospedajes, experiencias=experiencias,
                                fav_hospedajes=fav_hospedajes, fav_experiencias=fav_experiencias)
     finally:
         c.close()
@@ -1286,10 +1368,19 @@ def hospedajes():
         with c.cursor() as cur:
             query = """
                 SELECT h.*, i.url as image,
-                (SELECT COUNT(*) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1) as total_resenas_real,
-                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE hospedaje_id=h.id AND tipo='hospedaje' AND publicada=1), 0) as calificacion_real
+                    COALESCE(r_agg.total, 0) as total_resenas_real,
+                    COALESCE(r_agg.avg_cal, 0) as calificacion_real
                 FROM hospedajes h
-                LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                LEFT JOIN hospedaje_imagenes i
+                    ON h.id = i.hospedaje_id AND i.es_portada = 1
+                LEFT JOIN (
+                    SELECT hospedaje_id,
+                           COUNT(*) as total,
+                           AVG(calificacion_general) as avg_cal
+                    FROM resenas
+                    WHERE tipo = 'hospedaje' AND publicada = 1
+                    GROUP BY hospedaje_id
+                ) r_agg ON h.id = r_agg.hospedaje_id
                 WHERE h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
             """
             params = []
@@ -1348,7 +1439,8 @@ def hospedajes():
             data = serialize(cur.fetchall())
             for h in data:
                 h['total_resenas'] = h.get('total_resenas_real', 0)
-                h['calificacion'] = h.get('calificacion_real', 0)
+                h['calificacion']  = h.get('calificacion_real', 0)
+                h['image_thumb']   = thumb_url_from_url(h.get('image'))
 
             # Buscar sugerencias en experiencias si hay query de búsqueda
             sugerencias_experiencias = []
@@ -1437,12 +1529,22 @@ def experiencias():
     c = db()
     try:
         with c.cursor() as cur:
+            # Optimización: JOIN con subquery agregada en vez de subqueries correlacionadas
             query = """
                 SELECT e.*, i.url as image,
-                (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
-                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
+                    COALESCE(r_agg.total, 0) as total_resenas_real,
+                    COALESCE(r_agg.avg_cal, 0) as calificacion_real
                 FROM experiencias e
-                LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
+                LEFT JOIN experiencia_imagenes i
+                    ON e.id = i.experiencia_id AND i.es_portada = 1
+                LEFT JOIN (
+                    SELECT experiencia_id,
+                           COUNT(*) as total,
+                           AVG(calificacion_general) as avg_cal
+                    FROM resenas
+                    WHERE tipo = 'experiencia' AND publicada = 1
+                    GROUP BY experiencia_id
+                ) r_agg ON e.id = r_agg.experiencia_id
                 WHERE e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
             """
             params = []
@@ -1479,7 +1581,8 @@ def experiencias():
             data = serialize(cur.fetchall())
             for e in data:
                 e['total_resenas'] = e.get('total_resenas_real', 0)
-                e['calificacion'] = e.get('calificacion_real', 0)
+                e['calificacion']  = e.get('calificacion_real', 0)
+                e['image_thumb']   = thumb_url_from_url(e.get('image'))
 
             # Buscar sugerencias en hospedajes si hay query de búsqueda
             sugerencias_hospedajes = []

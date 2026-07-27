@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -25,11 +25,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ experiencia.nombre }} | StayHuila</title>
     <meta name="description" content="{{ experiencia.details }} - {{ experiencia.municipio ~ " , Huila" }}">
+        <!-- Preconnect a dominios externos criticos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="{{ url_for('static', filename='css/style.css') }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/detalle_experiencia.css') }}">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
     <style>
         .action-btn.active {
@@ -48,7 +53,7 @@
     <!-- NAVBAR -->
     <header class="navbar navbar-solid" id="navbar">
         <div class="logo" onclick="window.location.href='/'">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img"
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" loading="eager" fetchpriority="high"
                 onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
@@ -702,7 +707,7 @@
             }
         }
     </script>
-    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
 </body>
 
 </html>
