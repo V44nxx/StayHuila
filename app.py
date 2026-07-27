@@ -547,7 +547,7 @@ def pago_transferir_gateway(reserva_id):
     try:
         with c.cursor() as cur:
             cur.execute("""
-                SELECT id FROM reservas 
+                SELECT id, total, codigo_reserva FROM reservas 
                 WHERE id = %s AND usuario_id = %s AND estado = 'pendiente_pago'
                 LIMIT 1
             """, (reserva_id, current_user.id))
@@ -558,10 +558,17 @@ def pago_transferir_gateway(reserva_id):
                 return redirect(url_for('mis_reservas'))
                 
             session['pending_reserva_id'] = reserva_id
+            
+            # Construir URL dinámica para Nequi Wompi con monto exacto y referencia
+            monto_cents = int(float(reserva['total']) * 100)
+            sep = '&' if '?' in NEQUI_NEGOCIO_LINK else '?'
+            nequi_link_dinamico = f"{NEQUI_NEGOCIO_LINK}{sep}amount_in_cents={monto_cents}&reference={reserva['codigo_reserva']}"
+            
             return render_template(
                 'pago_transferir.html',
                 reserva_id=reserva_id,
-                nequi_link=NEQUI_NEGOCIO_LINK,
+                reserva=reserva,
+                nequi_link=nequi_link_dinamico,
                 nequi_celular=NEQUI_NEGOCIO_CELULAR,
                 nequi_nombre=NEQUI_NEGOCIO_NOMBRE
             )
