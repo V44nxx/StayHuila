@@ -757,6 +757,19 @@ body {
     margin: 0.5rem 0;
 }
 
+.mobile-only-link {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .dropdown-item.mobile-only-link {
+        display: flex !important;
+    }
+    .dropdown-divider.mobile-only-link {
+        display: block !important;
+    }
+}
+
 .dropdown-header {
     padding: 0 1.5rem 0.5rem;
     border-bottom: 1px solid var(--border);
