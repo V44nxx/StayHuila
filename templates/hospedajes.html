@@ -186,7 +186,7 @@
                     <!-- image_thumb: miniatura 480px para listados (3-4x más ligera) -->
                     <img src="{{ h.image_thumb or h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
                          alt="{{ h.tipo }}" loading="lazy" decoding="async"
-                         onerror="this.onerror=null;this.src='{{ h.image or \'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600\' }}';"
+                         onerror="this.onerror=null;this.src='{{ h.image or "https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600" }}';"
                          {% if h.estado == 'reparacion' %}style="filter: grayscale(80%);"{% endif %}>
                         {% if h.estado == 'reparacion' %}
                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); color:white; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.9rem; z-index:10; white-space:nowrap;">
