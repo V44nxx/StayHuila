@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -72,6 +72,10 @@
                         <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
                         <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
                         <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                        <div class="dropdown-divider mobile-only-link"></div>
+                        <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> Hospedajes</a>
+                        <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> Experiencias</a>
+                        <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> Comunidad</a>
                         <div class="dropdown-divider"></div>
                         <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
                         <div class="dropdown-divider"></div>
@@ -79,9 +83,19 @@
                     </div>
                 </div>
             {% else %}
-                <div class="profile-btn" onclick="window.location.href='/login'">
+                <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
                     <i class="ph ph-list"></i>
                     <i class="ph-fill ph-user-circle"></i>
+                    <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                        <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> Hospedajes</a>
+                        <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> Experiencias</a>
+                        <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> Comunidad</a>
+                        <div class="dropdown-divider mobile-only-link"></div>
+                        <a href="/login" class="dropdown-item"><i class="ph ph-sign-in"></i> Iniciar Sesión</a>
+                        <a href="/registro" class="dropdown-item"><i class="ph ph-user-plus"></i> Registrarse</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Pon tu espacio en StayHuila</a>
+                    </div>
                 </div>
             {% endif %}
         </div>
