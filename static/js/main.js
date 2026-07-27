@@ -114,13 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Handled in index.html now
     }
 
-    // 5. Book Now Buttons
-    const bookBtns = document.querySelectorAll('.book-now-btn');
-    bookBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            showToast('Redirigiendo a la pasarela de pago para el anticipo... (Mockup)');
-        });
-    });
+
 
 
 
