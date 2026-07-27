@@ -16,10 +16,33 @@
             background: #f8fafc;
         }
 
+        .navbar-solid {
+            background: white !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08) !important;
+        }
+
+        .navbar-solid .logo {
+            color: var(--text-main) !important;
+        }
+
+        .navbar-solid .nav-links a {
+            color: var(--text-main) !important;
+        }
+
+        .navbar-solid .nav-links a:hover {
+            color: var(--secondary) !important;
+        }
+
+        .navbar-solid .profile-btn {
+            background: white !important;
+            border: 1px solid var(--border) !important;
+        }
+
         .pts-page {
-            max-width: 860px;
+            max-width: 880px;
             margin: 0 auto;
-            padding: 7rem 1.2rem 4rem;
+            padding: 8.5rem 1.2rem 4rem;
         }
 
         .pts-back {
@@ -36,298 +59,386 @@
 
         .pts-back:hover {
             text-decoration: none;
-            transform: scale(1.1);
-
+            transform: translateX(-4px);
         }
 
+        /* ── HERO TARJETA DE PUNTOS GAMIFICADA ── */
         .pts-hero {
-            background: linear-gradient(135deg, #2C4A3B, #4a7c59);
-            border-radius: 20px;
-            padding: 2rem;
+            background: linear-gradient(135deg, #183526 0%, #2C4A3B 50%, #15803d 100%);
+            border-radius: 24px;
+            padding: 2.2rem 2.5rem;
             color: white;
             margin-bottom: 2rem;
+            box-shadow: 0 12px 35px rgba(27, 56, 41, 0.22);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pts-hero::after {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -15%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .pts-hero-inner {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 1.8rem;
             flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
         }
 
-        .pts-icon {
-            font-size: 4.5rem;
-            line-height: 1;
+        .pts-icon-badge {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            flex-shrink: 0;
         }
 
         .pts-hero-info {
             flex: 1;
-            min-width: 180px;
+            min-width: 220px;
         }
 
         .pts-hero-info .pts-count {
-            font-size: 2.8rem;
+            font-size: 3rem;
             font-weight: 900;
             line-height: 1;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .pts-hero-info .pts-nivel {
-            font-size: 1rem;
-            opacity: .9;
-            margin: .3rem 0;
+            font-size: 1.05rem;
+            opacity: .92;
+            margin: .4rem 0 .2rem;
+            font-weight: 500;
         }
 
         .pts-bar-wrap {
-            background: rgba(255, 255, 255, .2);
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.25);
             border-radius: 50px;
-            height: 10px;
-            margin: .6rem 0 .35rem;
+            height: 14px;
+            margin: 0.7rem 0 0.5rem;
+            padding: 2px;
+            overflow: hidden;
         }
 
         .pts-bar {
-            height: 10px;
+            height: 100%;
             border-radius: 50px;
-            transition: width .8s ease;
+            background: linear-gradient(90deg, #F59E0B, #10B981);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .pts-bar-label {
-            font-size: .8rem;
-            opacity: .8;
+            font-size: .85rem;
+            opacity: .88;
+            font-weight: 400;
         }
 
         .pts-credit-badge {
-            background: rgba(255, 255, 255, .2);
-            border: 2px solid rgba(255, 255, 255, .5);
-            border-radius: 14px;
-            padding: .9rem 1.2rem;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 18px;
+            padding: 1rem 1.4rem;
             text-align: center;
-            min-width: 110px;
+            min-width: 120px;
+            backdrop-filter: blur(8px);
         }
 
         .pts-credit-badge .pct {
-            font-size: 2.2rem;
+            font-size: 2.3rem;
             font-weight: 900;
+            line-height: 1;
+            color: #FBBF24;
         }
 
         .pts-credit-badge .lbl {
-            font-size: .72rem;
-            opacity: .85;
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 2rem 0 .9rem;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-        }
-
-        .earn-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
-            gap: .9rem;
-            margin-bottom: 2rem;
-        }
-
-        .earn-card {
-            background: white;
-            border-radius: 14px;
-            padding: 1.1rem;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
-        }
-
-        .earn-card .icon {
-            font-size: 1.6rem;
-            margin-bottom: .4rem;
-        }
-
-        .earn-card strong {
-            display: block;
-            font-size: .88rem;
-            margin-bottom: .15rem;
-        }
-
-        .earn-card .pts-val {
-            font-size: 1.15rem;
-            font-weight: 800;
-        }
-
-        .earn-card .sub {
             font-size: .75rem;
-            color: #6b7280;
-            margin-top: .2rem;
-        }
-
-        .levels-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: .7rem;
-            margin-bottom: 2rem;
-        }
-
-        .level-card {
-            background: white;
-            border-radius: 14px;
-            padding: .9rem;
-            text-align: center;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
-            border: 2px solid transparent;
-        }
-
-        .level-card.active {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
-        }
-
-        .level-card .l-icon {
-            font-size: 1.6rem;
-        }
-
-        .level-card .l-name {
-            font-weight: 700;
-            font-size: .85rem;
-            margin: .3rem 0 .1rem;
-        }
-
-        .level-card .l-range {
-            font-size: .72rem;
-            color: #9ca3af;
-        }
-
-        .level-card .l-badge {
-            font-size: .65rem;
-            border-radius: 50px;
-            padding: .1rem .4rem;
-            color: white;
-            margin-top: .3rem;
-            display: inline-block;
-        }
-
-        .redeem-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 1rem;
-        }
-
-        .redeem-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.3rem;
-            text-align: center;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
-            position: relative;
-        }
-
-        .redeem-card .best {
-            position: absolute;
-            top: -10px;
-            right: 14px;
-            font-size: .65rem;
-            font-weight: 700;
-            color: white;
-            padding: .15rem .6rem;
-            border-radius: 50px;
-            background: #F59E0B;
-        }
-
-        .redeem-card .disc {
-            font-size: 2.5rem;
-            font-weight: 900;
-        }
-
-        .redeem-card .name {
-            font-size: .9rem;
-            font-weight: 600;
-            color: #1f2937;
-            margin: .15rem 0;
-        }
-
-        .redeem-card .desc {
-            font-size: .76rem;
-            color: #6b7280;
-            margin-bottom: .8rem;
-        }
-
-        .redeem-card .cost {
-            font-size: .82rem;
-            font-weight: 700;
-            color: #2C4A3B;
-            margin-bottom: .7rem;
-        }
-
-        .btn-redeem {
-            width: 100%;
-            border: none;
-            border-radius: 50px;
-            padding: .5rem 1rem;
-            font-size: .88rem;
-            font-weight: 700;
-            font-family: inherit;
-            color: white;
-            cursor: pointer;
-            transition: opacity .15s;
-        }
-
-        .btn-redeem:hover {
-            opacity: .85;
-        }
-
-        .btn-redeem:disabled {
-            background: #9ca3af !important;
-            cursor: not-allowed;
+            opacity: .9;
+            margin-top: 0.2rem;
         }
 
         .credit-alert {
-            background: #fef9c3;
-            border: 2px solid #fde047;
-            border-radius: 14px;
-            padding: 1.1rem 1.3rem;
+            background: #FEF3C7;
+            border: 1px solid #FCD34D;
+            border-radius: 16px;
+            padding: 1.1rem 1.4rem;
             display: flex;
             align-items: center;
             gap: 1rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            color: #92400E;
         }
 
         .credit-alert i {
-            font-size: 2rem;
-            color: #ca8a04;
-            flex-shrink: 0;
+            font-size: 1.8rem;
+            color: #D97706;
         }
 
         .credit-alert strong {
-            color: #854d0e;
             display: block;
             font-size: .95rem;
         }
 
         .credit-alert p {
-            color: #92400e;
-            font-size: .82rem;
-            margin: .2rem 0 0;
+            color: #B45309;
+            font-size: .84rem;
+            margin: .15rem 0 0;
         }
 
-        .navbar-solid {
-            background: var(--primary);
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 2.2rem 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+        }
+
+        /* ── SECCIÓN CÓMO GANAR PUNTOS ── */
+        .earn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .earn-card {
+            background: white;
+            border-radius: 18px;
+            padding: 1.4rem 1.2rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .earn-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            border-color: rgba(44, 74, 59, 0.2);
+        }
+
+        .earn-card .icon-box {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.9rem;
+            font-size: 1.6rem;
+        }
+
+        .earn-card strong {
+            display: block;
+            font-size: .92rem;
+            color: var(--text-dark);
+            margin-bottom: .2rem;
+        }
+
+        .earn-card .pts-val {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin: 0.1rem 0;
+        }
+
+        .earn-card .sub {
+            font-size: .78rem;
+            color: var(--text-muted);
+        }
+
+        /* ── SECCIÓN NIVELES ── */
+        .levels-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .level-card {
+            background: white;
+            border-radius: 18px;
+            padding: 1.3rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .level-card.active {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+
+        .level-card .l-icon-box {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.8rem;
+            background: var(--bg-light);
+        }
+
+        .level-card .l-name {
+            font-weight: 700;
+            font-size: .95rem;
+            margin-bottom: .2rem;
+        }
+
+        .level-card .l-range {
+            font-size: .78rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .level-card .l-badge {
+            font-size: .68rem;
+            border-radius: 50px;
+            padding: 0.25rem 0.65rem;
             color: white;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, .18);
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .navbar-solid .nav-links a {
-            color: rgba(255, 255, 255, .88);
+        /* ── SECCIÓN CANJEAR ── */
+        .redeem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.2rem;
         }
 
-        .navbar-solid .nav-links a:hover {
+        .redeem-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.6rem 1.4rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .redeem-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .redeem-card .best {
+            position: absolute;
+            top: -12px;
+            right: 16px;
+            background: #D97706;
             color: white;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 10px rgba(217, 119, 6, 0.3);
         }
 
-        .navbar-solid .profile-btn {
-            background: rgba(255, 255, 255, .12);
-            border: 1px solid rgba(255, 255, 255, .25);
+        .redeem-card .disc {
+            font-size: 2.5rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 0.4rem;
         }
 
-        .navbar-solid .logo {
+        .redeem-card .name {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text-dark);
+        }
+
+        .redeem-card .desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin: 0.2rem 0 1.2rem;
+        }
+
+        .redeem-card .cost {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: auto;
+            margin-bottom: 1rem;
+        }
+
+        .btn-redeem {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 12px;
+            border: none;
             color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-redeem:hover:not(:disabled) {
+            opacity: 0.92;
+            transform: scale(1.02);
+        }
+
+        .btn-redeem:disabled {
+            background: #E2E8F0 !important;
+            color: #94A3B8;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            .pts-hero {
+                padding: 1.5rem 1.2rem;
+                border-radius: 20px;
+            }
+            .pts-hero-inner {
+                gap: 1rem;
+            }
+            .pts-count {
+                font-size: 2.2rem !important;
+            }
+            .earn-grid, .levels-grid, .redeem-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .earn-grid, .levels-grid, .redeem-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -335,18 +446,17 @@
 <body>
 
     <!-- ── NAVBAR ── -->
-    <header class="navbar navbar-solid">
-        <div class="logo" onclick="window.location.href='/'">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img"
-                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+    <header class="navbar navbar-solid" id="navbar">
+        <div class="logo" onclick="window.location.href='/'" style="cursor: pointer;">
+            <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="StayHuila" class="logo-img" loading="eager" fetchpriority="high"
+                onerror="this.src='/static/images/logo.png'">
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
             <a href="/hospedajes">Hospedajes</a>
             <a href="/experiencias">Experiencias</a>
             <a href="/comunidad">Comunidad</a>
-            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: black;">Pon tu espacio en
-                StayHuila</a>
+            <a href="/panel-anfitrion" class="host-nav-link" style="font-weight: 700; color: black;">Pon tu espacio en StayHuila</a>
         </nav>
         <div class="user-menu">
             <div class="language-selector">
@@ -370,17 +480,30 @@
                     <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
                     <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
                     <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <div class="dropdown-divider mobile-only-link"></div>
+                    <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> Hospedajes</a>
+                    <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> Experiencias</a>
+                    <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> Comunidad</a>
                     <div class="dropdown-divider"></div>
-                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel
-                        Anfitrión</a>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
                     <div class="dropdown-divider"></div>
                     <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
                 </div>
             </div>
             {% else %}
-            <div class="profile-btn" onclick="window.location.href='/login'">
+            <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
                 <i class="ph ph-list"></i>
                 <i class="ph-fill ph-user-circle"></i>
+                <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
+                    <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> Hospedajes</a>
+                    <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> Experiencias</a>
+                    <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> Comunidad</a>
+                    <div class="dropdown-divider mobile-only-link"></div>
+                    <a href="/login" class="dropdown-item"><i class="ph ph-sign-in"></i> Iniciar Sesión</a>
+                    <a href="/registro" class="dropdown-item"><i class="ph ph-user-plus"></i> Registrarse</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Pon tu espacio en StayHuila</a>
+                </div>
             </div>
             {% endif %}
         </div>
@@ -395,7 +518,7 @@
         });
     </script>
     <div class="pts-page">
-        <a href="/perfil" class="pts-back"><i class="ph ph-arrow-left"></i> Volver</a>
+        <a href="/perfil" class="pts-back"><i class="ph ph-arrow-left"></i> Volver a mi perfil</a>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% for cat, msg in messages %}
@@ -405,30 +528,24 @@
 
         <!-- ── Nivel actual ── -->
         {% set pts = current_user.puntos %}
-        {% if pts >= 1000 %}{% set nivel='Embajador Huila' %}{% set nc='#F59E0B' %}{% set pr=100 %}{% set ps=None %}{%
-        set ni='🌟' %}
-        {% elif pts >= 500 %}{% set nivel='Aventurero' %}{% set nc='#8B5CF6' %}{% set pr=((pts-500)*100//500)|int %}{%
-        set ps=1000 %}{% set ni='🏔️' %}
-        {% elif pts >= 200 %}{% set nivel='Viajero' %}{% set nc='#10B981' %}{% set pr=((pts-200)*100//300)|int %}{% set
-        ps=500 %}{% set ni='🌿' %}
-        {% else %}{% set nivel='Explorador' %}{% set nc='#3B82F6' %}{% set pr=(pts*100//200)|int %}{% set ps=200 %}{%
-        set ni='🧭' %}{% endif %}
+        {% if pts >= 1000 %}{% set nivel='Embajador Huila' %}{% set nc='#F59E0B' %}{% set pr=100 %}{% set ps=None %}
+        {% elif pts >= 500 %}{% set nivel='Aventurero' %}{% set nc='#8B5CF6' %}{% set pr=((pts-500)*100//500)|int %}{% set ps=1000 %}
+        {% elif pts >= 200 %}{% set nivel='Viajero' %}{% set nc='#10B981' %}{% set pr=((pts-200)*100//300)|int %}{% set ps=500 %}
+        {% else %}{% set nivel='Explorador' %}{% set nc='#3B82F6' %}{% set pr=(pts*100//200)|int %}{% set ps=200 %}{% endif %}
 
         <div class="pts-hero">
             <div class="pts-hero-inner">
-                <div class="pts-icon">
-                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila"
-                        style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3));">
+                <div class="pts-icon-badge">
+                    <i class="ph-fill ph-coin" style="font-size: 3rem; color: #F59E0B; filter: drop-shadow(0 4px 10px rgba(245,158,11,0.4));"></i>
                 </div>
                 <div class="pts-hero-info">
-                    <div class="pts-count">{{ pts }} pts</div>
+                    <div class="pts-count">{{ pts }} <span style="font-size: 1.5rem; font-weight: 700; color: #FCD34D;">pts</span></div>
                     <div class="pts-nivel">Nivel actual: <strong>{{ nivel }}</strong></div>
                     <div class="pts-bar-wrap">
-                        <div class="pts-bar" style="width:{{ [pr,100]|min }}%;background:{{ nc }};"></div>
+                        <div class="pts-bar" style="width:{{ [pr,100]|min }}%;"></div>
                     </div>
                     <div class="pts-bar-label">
-                        {% if ps %}{{ ps - pts }} puntos para <strong>{% if nivel=='Explorador' %}Viajero{% elif
-                            nivel=='Viajero' %}Aventurero{% else %}Embajador Huila{% endif %}</strong>
+                        {% if ps %}{{ ps - pts }} puntos más para ser <strong>{% if nivel=='Explorador' %}Viajero{% elif nivel=='Viajero' %}Aventurero{% else %}Embajador Huila{% endif %}</strong>
                         {% else %}¡Has alcanzado el nivel máximo! 🎉{% endif %}
                     </div>
                 </div>
@@ -453,82 +570,96 @@
         {% endif %}
 
         <!-- ── Cómo ganar ── -->
-        <div class="section-title"><i class="ph ph-lightning"></i> Cómo ganar puntos</div>
+        <div class="section-title"><i class="ph-duotone ph-lightning" style="color:#F59E0B; font-size:1.5rem;"></i> Cómo ganar puntos</div>
         <div class="earn-grid">
             <div class="earn-card">
-                <div class="icon">🎉</div>
+                <div class="icon-box" style="background:#E0F2FE; color:#0284C7;">
+                    <i class="ph-duotone ph-user-plus"></i>
+                </div>
                 <strong>Registrarse</strong>
-                <div class="pts-val" style="color:#15803d;">+100 pts</div>
+                <div class="pts-val" style="color:#0284C7;">+100 pts</div>
                 <div class="sub">Bono de bienvenida</div>
             </div>
             <div class="earn-card">
-                <div class="icon">🏠</div>
+                <div class="icon-box" style="background:#DCFCE7; color:#15803D;">
+                    <i class="ph-duotone ph-house-line"></i>
+                </div>
                 <strong>Confirmar reserva</strong>
-                <div class="pts-val" style="color:#1d4ed8;">+50 pts</div>
+                <div class="pts-val" style="color:#15803D;">+50 pts</div>
                 <div class="sub">Por cada reserva pagada</div>
             </div>
             <div class="earn-card">
-                <div class="icon">✅</div>
+                <div class="icon-box" style="background:#F3E8FF; color:#7C3AED;">
+                    <i class="ph-duotone ph-check-circle"></i>
+                </div>
                 <strong>Completar estadía</strong>
-                <div class="pts-val" style="color:#7c3aed;">+100 pts</div>
+                <div class="pts-val" style="color:#7C3AED;">+100 pts</div>
                 <div class="sub">Al hacer checkout</div>
             </div>
             <div class="earn-card">
-                <div class="icon">⭐</div>
+                <div class="icon-box" style="background:#FFEDD5; color:#EA580C;">
+                    <i class="ph-duotone ph-star"></i>
+                </div>
                 <strong>Dejar reseña</strong>
-                <div class="pts-val" style="color:#ea580c;">+25 pts</div>
+                <div class="pts-val" style="color:#EA580C;">+25 pts</div>
                 <div class="sub">Por cada reseña enviada</div>
             </div>
         </div>
 
         <!-- ── Niveles ── -->
-        <div class="section-title"><i class="ph ph-medal"></i> Niveles</div>
+        <div class="section-title"><i class="ph-duotone ph-medal" style="color:#F59E0B; font-size:1.5rem;"></i> Niveles de Gamificación</div>
         <div class="levels-grid">
-            {% for l_ni, l_nm, l_nc, l_rng in [('🧭','Explorador','#3B82F6','0 – 199
-            pts'),('🌿','Viajero','#10B981','200 – 499 pts'),('🏔️','Aventurero','#8B5CF6','500 – 999
-            pts'),('🌟','Embajador Huila','#F59E0B','1000+ pts')] %}
+            {% for l_icon, l_nm, l_nc, l_rng in [
+                ('ph-compass', 'Explorador', '#3B82F6', '0 – 199 pts'),
+                ('ph-plant', 'Viajero', '#10B981', '200 – 499 pts'),
+                ('ph-mountain', 'Aventurero', '#8B5CF6', '500 – 999 pts'),
+                ('ph-crown', 'Embajador Huila', '#F59E0B', '1000+ pts')
+            ] %}
             <div class="level-card {% if nivel == l_nm %}active{% endif %}"
-                style="border-color:{{ l_nc if nivel==l_nm else 'transparent' }};background:{{ l_nc+'11' if nivel==l_nm else 'white' }};">
-                <div class="l-icon">{{ l_ni }}</div>
+                style="border-color:{{ l_nc if nivel==l_nm else 'var(--border)' }};background:{{ l_nc+'0F' if nivel==l_nm else 'white' }};">
+                <div class="l-icon-box" style="background:{{ l_nc+'18' }};">
+                    <i class="ph-duotone {{ l_icon }}" style="font-size: 2rem; color:{{ l_nc }};"></i>
+                </div>
                 <div class="l-name" style="color:{{ l_nc }};">{{ l_nm }}</div>
                 <div class="l-range">{{ l_rng }}</div>
-                {% if nivel == l_nm %}<span class="l-badge" style="background:{{ l_nc }};">Tu nivel</span>{% endif %}
+                {% if nivel == l_nm %}
+                    <span class="l-badge" style="background:{{ l_nc }};">Tu nivel</span>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
 
         <!-- ── Canjear ── -->
-        <div class="section-title"><i class="ph ph-ticket"></i> Canjear puntos</div>
-        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.1rem;">El descuento se aplica automáticamente
-            al total de tu próxima reserva.</p>
+        <div class="section-title"><i class="ph-duotone ph-ticket" style="color:#10B981; font-size:1.5rem;"></i> Canjear puntos por descuentos</div>
+        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.2rem;">El descuento se activará en tu perfil y se aplicará automáticamente al total de tu próxima reserva.</p>
         <div class="redeem-grid">
             <div class="redeem-card">
                 <div class="disc" style="color:#059669;">5%</div>
                 <div class="name">Descuento básico</div>
-                <div class="desc">Válido en la próxima reserva</div>
-                <div class="cost"><i class="ph-fill ph-coin"></i> 200 puntos</div>
-                <button class="btn-redeem" style="background:#059669;" onclick="canjear(200)" {% if pts < 200
-                    %}disabled{% endif %}>
-                    {% if pts < 200 %}Faltan {{ 200 - pts }} pts{% else %}Canjear{% endif %} </button>
+                <div class="desc">Válido en tu próxima reserva</div>
+                <div class="cost"><i class="ph-fill ph-coin" style="color:#F59E0B;"></i> 200 puntos</div>
+                <button class="btn-redeem" style="background:#059669;" onclick="canjear(200)" {% if pts < 200 %}disabled{% endif %}>
+                    {% if pts < 200 %}Faltan {{ 200 - pts }} pts{% else %}Canjear Descuento{% endif %}
+                </button>
             </div>
             <div class="redeem-card">
-                <div class="disc" style="color:#7c3aed;">10%</div>
+                <div class="disc" style="color:#7C3AED;">10%</div>
                 <div class="name">Descuento avanzado</div>
-                <div class="desc">Válido en la próxima reserva</div>
-                <div class="cost"><i class="ph-fill ph-coin"></i> 500 puntos</div>
-                <button class="btn-redeem" style="background:#7c3aed;" onclick="canjear(500)" {% if pts < 500
-                    %}disabled{% endif %}>
-                    {% if pts < 500 %}Faltan {{ 500 - pts }} pts{% else %}Canjear{% endif %} </button>
+                <div class="desc">Válido en tu próxima reserva</div>
+                <div class="cost"><i class="ph-fill ph-coin" style="color:#F59E0B;"></i> 500 puntos</div>
+                <button class="btn-redeem" style="background:#7C3AED;" onclick="canjear(500)" {% if pts < 500 %}disabled{% endif %}>
+                    {% if pts < 500 %}Faltan {{ 500 - pts }} pts{% else %}Canjear Descuento{% endif %}
+                </button>
             </div>
             <div class="redeem-card">
                 <span class="best">MEJOR VALOR</span>
-                <div class="disc" style="color:#d97706;">20%</div>
+                <div class="disc" style="color:#D97706;">20%</div>
                 <div class="name">Descuento premium</div>
-                <div class="desc">Válido en la próxima reserva</div>
-                <div class="cost"><i class="ph-fill ph-coin"></i> 1000 puntos</div>
-                <button class="btn-redeem" style="background:#d97706;" onclick="canjear(1000)" {% if pts < 1000
-                    %}disabled{% endif %}>
-                    {% if pts < 1000 %}Faltan {{ 1000 - pts }} pts{% else %}Canjear{% endif %} </button>
+                <div class="desc">Válido en tu próxima reserva</div>
+                <div class="cost"><i class="ph-fill ph-coin" style="color:#F59E0B;"></i> 1000 puntos</div>
+                <button class="btn-redeem" style="background:#D97706;" onclick="canjear(1000)" {% if pts < 1000 %}disabled{% endif %}>
+                    {% if pts < 1000 %}Faltan {{ 1000 - pts }} pts{% else %}Canjear Descuento{% endif %}
+                </button>
             </div>
         </div>
     </div>
