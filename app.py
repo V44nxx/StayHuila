@@ -115,7 +115,7 @@ MAIL_FROM     = MAIL_USERNAME
 # ── CONFIGURACIÓN NEQUI NEGOCIOS ───────────────────────────────────────────────
 NEQUI_NEGOCIO_CELULAR = os.environ.get('NEQUI_NEGOCIO_CELULAR', '3112345678')
 NEQUI_NEGOCIO_NOMBRE = os.environ.get('NEQUI_NEGOCIO_NOMBRE', 'StayHuila Reservas')
-NEQUI_NEGOCIO_LINK = os.environ.get('NEQUI_NEGOCIO_LINK', 'https://link.nequi.co/stayhuila')
+NEQUI_NEGOCIO_LINK = os.environ.get('NEQUI_NEGOCIO_LINK', 'https://www.nequi.com.co')
 
 # Inicializar servicio de pagos
 payment_provider = NequiProvider(NEQUI_NEGOCIO_CELULAR, NEQUI_NEGOCIO_NOMBRE, NEQUI_NEGOCIO_LINK)
@@ -561,7 +561,9 @@ def pago_transferir_gateway(reserva_id):
             return render_template(
                 'pago_transferir.html',
                 reserva_id=reserva_id,
-                nequi_link=NEQUI_NEGOCIO_LINK
+                nequi_link=NEQUI_NEGOCIO_LINK,
+                nequi_celular=NEQUI_NEGOCIO_CELULAR,
+                nequi_nombre=NEQUI_NEGOCIO_NOMBRE
             )
     except Exception as e:
         app.logger.error(f"[Pago Transferir] Error: {e}")
