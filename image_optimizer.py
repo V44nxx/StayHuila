@@ -279,17 +279,18 @@ def process_images(files, upload_folder: str) -> list[dict]:
     return results
 
 
-def thumb_url_from_url(image_url: str) -> str:
+def thumb_url_from_url(image_url: str, check_exists: bool = True) -> str:
     """
     Dado el URL de una imagen principal, devuelve el URL de su miniatura.
     Ejemplo:
         /static/uploads/abc123_0.webp  →  /static/uploads/abc123_0_thumb.webp
-        /static/uploads/abc123_0.jpg   →  /static/uploads/abc123_0_thumb.webp  (legacy)
-        https://example.com/img.jpg    →  https://example.com/img.jpg  (externo, sin cambio)
+        /static/uploads/abc123_0.jpg   →  /static/uploads/abc123_0_thumb.webp (si existe)
+        https://example.com/img.jpg    →  https://example.com/img.jpg (externo, sin cambio)
     
-    Uso: en el backend para inyectar image_thumb en el contexto de cada listado.
+    Si check_exists=True y la miniatura no existe en disco,
+    devuelve la imagen original para evitar errores 404.
     """
-    if not image_url:
+    if not image_url or not isinstance(image_url, str):
         return image_url
 
     # No procesar URLs externas (Unsplash, ui-avatars, etc.)
@@ -297,13 +298,27 @@ def thumb_url_from_url(image_url: str) -> str:
         return image_url
 
     # Para imágenes locales de uploads, construir URL de miniatura
-    if '/static/uploads/' in image_url:
+    if '/static/uploads/' in image_url or 'static/uploads/' in image_url:
         # Separar nombre de archivo
         base, dot_ext = image_url.rsplit('.', 1) if '.' in image_url else (image_url, 'webp')
         # Si ya es una miniatura, devolver tal cual
         if base.endswith('_thumb'):
             return image_url
-        return f"{base}_thumb.webp"
+
+        thumb_url = f"{base}_thumb.webp"
+
+        if check_exists:
+            # Obtener ruta absoluta del sistema de archivos para verificar existencia
+            # Ejemplo: '/static/uploads/abc.jpg' -> 'static/uploads/abc_thumb.webp'
+            rel_path = thumb_url.lstrip('/').lstrip('\\')
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            abs_path = os.path.join(base_dir, rel_path.replace('/', os.sep))
+            if not os.path.exists(abs_path):
+                # Si el archivo miniatura no existe aún en disco, usar la imagen original
+                return image_url
+
+        return thumb_url
 
     # Para imágenes en /static/images/ (logo, fondo) no hay miniatura
     return image_url
+
