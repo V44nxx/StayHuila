@@ -9,6 +9,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
+import urllib.parse, urllib.request
 import traceback
 import time
 from payment_service import PaymentService, NequiProvider
@@ -3940,10 +3941,14 @@ def api_translate():
         # 3. Traducción dinámica mediante MyMemory API
         translated = None
         try:
-            url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(clean_text)}&langpair=es|{target_lang}"
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (StayHuila i18n)'})
-            with urllib.request.urlopen(req, timeout=1.8) as resp:
-                res_json = json.loads(resp.read().decode('utf-8'))
+            resp = requests.get(
+                "https://api.mymemory.translated.net/get",
+                params={'q': clean_text, 'langpair': f"es|{target_lang}"},
+                headers={'User-Agent': 'Mozilla/5.0 (StayHuila i18n)'},
+                timeout=1.8
+            )
+            if resp.status_code == 200:
+                res_json = resp.json()
                 if res_json and 'responseData' in res_json and res_json['responseData'].get('translatedText'):
                     trans_val = res_json['responseData']['translatedText']
                     if trans_val and trans_val != clean_text and 'MYMEMORY WARNING' not in trans_val:
