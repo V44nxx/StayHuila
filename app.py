@@ -577,9 +577,41 @@ def pago_transferir_gateway(reserva_id):
 @login_required
 def pago_nequi_gateway(reserva_id):
     """
-    Antiguo portal integrado, redirigido a la pasarela de transferencia por enlace.
+    Portal de pasarela de pago interactivo de Nequi Negocios.
+    Muestra el resumen, QR, titular e inputs para ingresar el celular y la referencia de pago.
     """
-    return redirect(url_for('pago_transferir_gateway', reserva_id=reserva_id))
+    c = db()
+    try:
+        with c.cursor() as cur:
+            cur.execute("""
+                SELECT r.*, h.nombre AS hosp_nombre, e.nombre AS exp_nombre
+                FROM reservas r
+                LEFT JOIN hospedajes h ON r.hospedaje_id = h.id
+                LEFT JOIN experiencias e ON r.experiencia_id = e.id
+                WHERE r.id = %s AND r.usuario_id = %s AND r.estado = 'pendiente_pago'
+                LIMIT 1
+            """, (reserva_id, current_user.id))
+            reserva = cur.fetchone()
+
+            if not reserva:
+                flash('Reserva no encontrada o no válida para pagar.', 'error')
+                return redirect(url_for('mis_reservas'))
+
+            reserva['hosp_nombre'] = reserva.get('hosp_nombre') or reserva.get('exp_nombre') or 'Reserva StayHuila'
+
+            return render_template(
+                'pago_nequi.html',
+                reserva=reserva,
+                negocio_celular=NEQUI_NEGOCIO_CELULAR,
+                negocio_nombre=NEQUI_NEGOCIO_NOMBRE,
+                negocio_link=NEQUI_NEGOCIO_LINK
+            )
+    except Exception as e:
+        app.logger.error(f"[Pago Nequi Gateway] Error: {e}")
+        flash('Error al cargar la pasarela de Nequi.', 'error')
+        return redirect(url_for('mis_reservas'))
+    finally:
+        c.close()
 
 
 @app.route('/api/pago/nequi/confirmar', methods=['POST'])
@@ -986,8 +1018,8 @@ def pagar_reserva(reserva_id):
 
             c.commit()
 
-            # Redirigir a la pantalla de transición local para registrar localStorage
-            return redirect(url_for('pago_transferir_gateway', reserva_id=reserva_id))
+            # Redirigir a la pasarela integrada Nequi Negocios
+            return redirect(url_for('pago_nequi_gateway', reserva_id=reserva_id))
 
     except Exception as e:
         c.rollback()
@@ -2447,8 +2479,8 @@ def reservar():
 
                     c.commit()
                     
-                    # Redirigir a la pantalla de transición local para registrar localStorage
-                    return redirect(url_for('pago_transferir_gateway', reserva_id=rid))
+                    # Redirigir a la pasarela integrada Nequi Negocios
+                    return redirect(url_for('pago_nequi_gateway', reserva_id=rid))
                     
                 except Exception as e:
                     app.logger.error(f"Error al generar pago Nequi: {str(e)}")
