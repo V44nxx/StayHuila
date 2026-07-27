@@ -25,12 +25,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ hospedaje.nombre }} | StayHuila</title>
     <meta name="description" content="{{ hospedaje.details }} - {{ hospedaje.municipio ~ " , Huila" }}">
+    <!-- Preconnect a dominios externos críticos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Preload recursos críticos -->
+    <link rel="preload" href="{{ url_for('static', filename='css/style.css') }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/detalle.css') }}">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+    <!-- Phosphor Icons: defer para no bloquear el parser -->
+    <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous" defer></script>
+    <!-- Leaflet CSS con baja prioridad -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+    <script src="{{ url_for('static', filename='js/toast.js') }}" defer></script>
     <style>
         .action-btn.active {
             color: #ff385c !important;
@@ -49,6 +59,7 @@
     <header class="navbar navbar-solid" id="navbar">
         <div class="logo" onclick="window.location.href='/'">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img"
+                loading="eager" fetchpriority="high"
                 onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
@@ -127,14 +138,17 @@
         <!-- GALERÍA DE FOTOS -->
         <div class="galeria-grid" id="galeria">
             <div class="galeria-main" onclick="openLightbox(0)">
-                <img src="{{ imagenes[0].url if imagenes else "" }}" alt="{{ hospedaje.nombre }}" id="main-img">
+                <!-- Primera imagen de galería: eager+fetchpriority (es el LCP de la página) -->
+                <img src="{{ imagenes[0].url if imagenes else '' }}" alt="{{ hospedaje.nombre }}" id="main-img"
+                     loading="eager" fetchpriority="high">
                 <div class="galeria-overlay"><i class="ph ph-arrows-out"></i></div>
             </div>
             <div class="galeria-side">
                 {% for img_obj in imagenes[1:5] %}
                 <div class="galeria-thumb {% if loop.last and imagenes|length > 5 %}galeria-more{% endif %}"
                     onclick="openLightbox({{ loop.index }})">
-                    <img src="{{ img_obj.url }}" alt="Foto {{ loop.index + 1 }}">
+                    <img src="{{ img_obj.url }}" alt="Foto {{ loop.index + 1 }}"
+                         loading="lazy" decoding="async">
                     {% if loop.last and imagenes|length > 4 %}
                     <div class="galeria-more-overlay"><i class="ph ph-images"></i> <span data-i18n="detail.all_photos">Ver todas las fotos</span></div>
                     {% endif %}
@@ -667,7 +681,6 @@
             }
         }
     </script>
-    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
 </body>
-
 </html>

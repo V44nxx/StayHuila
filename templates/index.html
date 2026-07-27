@@ -27,15 +27,25 @@
     <link rel="icon" href="../static/image/logo.png" sizes="48x48">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StayHuila | Hospedajes Auténticos</title>
-    <!-- Google Fonts -->
+    <!-- Preconnect a dominios externos críticos (reduce latencia DNS+TCP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <!-- Google Fonts: display=swap evita FOIT (flash of invisible text) -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Preload recursos críticos: el CSS y logo se necesitan antes del primer render -->
+    <link rel="preload" href="{{ url_for('static', filename='css/style.css') }}" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='images/logo.png') }}" as="image">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Phosphor Icons for modern minimalist icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
-
-    <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Phosphor Icons: defer para no bloquear el parser HTML -->
+    <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous" defer></script>
+    <!-- toast.js: defer porque no es crítico para el primer render -->
+    <script src="{{ url_for('static', filename='js/toast.js') }}" defer></script>
+    <!-- Leaflet CSS: cargado con media="print" y luego convertido a "all" -->
+    <!-- Truco: el navegador lo descarga con baja prioridad y no bloquea el render -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
     <style>
         /* Pulsing User Location Dot */
         .user-location-marker {
@@ -91,7 +101,9 @@
     <!-- Navbar -->
     <header class="navbar" id="navbar">
         <div class="logo">
+            <!-- loading=eager: el logo es crítico (above the fold), NO lazy -->
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img"
+                loading="eager" fetchpriority="high"
                 onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
             <span>StayHuila</span>
         </div>
@@ -499,7 +511,8 @@
             ]
         }
     </script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet JS con defer: solo necesario cuando el usuario abre el mapa -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <script>
         let homeMap = null;
         let allItems = [];
@@ -585,7 +598,9 @@
                 html += `
                 <article class="listing-card" onclick="window.location.href='${url}'" style="cursor:pointer; ${item.estado === 'reparacion' ? 'opacity: 0.8;' : ''}">
                     <div class="image-wrapper" style="position:relative;">
-                        <img src="${item.image}" alt="${item.categoria}" style="${item.estado === 'reparacion' ? 'filter: grayscale(80%);' : ''}">
+                        <img src="${item.image_thumb || item.image}" alt="${item.categoria}"
+                             loading="lazy" decoding="async"
+                             style="${item.estado === 'reparacion' ? 'filter: grayscale(80%);' : ''}">
                         ${repairHtml}
                         ${badgeHtml}
                         ${discountHtml}
@@ -764,11 +779,9 @@
 
 
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
-
-
-    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+    <!-- Scripts no críticos con defer: se descargan en paralelo y ejecutan después del parsing -->
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <!-- i18n.js (81 KB): solo necesario si el usuario cambia idioma, defer evita bloqueo -->
+    <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
 </body>
-
 </html>
