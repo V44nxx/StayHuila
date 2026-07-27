@@ -171,7 +171,7 @@
                     <div class="image-wrapper" style="position:relative;">
                         <img src="{{ e.image_thumb or e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600' }}"
                             alt="{{ e.tipo }}" loading="lazy" decoding="async"
-                            onerror="this.onerror=null;this.src='{{ e.image or \'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600\' }}';"
+                            onerror="this.onerror=null;this.src='{{ e.image or "https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600" }}';"
                             {% if e.estado=='reparacion' %}style="filter: grayscale(80%);" {% endif %}>
                         {% if e.estado == 'reparacion' %}
                         <div
