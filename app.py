@@ -393,6 +393,21 @@ def _ensure_columns():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
 
+            # ── Ampliar columna servicio a VARCHAR(255) (evitar error 1265 Data truncated) ──
+            try:
+                cur.execute("SHOW TABLES LIKE 'hospedaje_servicios'")
+                if cur.fetchone():
+                    cur.execute("ALTER TABLE hospedaje_servicios MODIFY COLUMN servicio VARCHAR(255) NOT NULL")
+            except Exception as e_srv:
+                print(f"Nota _ensure_columns (hospedaje_servicios): {e_srv}")
+
+            try:
+                cur.execute("SHOW TABLES LIKE 'experiencia_servicios'")
+                if cur.fetchone():
+                    cur.execute("ALTER TABLE experiencia_servicios MODIFY COLUMN servicio VARCHAR(255) NOT NULL")
+            except Exception as e_srv:
+                print(f"Nota _ensure_columns (experiencia_servicios): {e_srv}")
+
             # ── Tabla de Lista de Espera ─────────────────────────────────────
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS lista_espera (
@@ -951,15 +966,21 @@ def pagar_reserva(reserva_id):
             preference = payment_service.generate_payment_link(reservation_data, user_data)
 
             # Actualizar preference_id en pagos y en reservas (desnormalizado)
-            cur.execute("""
-                UPDATE pagos
-                SET preference_id = %s
-                WHERE reserva_id = %s AND tipo = 'cobro'
-            """, (preference['id'], reserva_id))
+            try:
+                cur.execute("""
+                    UPDATE pagos
+                    SET preference_id = %s
+                    WHERE reserva_id = %s AND tipo = 'cobro'
+                """, (preference['id'], reserva_id))
+            except Exception:
+                pass
 
-            cur.execute("""
-                UPDATE reservas SET external_preference_id = %s WHERE id = %s
-            """, (preference['id'], reserva_id))
+            try:
+                cur.execute("""
+                    UPDATE reservas SET external_preference_id = %s WHERE id = %s
+                """, (preference['id'], reserva_id))
+            except Exception:
+                pass
 
             c.commit()
 
@@ -2405,17 +2426,23 @@ def reservar():
                     # Generar intención de pago en Nequi
                     preference = payment_service.generate_payment_link(reservation_data, user_data)
                     
-                    # Guardar ID de preferencia en la tabla pagos (usando la nueva columna preference_id) y reservas (external_preference_id)
-                    cur.execute("""
-                        UPDATE pagos 
-                        SET preference_id = %s 
-                        WHERE reserva_id = %s AND estado = 'pending'
-                    """, (preference['id'], rid))
-                    
-                    cur.execute("""
-                        UPDATE reservas SET external_preference_id = %s WHERE id = %s
-                    """, (preference['id'], rid))
-                    
+                    # Guardar ID de preferencia en la tabla pagos y reservas si las columnas existen
+                    try:
+                        cur.execute("""
+                            UPDATE pagos 
+                            SET preference_id = %s 
+                            WHERE reserva_id = %s AND estado = 'pending'
+                        """, (preference['id'], rid))
+                    except Exception as e_pref1:
+                        app.logger.warning(f"Note update pagos preference_id: {e_pref1}")
+
+                    try:
+                        cur.execute("""
+                            UPDATE reservas SET external_preference_id = %s WHERE id = %s
+                        """, (preference['id'], rid))
+                    except Exception as e_pref2:
+                        app.logger.warning(f"Note update reservas external_preference_id: {e_pref2}")
+
                     c.commit()
                     
                     # Redirigir a la pantalla de transición local para registrar localStorage
@@ -3056,7 +3083,9 @@ def publicar():
                 # Insert Amenities
                 if servicios:
                     for srv in servicios:
-                        cur.execute("INSERT INTO hospedaje_servicios(hospedaje_id, servicio) VALUES(%s, %s)", (pub_id, srv))
+                        srv_clean = str(srv)[:255].strip()
+                        if srv_clean:
+                            cur.execute("INSERT INTO hospedaje_servicios(hospedaje_id, servicio) VALUES(%s, %s)", (pub_id, srv_clean))
             else:
                 cur.execute("""INSERT INTO experiencias(anfitrion_id, tipo, nombre, municipio, latitud, longitud, 
                     descripcion, precio_persona, capacidad_min, capacidad_max, duracion_horas, nivel_dificultad, que_incluye, que_traer, activo, verificado)
@@ -3184,7 +3213,9 @@ def actualizar_publicacion():
                 # Servicios: reemplazar completamente
                 cur.execute("DELETE FROM hospedaje_servicios WHERE hospedaje_id=%s", (pub_id,))
                 for srv in json.loads(request.form.get('servicios', '[]')):
-                    cur.execute("INSERT INTO hospedaje_servicios(hospedaje_id, servicio) VALUES(%s,%s)", (pub_id, srv))
+                    srv_clean = str(srv)[:255].strip()
+                    if srv_clean:
+                        cur.execute("INSERT INTO hospedaje_servicios(hospedaje_id, servicio) VALUES(%s,%s)", (pub_id, srv_clean))
 
                 # Imágenes: solo reemplazar si el anfitrión subió nuevas
                 fotos_urls = request.form.getlist('fotos_urls')
