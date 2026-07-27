@@ -330,3 +330,22 @@ body {
   font-size: 0.72rem;
   color: rgba(255,255,255,0.4);
 }
+
+@media (max-width: 480px) {
+  body {
+    padding: 1rem 0.5rem;
+  }
+  .nequi-header {
+    padding: 1.5rem 1rem;
+  }
+  .nequi-logo-txt {
+    font-size: 1.8rem;
+  }
+  .nequi-body {
+    padding: 1.2rem 1rem;
+  }
+  .qr-image {
+    width: 140px;
+    height: 140px;
+  }
+}

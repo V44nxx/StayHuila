@@ -553,3 +553,21 @@
             padding: 0;
         }
         .btn-location:hover { text-decoration: underline; }
+
+        @media(max-width:480px) {
+            .wizard-header {
+                padding: 1rem;
+            }
+            .wizard-steps-indicator {
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding-bottom: 0.5rem;
+            }
+            .form-grid-2 {
+                grid-template-columns: 1fr !important;
+            }
+            .panel-container {
+                margin-top: 5.5rem;
+                padding: 0 0.75rem;
+            }
+        }
