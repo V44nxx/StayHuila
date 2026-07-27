@@ -292,3 +292,16 @@
         font-size: 1.4rem;
     }
 }
+
+@media (max-width: 480px) {
+    .hospedajes-list {
+        padding: 1rem 0.75rem;
+    }
+    .grid-half {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .hospedajes-map {
+        height: 180px;
+    }
+}

@@ -1,4 +1,4 @@
-﻿/* ==========================================
+/* ==========================================
    DETALLE HOSPEDAJE - StayHuila
    ========================================== */
 
@@ -560,6 +560,13 @@
     .amenidades-grid { grid-template-columns: 1fr; }
     .sugerencias-grid { grid-template-columns: 1fr; }
     .detalle-title-row { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+    .galeria-grid { height: 220px; }
+    .detalle-titulo { font-size: 1.3rem; }
+    .detalle-right { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
+    .booking-card { padding: 1.2rem !important; border-radius: 16px !important; }
 }
 
 /* Nested Review Responses */

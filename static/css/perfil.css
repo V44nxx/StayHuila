@@ -74,6 +74,7 @@
             .perfil-name { font-size: 1.2rem; }
             .gamification-card { padding: 1rem; }
             .btn-save { width: 100%; justify-content: center; }
+            .email-field-wrapper { flex-direction: column; align-items: stretch; }
         }
 
         /* ── Cambiar Correo Electrónico UI ── */

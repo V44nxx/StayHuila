@@ -1,4 +1,4 @@
-﻿/* ==========================================
+/* ==========================================
    DETALLE HOSPEDAJE - StayHuila
    ========================================== */
 
@@ -572,6 +572,8 @@
     .galeria-grid { height: 220px; }
     .detalle-titulo { font-size: 1.4rem; }
     .section-title { font-size: 1.2rem; }
+    .detalle-right { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
+    .booking-card { padding: 1.2rem !important; border-radius: 16px !important; }
 }
 
 /* Nested Review Responses */
