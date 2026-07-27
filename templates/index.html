@@ -33,9 +33,10 @@
     <link rel="preconnect" href="https://unpkg.com">
     <!-- Google Fonts: display=swap evita FOIT (flash of invisible text) -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Preload recursos críticos: el CSS y logo se necesitan antes del primer render -->
+    <!-- Preload recursos críticos: el CSS, logo WebP e imagen hero se descargan de inmediato -->
     <link rel="preload" href="{{ url_for('static', filename='css/style.css') }}" as="style">
-    <link rel="preload" href="{{ url_for('static', filename='images/logo.png') }}" as="image">
+    <link rel="preload" href="{{ url_for('static', filename='images/logo.webp') }}" as="image" type="image/webp" fetchpriority="high">
+    <link rel="preload" href="{{ url_for('static', filename='images/fondo_desierto.webp') }}" as="image" type="image/webp" fetchpriority="high">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Phosphor Icons: defer para no bloquear el parser HTML -->
     <script src="https://unpkg.com/@phosphor-icons/web" crossorigin="anonymous" defer></script>
@@ -102,9 +103,9 @@
     <header class="navbar" id="navbar">
         <div class="logo">
             <!-- loading=eager: el logo es crítico (above the fold), NO lazy -->
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img"
-                loading="eager" fetchpriority="high"
-                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="StayHuila Logo" class="logo-img"
+                loading="eager" fetchpriority="high" width="65" height="65"
+                onerror="this.src='/static/images/logo.png'">
             <span>StayHuila</span>
         </div>
         <nav class="nav-links">
