@@ -2596,6 +2596,19 @@ def reservar():
                     fi = datetime.strptime(checkin, '%Y-%m-%d').date()
                     fo = datetime.strptime(checkout, '%Y-%m-%d').date()
                     noches = (fo - fi).days
+                    # ── Validar disponibilidad de fechas en GET ──
+                    cur.execute("""
+                        SELECT id FROM reservas 
+                        WHERE hospedaje_id = %s 
+                          AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
+                          AND fecha_checkin < %s 
+                          AND fecha_checkout > %s
+                        LIMIT 1
+                    """, (hid, checkout, checkin))
+                    if cur.fetchone():
+                        flash('Las fechas seleccionadas ya se encuentran reservadas o en proceso de pago por otro usuario.', 'error')
+                        return redirect(url_for('detalle_hospedaje', id=hid))
+
                     # ── Validar estadía en GET (antes de mostrar formulario de pago) ──
                     min_n = int(hosp.get('estadia_minima') or 1)
                     max_n = int(hosp.get('estadia_maxima') or 365)
