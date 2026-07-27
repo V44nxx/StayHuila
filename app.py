@@ -3850,6 +3850,121 @@ def api_comunidad_comentario_delete(comment_id):
     finally:
         c.close()
 
+# ── API DE TRADUCCIÓN DINÁMICA DE PUBLICACIONES Y CONTENIDOS (i18n) ──
+STATIC_TRANSLATIONS = {
+    'en': {
+        'Todos': 'All', 'Categorías': 'Categories', 'Hospedajes': 'Lodgings', 'Experiencias': 'Experiences',
+        'Finca': 'Farmstead', 'Cabaña': 'Cabin', 'Glamping': 'Glamping', 'Habitación privada': 'Private room',
+        'Hotel boutique': 'Boutique hotel', 'Casa entera': 'Entire house', 'Aventura': 'Adventure',
+        'Cultural': 'Cultural', 'Gastronomía': 'Gastronomy', 'Naturaleza': 'Nature', 'Ecoturismo': 'Ecotourism',
+        'Fincas Cafeteras': 'Coffee Farms', 'Sostenible & Eco': 'Sustainable & Eco', 'Desierto': 'Desert',
+        'Romántico': 'Romantic', 'Descanso Profundo': 'Deep Rest', 'Cerca de ti': 'Near me',
+        'Recomendaciones para ti': 'Recommendations for you', 'Seleccionados especialmente según tus gustos': 'Specially selected based on your preferences',
+        'Ver detalles': 'See details', 'Mostrar Mapa': 'Show Map', 'Disponible Offline': 'Available Offline',
+        'noche': 'night', 'noches': 'nights', 'persona': 'person', 'personas': 'people', 'por persona': 'per person',
+        'Volver al inicio': 'Back to home', 'Pon tu espacio en StayHuila': 'List your space on StayHuila'
+    },
+    'pt': {
+        'Todos': 'Todos', 'Categorías': 'Categorias', 'Hospedajes': 'Hospedagens', 'Experiencias': 'Experiências',
+        'Finca': 'Fazenda', 'Cabaña': 'Cabana', 'Glamping': 'Glamping', 'Habitación privada': 'Quarto privado',
+        'Hotel boutique': 'Hotel boutique', 'Casa entera': 'Casa inteira', 'Aventura': 'Aventura',
+        'Cultural': 'Cultural', 'Gastronomía': 'Gastronomia', 'Naturaleza': 'Natureza', 'Ecoturismo': 'Ecoturismo',
+        'Fincas Cafeteras': 'Fazendas de Café', 'Sostenible & Eco': 'Sustentável & Eco', 'Desierto': 'Deserto',
+        'Romántico': 'Romântico', 'Descanso Profundo': 'Descanso Profundo', 'Cerca de ti': 'Perto de você',
+        'Recomendaciones para ti': 'Recomendações para você', 'Seleccionados especialmente según tus gustos': 'Selecionados com base nas suas preferências',
+        'Ver detalles': 'Ver detalhes', 'Mostrar Mapa': 'Mostrar Mapa', 'Disponible Offline': 'Disponível Offline',
+        'noche': 'noite', 'noches': 'noites', 'persona': 'pessoa', 'personas': 'pessoas', 'por persona': 'por pessoa',
+        'Volver al inicio': 'Voltar ao início', 'Pon tu espacio en StayHuila': 'Anuncie seu espaço no StayHuila'
+    },
+    'fr': {
+        'Todos': 'Tous', 'Categorías': 'Catégories', 'Hospedajes': 'Hébergements', 'Experiencias': 'Expériences',
+        'Finca': 'Domaine', 'Cabaña': 'Chalet', 'Glamping': 'Glamping', 'Habitación privada': 'Chambre privée',
+        'Hotel boutique': 'Hôtel boutique', 'Casa entera': 'Maison entière', 'Aventura': 'Aventure',
+        'Cultural': 'Culturel', 'Gastronomía': 'Gastronomie', 'Naturaleza': 'Nature', 'Ecoturismo': 'Écotourisme',
+        'Fincas Cafeteras': 'Domaines Caféiers', 'Sostenible & Eco': 'Durable & Éco', 'Desierto': 'Désert',
+        'Romántico': 'Romantique', 'Descanso Profundo': 'Repos Profond', 'Cerca de ti': 'Près de vous',
+        'Recomendaciones para ti': 'Recommandations pour vous', 'Seleccionados especialmente según tus gustos': 'Sélectionnés selon vos préférences',
+        'Ver detalles': 'Voir les détails', 'Mostrar Mapa': 'Afficher la Carte', 'Disponible Offline': 'Disponible Hors-Ligne',
+        'noche': 'nuit', 'noches': 'nuits', 'persona': 'personne', 'personas': 'personnes', 'por persona': 'par personne',
+        'Volver al inicio': 'Retour à l\'accueil', 'Pon tu espacio en StayHuila': 'Publiez votre logement'
+    },
+    'it': {
+        'Todos': 'Tutti', 'Categorías': 'Categorie', 'Hospedajes': 'Alloggi', 'Experiencias': 'Esperienze',
+        'Finca': 'Tenuta', 'Cabaña': 'Baita', 'Glamping': 'Glamping', 'Habitación privada': 'Stanza privata',
+        'Hotel boutique': 'Boutique hotel', 'Casa entera': 'Intera casa', 'Aventura': 'Avventura',
+        'Cultural': 'Culturale', 'Gastronomía': 'Gastonomia', 'Naturaleza': 'Natura', 'Ecoturismo': 'Ecoturismo',
+        'Fincas Cafeteras': 'Aziende del Caffè', 'Sostenible & Eco': 'Sostenibile & Eco', 'Desierto': 'Deserto',
+        'Romántico': 'Romantico', 'Descanso Profundo': 'Riposo Profondo', 'Cerca de ti': 'Vicino a te',
+        'Recomendaciones para ti': 'Consigliati per te', 'Seleccionados especialmente según tus gustos': 'Selezionati in base ai tuoi gusti',
+        'Ver detalles': 'Vedi dettagli', 'Mostrar Mapa': 'Mostra Mappa', 'Disponible Offline': 'Disponibile Offline',
+        'noche': 'notte', 'noches': 'notti', 'persona': 'persona', 'personas': 'persone', 'por persona': 'a persona',
+        'Volver al inicio': 'Torna alla home', 'Pon tu espacio en StayHuila': 'Pubblica il tuo spazio'
+    }
+}
+
+TRANSLATION_CACHE = {}
+
+@app.route('/api/translate', methods=['POST'])
+def api_translate():
+    data = request.get_json(silent=True) or {}
+    texts = data.get('texts', [])
+    target_lang = data.get('lang', 'en')
+
+    if not texts or target_lang not in ('en', 'pt', 'fr', 'it'):
+        return jsonify({'success': True, 'translations': texts})
+
+    dict_static = STATIC_TRANSLATIONS.get(target_lang, {})
+    results = []
+
+    for text in texts:
+        if not text or not isinstance(text, str):
+            results.append(text)
+            continue
+
+        clean_text = text.strip()
+        if not clean_text:
+            results.append(text)
+            continue
+
+        # 1. Buscar en diccionario estático prioritario
+        if clean_text in dict_static:
+            results.append(dict_static[clean_text])
+            continue
+
+        # 2. Buscar en caché RAM
+        cache_key = (clean_text, target_lang)
+        if cache_key in TRANSLATION_CACHE:
+            results.append(TRANSLATION_CACHE[cache_key])
+            continue
+
+        # 3. Traducción dinámica mediante MyMemory API
+        translated = None
+        try:
+            url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(clean_text)}&langpair=es|{target_lang}"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (StayHuila i18n)'})
+            with urllib.request.urlopen(req, timeout=1.8) as resp:
+                res_json = json.loads(resp.read().decode('utf-8'))
+                if res_json and 'responseData' in res_json and res_json['responseData'].get('translatedText'):
+                    trans_val = res_json['responseData']['translatedText']
+                    if trans_val and trans_val != clean_text and 'MYMEMORY WARNING' not in trans_val:
+                        translated = trans_val
+        except Exception:
+            translated = None
+
+        if translated:
+            TRANSLATION_CACHE[cache_key] = translated
+            results.append(translated)
+        else:
+            # Fallback por reemplazo de subcadenas conocidas
+            out_text = clean_text
+            for k, v in dict_static.items():
+                if k.lower() in out_text.lower():
+                    out_text = re.sub(re.escape(k), v, out_text, flags=re.IGNORECASE)
+            TRANSLATION_CACHE[cache_key] = out_text
+            results.append(out_text)
+
+    return jsonify({'success': True, 'translations': results})
+
 @app.route('/api/comunidad/tendencias')
 def api_comunidad_tendencias():
     c = db()
