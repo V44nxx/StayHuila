@@ -115,7 +115,7 @@ MAIL_FROM     = MAIL_USERNAME
 # ── CONFIGURACIÓN NEQUI NEGOCIOS ───────────────────────────────────────────────
 NEQUI_NEGOCIO_CELULAR = os.environ.get('NEQUI_NEGOCIO_CELULAR', '3112345678')
 NEQUI_NEGOCIO_NOMBRE = os.environ.get('NEQUI_NEGOCIO_NOMBRE', 'StayHuila Reservas')
-NEQUI_NEGOCIO_LINK = os.environ.get('NEQUI_NEGOCIO_LINK', 'https://www.nequi.com.co')
+NEQUI_NEGOCIO_LINK = os.environ.get('NEQUI_NEGOCIO_LINK', 'https://checkout.nequi.wompi.co/l/VPOS_mtLSaM')
 
 # Inicializar servicio de pagos
 payment_provider = NequiProvider(NEQUI_NEGOCIO_CELULAR, NEQUI_NEGOCIO_NOMBRE, NEQUI_NEGOCIO_LINK)
@@ -1018,8 +1018,8 @@ def pagar_reserva(reserva_id):
 
             c.commit()
 
-            # Redirigir a la pasarela integrada Nequi Negocios
-            return redirect(url_for('pago_nequi_gateway', reserva_id=reserva_id))
+            # Redirigir a la pasarela de Nequi Negocios (Wompi VPOS)
+            return redirect(url_for('pago_transferir_gateway', reserva_id=reserva_id))
 
     except Exception as e:
         c.rollback()
@@ -2479,8 +2479,8 @@ def reservar():
 
                     c.commit()
                     
-                    # Redirigir a la pasarela integrada Nequi Negocios
-                    return redirect(url_for('pago_nequi_gateway', reserva_id=rid))
+                    # Redirigir a la pasarela de Nequi Negocios (Wompi VPOS)
+                    return redirect(url_for('pago_transferir_gateway', reserva_id=rid))
                     
                 except Exception as e:
                     app.logger.error(f"Error al generar pago Nequi: {str(e)}")
