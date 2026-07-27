@@ -55,9 +55,8 @@
     <header class="navbar navbar-hospedajes" id="navbar">
         <div class="logo" onclick="window.location.href='/'" style="cursor: pointer;">
             <!-- loading=eager: logo crítico, visible inmediatamente -->
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila Logo" class="logo-img"
-                 loading="eager" fetchpriority="high"
-                 onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="StayHuila" class="logo-img" loading="eager" fetchpriority="high"
+                onerror="this.src='/static/images/logo.png'">
             <span>StayHuila</span>
         </div>
                                 <nav class="nav-links">
