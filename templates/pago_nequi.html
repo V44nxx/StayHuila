@@ -148,23 +148,24 @@
             <!-- Estructura de pasos de pago real -->
             <div class="payment-steps" id="payment-steps-container">
                 
-                <!-- PASO 1: Realizar transferencia real -->
+                <!-- PASO 1: Realizar transferencia en Nequi -->
                 <div class="step-card">
                     <div class="step-badge">Paso 1</div>
-                    <h3 class="step-title">Realiza el pago real en Nequi</h3>
-                    <p class="step-desc">Escanea el código QR desde tu app Nequi de tu celular o presiona el botón para pagar directamente usando el enlace oficial de cobro de Nequi Negocios.</p>
+                    <h3 class="step-title">Transferencia Nequi</h3>
+                    <p class="step-desc">Abre tu aplicación de Nequi en tu celular y transfiere el monto exacto a la siguiente cuenta:</p>
                     
-                    <div class="qr-container-box">
-                        <div class="qr-card">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ negocio_link }}" 
-                                 alt="QR Nequi Negocios" class="qr-image">
+                    <div style="background: rgba(218, 41, 119, 0.12); border: 1px solid rgba(218, 41, 119, 0.3); border-radius: 14px; padding: 1.2rem; margin-bottom: 1rem; text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.3rem;">Número de Nequi</div>
+                        <div style="font-size: 1.6rem; font-weight: 900; color: #fff; letter-spacing: 0.05em; margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: center; gap: 0.6rem;">
+                            <span>{{ negocio_celular }}</span>
+                            <button type="button" onclick="navigator.clipboard.writeText('{{ negocio_celular }}'); this.innerText='Copiado ✓'; setTimeout(()=>this.innerText='Copiar', 2000)" style="background: var(--nequi-pink); color: #fff; border: none; padding: 0.3rem 0.7rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: 700;">
+                                Copiar
+                            </button>
                         </div>
-                        <p class="titular-text">Titular: <strong>{{ negocio_nombre }}</strong></p>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            Titular: <strong style="color: #fff;">{{ negocio_nombre }}</strong>
+                        </div>
                     </div>
-
-                    <a href="{{ negocio_link }}" target="_blank" class="nequi-btn-direct">
-                        <i class="ph ph-arrow-square-out"></i> Pagar con Enlace de Nequi
-                    </a>
                 </div>
 
                 <!-- PASO 2: Registrar comprobante -->
