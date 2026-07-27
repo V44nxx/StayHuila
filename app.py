@@ -2981,17 +2981,16 @@ def panel_anfitrion():
                     ORDER BY p.fecha_pago DESC LIMIT 20""", params)
                 pagos_recientes = cur.fetchall()
                 
-                # Ingresos totales históricos (no se pierden aunque se deshabilite publicación)
+                # Ingresos totales históricos (solo cobros aprobados de reservas confirmadas, check_in o completadas)
                 cur.execute(f"""
                     SELECT
-                        COALESCE(SUM(CASE WHEN p.external_status = 'approved' THEN p.monto ELSE 0 END), 0) AS ingresos_totales,
-                        COALESCE(SUM(CASE WHEN p.external_status = 'approved'
+                        COALESCE(SUM(CASE WHEN (p.external_status = 'approved' OR p.estado = 'approved' OR r.estado_pago = 'pagado') AND r.estado IN ('confirmada', 'check_in', 'completada') THEN p.monto ELSE 0 END), 0) AS ingresos_totales,
+                        COALESCE(SUM(CASE WHEN (p.external_status = 'approved' OR p.estado = 'approved' OR r.estado_pago = 'pagado') AND r.estado IN ('confirmada', 'check_in', 'completada')
                             AND MONTH(p.fecha_pago) = MONTH(NOW())
                             AND YEAR(p.fecha_pago) = YEAR(NOW())
                             THEN p.monto ELSE 0 END), 0) AS ingresos_mes,
-                        COUNT(CASE WHEN p.external_status = 'approved' THEN 1 END) AS pagos_aprobados,
-                        COUNT(CASE WHEN (p.external_status = 'pending' OR p.estado = 'pending')
-                            AND r.estado = 'pendiente_pago' THEN 1 END) AS pagos_pendientes_count
+                        COUNT(CASE WHEN (p.external_status = 'approved' OR p.estado = 'approved' OR r.estado_pago = 'pagado') AND r.estado IN ('confirmada', 'check_in', 'completada') THEN 1 END) AS pagos_aprobados,
+                        COUNT(CASE WHEN r.estado = 'pendiente_pago' THEN 1 END) AS pagos_pendientes_count
                     FROM pagos p
                     JOIN reservas r ON p.reserva_id = r.id
                     WHERE ({where_clause})

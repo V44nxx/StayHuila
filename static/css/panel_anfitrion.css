@@ -571,3 +571,47 @@
                 padding: 0 0.75rem;
             }
         }
+
+/* ── TARJETAS Y TABLAS RESPONSIVAS PARA EL PANEL DE ANFITRIÓN EN MÓVILES ── */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+    }
+    .stat-card {
+        padding: 1rem 0.85rem !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.6rem !important;
+        border-radius: 14px !important;
+    }
+    .stat-info span {
+        font-size: 0.75rem !important;
+        line-height: 1.2;
+    }
+    .stat-info strong {
+        font-size: 1.05rem !important;
+    }
+    .responsive-table-container {
+        border-radius: 14px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .responsive-table th, .responsive-table td {
+        padding: 0.8rem 0.65rem !important;
+        font-size: 0.82rem !important;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    .btn-create {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
