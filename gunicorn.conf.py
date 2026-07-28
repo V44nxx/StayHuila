@@ -70,7 +70,7 @@ keepalive = 5           # HTTP Keep-Alive segundos
 graceful_timeout = 30   # Tiempo para finalizar peticiones activas al reiniciar
 
 # ── Memoria y estabilidad ─────────────────────────────────────────────────────
-preload_app = True      # Cargar app antes de fork (ahorra RAM)
+preload_app = False      # Cargar app antes de fork (ahorra RAM)
 max_requests = 1000     # Reiniciar worker cada 1000 requests (previene memory leaks)
 max_requests_jitter = 100  # Variación aleatoria para evitar reinicios simultáneos
 
