@@ -4309,7 +4309,7 @@ def api_verificar_reset():
 
 
 @app.route('/api/translate', methods=['POST'])
-def api_translate():
+def api_translate_ai():
     """
     Recibe una lista de textos en español y los traduce al idioma especificado
     utilizando Gemini 2.5 Flash.
