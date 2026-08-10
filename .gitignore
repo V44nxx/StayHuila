@@ -1,15 +1,24 @@
-# Archivos de Entorno y Claves Privadas
+# ── 1. ARCHIVOS DE ENTORNO Y CLAVES PRIVADAS ───────────────────────────────
 .env
 .env.*
+*.env
 !.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 
-# Caché de Python y Archivos Compilados
+# ── 2. CACHÉ DE PYTHON Y ARCHIVOS COMPILADOS ──────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Entornos Virtuales y Build
+# ── 3. ENTORNOS VIRTUALES Y PAQUETES ──────────────────────────────────────
 .venv/
 venv/
 ENV/
@@ -17,23 +26,33 @@ env/
 build/
 dist/
 *.egg-info/
+node_modules/
 
-# Configuraciones de IDE y Editores
+# ── 4. CONFIGURACIONES DE EDITORES E IDEs ─────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
+Thumbs.db
+*.bak
 
-# Archivos Subidos por Usuarios (Imágenes, comprobantes de pago)
+# ── 5. BASES DE DATOS LOCALES Y COPIAS DE SEGURIDAD ───────────────────────
+*.sqlite
+*.sqlite3
+*.db
+*.sql.bak
+
+# ── 6. ARCHIVOS SUBIDOS POR USUARIOS (IMÁGENES, COMPROBANTES DE PAGO) ─────
 static/uploads/*
 !static/uploads/.gitkeep
 !static/uploads/comprobantes/
 static/uploads/comprobantes/*
 !static/uploads/comprobantes/.gitkeep
 
-# Archivos de Pruebas y Scripts Temporales
+# ── 7. TEMPORALES Y LOGS ──────────────────────────────────────────────────
 scratch/
 *.log
 tmp/
 temp/
+

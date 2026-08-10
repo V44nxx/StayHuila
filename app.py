@@ -36,11 +36,16 @@ if API_KEY:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_stayhuila_default')
+
+if app.secret_key == 'dev_key_stayhuila_default':
+    print("[SEGURIDAD ADVERTENCIA] Estás utilizando la SECRET_KEY por defecto ('dev_key_stayhuila_default'). En entornos de producción, define una SECRET_KEY segura en tu archivo .env.")
+
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar'
 login_manager.login_message_category = 'info'
+
 
 # ── COMPRESIÓN gzip / brotli ──────────────────────────────────────────────────
 # Flask-Compress comprime automáticamente respuestas HTML, CSS, JS y JSON.

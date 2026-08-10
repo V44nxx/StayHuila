@@ -1,0 +1,30 @@
+# ── Configuración de Gitleaks para StayHuila ───────────────────────────────
+# Herramienta para escaneo de secretos y prevención de fuga de credenciales en Git
+
+title = "StayHuila Security Rules"
+
+[allowlist]
+description = "Archivos globales permitidos"
+files = [
+    '''\.env\.example$''',
+    '''database/stayhuila\.sql$''',
+    '''requirements\.txt$'''
+]
+
+[[rules]]
+id = "generic-api-key"
+description = "Detectar posibles API keys hardcodeadas"
+regex = '''(?i)(api[_-]?key|secret[_-]?key|access[_-]?token)\s*=\s*['"][A-Za-z0-9_\-]{16,}['"]'''
+tags = ["key", "generic", "secret"]
+
+[[rules]]
+id = "google-gemini-key"
+description = "Detectar API keys de Google Gemini"
+regex = '''AIzaSy[A-Za-z0-9_\-]{33}'''
+tags = ["gemini", "google", "key"]
+
+[[rules]]
+id = "private-key"
+description = "Detectar llaves privadas RSA / SSH"
+regex = '''-----BEGIN (RSA|OPENSSH|EC|PGP) PRIVATE KEY-----'''
+tags = ["private-key", "crypto"]
