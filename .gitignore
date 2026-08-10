@@ -1,0 +1,39 @@
+# Archivos de Entorno y Claves Privadas
+.env
+.env.*
+!.env.example
+
+# Caché de Python y Archivos Compilados
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Entornos Virtuales y Build
+.venv/
+venv/
+ENV/
+env/
+build/
+dist/
+*.egg-info/
+
+# Configuraciones de IDE y Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Archivos Subidos por Usuarios (Imágenes, comprobantes de pago)
+static/uploads/*
+!static/uploads/.gitkeep
+!static/uploads/comprobantes/
+static/uploads/comprobantes/*
+!static/uploads/comprobantes/.gitkeep
+
+# Archivos de Pruebas y Scripts Temporales
+scratch/
+*.log
+tmp/
+temp/

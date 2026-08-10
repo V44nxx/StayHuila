@@ -29,12 +29,13 @@ import io
 import google.generativeai as genai
 from PIL import Image
 
-API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCmOKSELF5XKcU1wESXz130Y0Slh750j28")
-genai.configure(api_key=API_KEY)
+API_KEY = os.environ.get("GEMINI_API_KEY", "")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'stayhuila_secret_2024_xk9')
+app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_stayhuila_default')
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -100,8 +101,8 @@ def add_header(response):
 
 # ── CONFIGURACIÓN SMTP (Gmail) ────────────────────────────────────────────────
 # ↓ PON TU CORREO DE GMAIL Y TU APP PASSWORD AQUÍ ↓
-MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'murciacorredoremerson@gmail.com')   # Ejemplo: 'miCorreo@gmail.com'
-MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'rdvhjcbzixjmumfv')   # App Password de 16 caracteres (ver instrucciones abajo)
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
 # ─────────────────────────────────────────────────────────────────────────────
 # Cómo obtener el App Password de Gmail:
 #   1. Ve a myaccount.google.com → Seguridad → Verificación en 2 pasos (actívala)
@@ -247,8 +248,9 @@ def db():
 
 def _ensure_columns():
     """Auto-migra columnas opcionales y tablas nuevas (seguro ejecutar varias veces)."""
-    c = db()
+    c = None
     try:
+        c = db()
         with c.cursor() as cur:
             # ── Crédito de descuento en usuarios ─────────────────────────────
             cur.execute("SHOW COLUMNS FROM usuarios LIKE 'credito_descuento'")
@@ -423,11 +425,16 @@ def _ensure_columns():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
 
-        c.commit()
+        if c:
+            c.commit()
     except Exception as e:
         print(f"Error en _ensure_columns: {e}")
     finally:
-        c.close()
+        if c:
+            try:
+                c.close()
+            except Exception:
+                pass
 _ensure_columns()
 
 def serialize(obj):
@@ -1127,8 +1134,8 @@ def api_pago_ocr_confirmar(reserva_id):
         with open(filepath, 'wb') as f:
             f.write(file_bytes)
 
-        # 3. Llamar a Gemini 2.5 Flash con la imagen para OCR
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # 3. Llamar a Gemini 1.5 Flash con la imagen para OCR
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = (
             "Analiza esta imagen que es un comprobante de pago (Nequi, Daviplata, Wompi, etc.). "
@@ -4334,7 +4341,7 @@ def api_translate_ai():
     target_lang = lang_names.get(lang, 'Inglés')
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = (
             f"Eres un sistema de traducción automático profesional para la plataforma turística StayHuila.\n"
