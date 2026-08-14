@@ -1,6 +1,5 @@
-/* ── index.js — Buscador Unificado con Recomendaciones en Tiempo Real | StayHuila ── */
+/* ── index.js — Buscador Unificado con Recomendaciones y Navegación Enter | StayHuila ── */
 
-/* ── Cerrar dropdown al hacer clic fuera ── */
 document.addEventListener('click', function (event) {
     var dropdown = document.getElementById('user-dropdown');
     if (dropdown && dropdown.classList.contains('show')) {
@@ -18,23 +17,34 @@ function formatMoney(num) {
     return Math.round(num).toLocaleString('es-CO');
 }
 
-/* ── Guardar el HTML original de la cuadrícula ── */
 let _initialGridHTML = null;
 let _cachedRecommendations = null;
+let _currentSuggestionsData = [];
+let _selectedIndex = -1;
 
-/* ── Función para reiniciar búsqueda a la vista completa ── */
+/* ── Desplazar suavemente a los resultados ── */
+function scrollToResults() {
+    setTimeout(() => {
+        const target = document.querySelector('.listings-wrapper') || document.getElementById('hospedajes');
+        if (target) {
+            const yOffset = -80;
+            const y = target.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+    }, 100);
+}
+
+/* ── Reiniciar búsqueda a la vista original ── */
 window.resetSearch = function () {
     const qInput = document.getElementById('sh-q');
     const sugBox = document.getElementById('search-suggestions');
     if (qInput) qInput.value = '';
     if (sugBox) sugBox.style.display = 'none';
 
-    // Desmarcar categorías activas
     document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
     const allCatBtn = document.querySelector('.category-item[data-cat=""]');
     if (allCatBtn) allCatBtn.classList.add('active');
 
-    // Restaurar el HTML original si existe
     const container = document.getElementById('hospedajes');
     if (container && _initialGridHTML) {
         container.innerHTML = _initialGridHTML;
@@ -113,14 +123,18 @@ function renderListings(items, queryStr) {
     container.innerHTML = html;
 }
 
-/* ── Fetch a API Buscar ── */
-function fetchSearchResults(queryStr) {
+/* ── Fetch API Buscar ── */
+function fetchSearchResults(queryStr, autoScroll = false) {
     const q = (queryStr || '').trim();
+    const sugBox = document.getElementById('search-suggestions');
+    if (sugBox) sugBox.style.display = 'none';
+
     if (!q) {
         if (_initialGridHTML) {
             const container = document.getElementById('hospedajes');
             if (container) container.innerHTML = _initialGridHTML;
         }
+        if (autoScroll) scrollToResults();
         return;
     }
 
@@ -128,6 +142,7 @@ function fetchSearchResults(queryStr) {
         .then(res => res.json())
         .then(data => {
             renderListings(data, q);
+            if (autoScroll) scrollToResults();
         })
         .catch(err => {
             console.error('Error en búsqueda:', err);
@@ -138,6 +153,9 @@ function fetchSearchResults(queryStr) {
 function renderSuggestions(items, queryStr, isInitial = false) {
     const sugBox = document.getElementById('search-suggestions');
     if (!sugBox) return;
+
+    _currentSuggestionsData = items || [];
+    _selectedIndex = -1;
 
     if (!items || items.length === 0) {
         if (queryStr) {
@@ -158,17 +176,22 @@ function renderSuggestions(items, queryStr, isInitial = false) {
         `<div style="padding: 0.6rem 1rem 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; display:flex; align-items:center; gap:0.4rem;">
             <i class="ph-fill ph-sparkle" style="color:#F59E0B;"></i> Recomendaciones destacadas
          </div>` :
-        `<div style="padding: 0.6rem 1rem 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; display:flex; align-items:center; gap:0.4rem;">
-            <i class="ph ph-magnifying-glass"></i> Coincidencias encontradas (${items.length})
+        `<div style="padding: 0.6rem 1rem 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; display:flex; align-items:center; justify-between; gap:0.4rem;">
+            <span><i class="ph ph-magnifying-glass"></i> Coincidencias (${items.length})</span>
+            <span style="font-size:0.7rem; font-weight:normal; text-transform:none;">Presiona Enter ↵</span>
          </div>`;
 
     sugBox.innerHTML = headerHTML;
 
-    items.slice(0, 6).forEach(function (item) {
+    items.slice(0, 7).forEach(function (item, idx) {
         const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.dataset.index = idx;
         div.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:all 0.15s;';
-        div.onmouseenter = function () { this.style.background = '#F8FAFC'; };
-        div.onmouseleave = function () { this.style.background = 'white'; };
+        
+        div.onmouseenter = function () { 
+            highlightSuggestion(idx); 
+        };
         
         const isHosp = item.tipo === 'hospedaje';
         const targetUrl = isHosp ? `/hospedaje/${item.id}` : `/experiencia/${item.id}`;
@@ -202,6 +225,22 @@ function renderSuggestions(items, queryStr, isInitial = false) {
     sugBox.style.display = 'block';
 }
 
+function highlightSuggestion(index) {
+    const sugBox = document.getElementById('search-suggestions');
+    if (!sugBox) return;
+    const items = sugBox.querySelectorAll('.suggestion-item');
+    items.forEach((el, i) => {
+        if (i === index) {
+            el.style.background = '#F8FAFC';
+            el.style.borderLeft = '3px solid var(--primary)';
+        } else {
+            el.style.background = 'white';
+            el.style.borderLeft = 'none';
+        }
+    });
+    _selectedIndex = index;
+}
+
 /* ── Cargar Recomendaciones Destacadas Iniciales ── */
 function loadInitialRecommendations() {
     if (_cachedRecommendations) {
@@ -232,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let searchTimeout = null;
 
     if (qInput) {
-        // Mostrar recomendaciones iniciales al hacer FOCUS o CLICK en el buscador
+        // Mostrar recomendaciones al enfocar o hacer clic
         qInput.addEventListener('focus', function () {
             const val = this.value.trim();
             if (!val) {
@@ -271,12 +310,37 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 180);
         });
 
+        // Manejo de Tecla ENTER y Navegación con Flechas
         qInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
+            const suggestions = _currentSuggestionsData || [];
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (suggestions.length > 0) {
+                    const nextIdx = (_selectedIndex + 1) % Math.min(suggestions.length, 7);
+                    highlightSuggestion(nextIdx);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (suggestions.length > 0) {
+                    const prevIdx = (_selectedIndex - 1 + Math.min(suggestions.length, 7)) % Math.min(suggestions.length, 7);
+                    highlightSuggestion(prevIdx);
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                // Si el usuario seleccionó una recomendación con las flechas o click:
+                if (_selectedIndex >= 0 && suggestions[_selectedIndex]) {
+                    const item = suggestions[_selectedIndex];
+                    const targetUrl = item.tipo === 'hospedaje' ? `/hospedaje/${item.id}` : `/experiencia/${item.id}`;
+                    window.location.href = targetUrl;
+                    return;
+                }
+
+                // Al presionar Enter sin seleccionar item específico: realiza búsqueda y navega suavemente a los resultados
                 if (sugBox) sugBox.style.display = 'none';
-                fetchSearchResults(this.value.trim());
-            }
-            if (e.key === 'Escape') {
+                fetchSearchResults(this.value.trim(), true);
+            } else if (e.key === 'Escape') {
                 if (sugBox) sugBox.style.display = 'none';
             }
         });
@@ -293,7 +357,7 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.addEventListener('click', function () {
             if (qInput) {
                 if (sugBox) sugBox.style.display = 'none';
-                fetchSearchResults(qInput.value.trim());
+                fetchSearchResults(qInput.value.trim(), true);
             }
         });
     }
@@ -308,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (qInput) qInput.value = cat;
 
             if (cat) {
-                fetchSearchResults(cat);
+                fetchSearchResults(cat, true);
             } else {
                 resetSearch();
             }
