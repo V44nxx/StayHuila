@@ -3660,7 +3660,7 @@ def disponibilidad(id):
     finally:
         c.close()
 
-# ── API BUSCAR UNIFICADO ──────────────────────────────────────
+# ── API BUSCAR UNIFICADO ESTILO AMAZON ─────────────────────────
 @app.route('/api/buscar')
 def api_buscar():
     q = request.args.get('q', '').strip()
@@ -3669,14 +3669,17 @@ def api_buscar():
     try:
         with c.cursor() as cur:
             resultados = []
+            sugerencias_texto = []
+            vistas = set()
             term = f"%{q}%"
             
+            # Hospedajes
             if tipo is None or tipo == 'hospedaje':
                 cur.execute("""
                     SELECT DISTINCT h.id, h.nombre, h.municipio, h.precio_noche as precio, 'hospedaje' as tipo,
                            COALESCE(h.descripcion_corta, h.tipo) as descripcion_corta,
                            h.calificacion, h.total_resenas, h.es_eco, h.descuento_porcentaje,
-                           i.url as imagen, c.nombre as categoria_nombre
+                           i.url as imagen, c.nombre as categoria_nombre, h.tipo as sub_tipo
                     FROM hospedajes h
                     LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
                     LEFT JOIN categorias c ON h.categoria_id = c.id
@@ -3684,27 +3687,53 @@ def api_buscar():
                     WHERE (h.nombre LIKE %s OR h.municipio LIKE %s OR h.descripcion LIKE %s OR h.descripcion_corta LIKE %s OR h.tipo LIKE %s OR c.nombre LIKE %s OR hs.servicio LIKE %s)
                       AND h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
                     ORDER BY h.destacado DESC, h.calificacion DESC
-                    LIMIT 30
+                    LIMIT 20
                 """, (term, term, term, term, term, term, term))
-                resultados.extend(cur.fetchall())
-                
+                h_rows = cur.fetchall()
+                for r in h_rows:
+                    resultados.append(r)
+                    name = r['nombre']
+                    if name and name not in vistas:
+                        vistas.add(name)
+                        sugerencias_texto.append({
+                            'texto': name,
+                            'tipo': 'hospedaje',
+                            'municipio': r['municipio'],
+                            'id': r['id']
+                        })
+
+            # Experiencias
             if tipo is None or tipo == 'experiencia':
                 cur.execute("""
                     SELECT DISTINCT e.id, e.nombre, e.municipio, e.precio_persona as precio, 'experiencia' as tipo,
                            COALESCE(e.descripcion_corta, e.tipo) as descripcion_corta,
                            e.calificacion, e.total_resenas, 0 as es_eco, 0 as descuento_porcentaje,
-                           i.url as imagen, c.nombre as categoria_nombre
+                           i.url as imagen, c.nombre as categoria_nombre, e.tipo as sub_tipo
                     FROM experiencias e
                     LEFT JOIN experiencia_imagenes i ON e.id = e.experiencia_id AND i.es_portada = 1
                     LEFT JOIN categorias c ON e.categoria_id = c.id
                     WHERE (e.nombre LIKE %s OR e.municipio LIKE %s OR e.descripcion LIKE %s OR e.descripcion_corta LIKE %s OR e.tipo LIKE %s OR e.que_incluye LIKE %s OR e.que_traer LIKE %s OR c.nombre LIKE %s)
                       AND e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
                     ORDER BY e.destacado DESC, e.calificacion DESC
-                    LIMIT 30
+                    LIMIT 20
                 """, (term, term, term, term, term, term, term, term))
-                resultados.extend(cur.fetchall())
-                
-            return jsonify(serialize(resultados))
+                e_rows = cur.fetchall()
+                for r in e_rows:
+                    resultados.append(r)
+                    name = r['nombre']
+                    if name and name not in vistas:
+                        vistas.add(name)
+                        sugerencias_texto.append({
+                            'texto': name,
+                            'tipo': 'experiencia',
+                            'municipio': r['municipio'],
+                            'id': r['id']
+                        })
+
+            return jsonify({
+                'publicaciones': serialize(resultados),
+                'sugerencias': sugerencias_texto[:10]
+            })
     finally:
         c.close()
 

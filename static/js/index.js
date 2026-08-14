@@ -1,4 +1,4 @@
-/* ── index.js — Buscador E-Commerce Inteligente | StayHuila ── */
+/* ── index.js — Autocompletado y Sugerencias de Texto Estilo Amazon | StayHuila ── */
 
 document.addEventListener('click', function (event) {
     var dropdown = document.getElementById('user-dropdown');
@@ -20,9 +20,10 @@ function formatMoney(num) {
 let _initialGridHTML = null;
 let _cachedRecommendations = null;
 let _currentSuggestionsData = [];
+let _currentListingsData = [];
 let _selectedIndex = -1;
 
-/* ── Palabras clave de Experiencias ── */
+/* ── Palabras clave asociadas a Experiencias ── */
 const experienceKeywords = [
     'show', 'experiencia', 'tour', 'tours', 'actividad', 'astronomia', 'astronomía',
     'rafting', 'catacion', 'catación', 'cafe', 'café', 'senderismo', 'cabalgata',
@@ -32,7 +33,6 @@ const experienceKeywords = [
     'kayak', 'canotaje', 'espeleologia', 'espeleología', 'tatacoa tour'
 ];
 
-/* ── Determinar destino de búsqueda al presionar ENTER o buscar ── */
 function getSearchDestination(query, items) {
     const qLower = (query || '').toLowerCase().trim();
     if (!qLower) return '/hospedajes';
@@ -53,7 +53,7 @@ function getSearchDestination(query, items) {
     return '/hospedajes?q=' + encodeURIComponent(query);
 }
 
-/* ── Reiniciar búsqueda a la vista original ── */
+/* ── Reiniciar búsqueda ── */
 window.resetSearch = function () {
     const qInput = document.getElementById('sh-q');
     const sugBox = document.getElementById('search-suggestions');
@@ -72,7 +72,7 @@ window.resetSearch = function () {
     }
 };
 
-/* ── Renderizado de Resultados en la Cuadrícula Principal ── */
+/* ── Renderizado de Cuadrícula Principal ── */
 function renderListings(items, queryStr) {
     const container = document.getElementById('hospedajes');
     if (!container) return;
@@ -159,8 +159,8 @@ function fetchSearchResults(queryStr) {
     fetch('/api/buscar?q=' + encodeURIComponent(q))
         .then(res => res.json())
         .then(data => {
-            // Redirigir a la página de Experiencias o Hospedajes correspondiente
-            const dest = getSearchDestination(q, data);
+            const listings = data.publicaciones || [];
+            const dest = getSearchDestination(q, listings);
             window.location.href = dest;
         })
         .catch(err => {
@@ -169,89 +169,76 @@ function fetchSearchResults(queryStr) {
         });
 }
 
-/* ── Renderizado Estilo E-Commerce de Recomendaciones ── */
-function renderSuggestions(items, queryStr, isInitial = false) {
+/* ── Highlight de coincidencias de texto ── */
+function highlightMatch(text, query) {
+    if (!query) return escapeHtml(text);
+    const escapedText = escapeHtml(text);
+    const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    return escapedText.replace(regex, '<strong>$1</strong>');
+}
+
+/* ── Renderizado Estilo Amazon de Sugerencias de Texto ── */
+function renderSuggestions(sugerencias, queryStr, publicaciones = []) {
     const sugBox = document.getElementById('search-suggestions');
     if (!sugBox) return;
 
-    _currentSuggestionsData = items || [];
+    _currentSuggestionsData = sugerencias || [];
+    _currentListingsData = publicaciones || [];
     _selectedIndex = -1;
 
     let html = '';
 
     if (queryStr && queryStr.trim()) {
         const qEscaped = escapeHtml(queryStr.trim());
-        const qEncoded = encodeURIComponent(queryStr.trim());
+
+        // Fila 1: Opción rápida directa del término buscado (Ej. 🔍 show en Experiencias)
+        const isExpRel = experienceKeywords.some(kw => queryStr.toLowerCase().includes(kw));
+        const quickTag = isExpRel ? 'Experiencias' : 'Hospedajes';
+        const quickUrl = isExpRel ? `/experiencias?q=${encodeURIComponent(queryStr.trim())}` : `/hospedajes?q=${encodeURIComponent(queryStr.trim())}`;
+        const quickColor = isExpRel ? '#D97706' : '#2C4A3B';
 
         html += `
-            <div style="padding: 0.5rem 1rem 0.3rem; font-size: 0.72rem; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0;">
-                🔍 RECOMENDACIONES DE BÚSQUEDA
-            </div>
-            
-            <div class="sug-action-item" onclick="window.location.href='/experiencias?q=${qEncoded}'" 
-                 style="display:flex;align-items:center;gap:0.75rem;padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:background 0.15s;"
-                 onmouseenter="this.style.background='#FEF3C7'" onmouseleave="this.style.background='white'">
-                <div style="width:32px;height:32px;border-radius:50%;background:#FEF3C7;color:#D97706;display:flex;align-items:center;justify-content:center;">
-                    <i class="ph-fill ph-shooting-star"></i>
+            <div class="suggestion-item direct-action" data-url="${quickUrl}" onclick="window.location.href='${quickUrl}'"
+                 style="display:flex;align-items:center;gap:0.75rem;padding:0.8rem 1.1rem;cursor:pointer;border-bottom:1px solid #E2E8F0;background:#F8FAFC;transition:background 0.15s;"
+                 onmouseenter="highlightSuggestion(0)" onmouseleave="this.style.background='#F8FAFC'">
+                <i class="ph ph-magnifying-glass" style="font-size:1.15rem;color:${quickColor};"></i>
+                <div style="flex:1;font-size:0.92rem;color:#1E293B;">
+                    <strong>${qEscaped}</strong> <span style="font-size:0.82rem;color:#64748B;">en ${quickTag}</span>
                 </div>
-                <div style="flex:1;">
-                    <span style="font-size:0.88rem;color:#1E293B;">Buscar "<strong>${qEscaped}</strong>" en <strong>Experiencias</strong></span>
-                </div>
-                <i class="ph ph-arrow-right" style="color:#D97706;"></i>
-            </div>
-
-            <div class="sug-action-item" onclick="window.location.href='/hospedajes?q=${qEncoded}'" 
-                 style="display:flex;align-items:center;gap:0.75rem;padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:background 0.15s;"
-                 onmouseenter="this.style.background='#E8F5E9'" onmouseleave="this.style.background='white'">
-                <div style="width:32px;height:32px;border-radius:50%;background:#E8F5E9;color:#2C4A3B;display:flex;align-items:center;justify-content:center;">
-                    <i class="ph-fill ph-house-line"></i>
-                </div>
-                <div style="flex:1;">
-                    <span style="font-size:0.88rem;color:#1E293B;">Buscar "<strong>${qEscaped}</strong>" en <strong>Hospedajes</strong></span>
-                </div>
-                <i class="ph ph-arrow-right" style="color:#2C4A3B;"></i>
+                <i class="ph ph-arrow-up-left" style="color:#94A3B8;font-size:1rem;"></i>
             </div>
         `;
     }
 
-    if (items && items.length > 0) {
-        html += `
-            <div style="padding: 0.5rem 1rem 0.3rem; font-size: 0.72rem; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; margin-top:0.2rem;">
-                ✨ PUBLICACIONES RELACIONADAS (${items.length})
-            </div>
-        `;
-
-        items.slice(0, 6).forEach(function (item, idx) {
-            const isHosp = item.tipo === 'hospedaje';
-            const targetUrl = isHosp ? `/hospedaje/${item.id}` : `/experiencia/${item.id}`;
+    if (sugerencias && sugerencias.length > 0) {
+        sugerencias.forEach(function (sug, idx) {
+            const actualIdx = (queryStr && queryStr.trim()) ? idx + 1 : idx;
+            const isHosp = sug.tipo === 'hospedaje';
+            const targetUrl = isHosp ? `/hospedaje/${sug.id}` : `/experiencia/${sug.id}`;
             const badgeTxt = isHosp ? 'Hospedaje' : 'Experiencia';
             const badgeColor = isHosp ? '#2C4A3B' : '#D97706';
             const badgeBg = isHosp ? '#E8F5E9' : '#FEF3C7';
-            const imgUrl = item.imagen || (isHosp ? 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=80' : 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=80');
 
             html += `
-                <div class="suggestion-item" data-index="${idx}" data-url="${targetUrl}"
+                <div class="suggestion-item" data-index="${actualIdx}" data-url="${targetUrl}"
                      onclick="window.location.href='${targetUrl}'"
-                     style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:all 0.15s;background:white;"
-                     onmouseenter="highlightSuggestion(${idx})" onmouseleave="this.style.background='white'">
-                    <img src="${imgUrl}" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 5px rgba(0,0,0,0.1);">
-                    <div style="flex:1;min-width:0;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-                            <strong style="font-size:0.9rem;color:#1E293B;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.nombre)}</strong>
-                            <span style="font-size:0.7rem;font-weight:700;color:${badgeColor};background:${badgeBg};padding:2px 8px;border-radius:12px;flex-shrink:0;">${badgeTxt}</span>
-                        </div>
-                        <div style="font-size:0.78rem;color:#64748B;display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
-                            <span><i class="ph ph-map-pin" style="font-size:0.75rem;"></i> ${escapeHtml(item.municipio)}</span>
-                            <strong style="color:var(--primary);font-size:0.82rem;">$${formatMoney(item.precio)} COP</strong>
-                        </div>
+                     style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.1rem;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:all 0.15s;background:white;"
+                     onmouseenter="highlightSuggestion(${actualIdx})" onmouseleave="this.style.background='white'">
+                    <i class="ph ph-magnifying-glass" style="font-size:1.1rem;color:#64748B;flex-shrink:0;"></i>
+                    <div style="flex:1;min-width:0;font-size:0.92rem;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${highlightMatch(sug.texto, queryStr)}
                     </div>
+                    <span style="font-size:0.72rem;font-weight:700;color:${badgeColor};background:${badgeBg};padding:2px 9px;border-radius:12px;flex-shrink:0;">
+                        ${badgeTxt}
+                    </span>
                 </div>
             `;
         });
     } else if (queryStr && queryStr.trim()) {
         html += `
-            <div style="padding: 1rem; text-align: center; color: #64748B; font-size: 0.88rem;">
-                Sin publicaciones directas para "${escapeHtml(queryStr)}"
+            <div style="padding: 1.1rem; text-align: center; color: #64748B; font-size: 0.88rem;">
+                Sin recomendaciones exactas para "<strong>${escapeHtml(queryStr)}</strong>"
             </div>
         `;
     }
@@ -266,10 +253,10 @@ function highlightSuggestion(index) {
     const items = sugBox.querySelectorAll('.suggestion-item');
     items.forEach((el, i) => {
         if (i === index) {
-            el.style.background = '#F8FAFC';
+            el.style.background = '#F1F5F9';
             el.style.borderLeft = '3px solid var(--primary)';
         } else {
-            el.style.background = 'white';
+            el.style.background = el.classList.contains('direct-action') ? '#F8FAFC' : 'white';
             el.style.borderLeft = 'none';
         }
     });
@@ -279,7 +266,7 @@ function highlightSuggestion(index) {
 /* ── Cargar Recomendaciones Destacadas Iniciales ── */
 function loadInitialRecommendations() {
     if (_cachedRecommendations) {
-        renderSuggestions(_cachedRecommendations, '', true);
+        renderSuggestions(_cachedRecommendations.sugerencias, '', _cachedRecommendations.publicaciones);
         return;
     }
 
@@ -287,7 +274,7 @@ function loadInitialRecommendations() {
         .then(res => res.json())
         .then(data => {
             _cachedRecommendations = data;
-            renderSuggestions(data, '', true);
+            renderSuggestions(data.sugerencias || [], '', data.publicaciones || []);
         })
         .catch(err => console.error(err));
 }
@@ -322,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // RECOMENDACIONES EN TIEMPO REAL AL ESCRIBIR
+        // AUTOCOMPLETADO Y RECOMENDACIONES EN TIEMPO REAL AL ESCRIBIR
         qInput.addEventListener('input', function () {
             clearTimeout(searchTimeout);
             const val = this.value.trim();
@@ -337,43 +324,46 @@ document.addEventListener('DOMContentLoaded', function () {
                 fetch('/api/buscar?q=' + encodeURIComponent(val))
                     .then(res => res.json())
                     .then(data => {
-                        renderSuggestions(data, val, false);
-                        renderListings(data, val);
+                        const sug = data.sugerencias || [];
+                        const pubs = data.publicaciones || [];
+                        renderSuggestions(sug, val, pubs);
+                        renderListings(pubs, val);
                     })
                     .catch(err => console.error(err));
-            }, 100);
+            }, 80);
         });
 
-        // MANEJO DE TECLA ENTER Y NAVEGACIÓN
+        // MANEJO DE ENTER Y NAVEGACIÓN TECLADO ESTILO AMAZON
         qInput.addEventListener('keydown', function (e) {
-            const suggestions = _currentSuggestionsData || [];
+            const items = sugBox ? sugBox.querySelectorAll('.suggestion-item') : [];
 
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                if (suggestions.length > 0) {
-                    const nextIdx = (_selectedIndex + 1) % Math.min(suggestions.length, 6);
+                if (items.length > 0) {
+                    const nextIdx = (_selectedIndex + 1) % items.length;
                     highlightSuggestion(nextIdx);
                 }
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                if (suggestions.length > 0) {
-                    const prevIdx = (_selectedIndex - 1 + Math.min(suggestions.length, 6)) % Math.min(suggestions.length, 6);
+                if (items.length > 0) {
+                    const prevIdx = (_selectedIndex - 1 + items.length) % items.length;
                     highlightSuggestion(prevIdx);
                 }
             } else if (e.key === 'Enter') {
                 e.preventDefault();
 
-                // Si se seleccionó una publicación de la lista con las flechas:
-                if (_selectedIndex >= 0 && suggestions[_selectedIndex]) {
-                    const item = suggestions[_selectedIndex];
-                    const targetUrl = item.tipo === 'hospedaje' ? `/hospedaje/${item.id}` : `/experiencia/${item.id}`;
-                    window.location.href = targetUrl;
-                    return;
+                // Si se seleccionó una sugerencia de la lista con las flechas:
+                if (_selectedIndex >= 0 && items[_selectedIndex]) {
+                    const targetUrl = items[_selectedIndex].dataset.url;
+                    if (targetUrl) {
+                        window.location.href = targetUrl;
+                        return;
+                    }
                 }
 
-                // Al presionar Enter directo: redirigir a la página de Experiencias o Hospedajes según la relación de la búsqueda (ej. "show" -> /experiencias?q=show)
+                // Al presionar Enter directo: redirigir a la página de Experiencias u Hospedajes según la relación (ej. "show" -> /experiencias?q=show)
                 const queryVal = this.value.trim();
-                const destUrl = getSearchDestination(queryVal, suggestions);
+                const destUrl = getSearchDestination(queryVal, _currentListingsData);
                 window.location.href = destUrl;
             } else if (e.key === 'Escape') {
                 if (sugBox) sugBox.style.display = 'none';
@@ -391,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.addEventListener('click', function () {
             if (qInput) {
                 const queryVal = qInput.value.trim();
-                const destUrl = getSearchDestination(queryVal, _currentSuggestionsData);
+                const destUrl = getSearchDestination(queryVal, _currentListingsData);
                 window.location.href = destUrl;
             }
         });
