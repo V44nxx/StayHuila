@@ -44,10 +44,9 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Inicia sesión para continuar'
-login_manager.login_message_category = 'info'
+# Garantizar estructura de carpetas para imágenes subidas
+os.makedirs(os.path.join(app.root_path, 'static', 'uploads', 'comprobantes'), exist_ok=True)
 
-
-# ── COMPRESIÓN gzip / brotli ──────────────────────────────────────────────────
 # Flask-Compress comprime automáticamente respuestas HTML, CSS, JS y JSON.
 # El navegador envía 'Accept-Encoding: br, gzip' y Flask-Compress elige el mejor.
 # Brotli (br) ofrece 15-25% mejor compresión que gzip para texto.

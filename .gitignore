@@ -44,9 +44,10 @@ Thumbs.db
 *.sql.bak
 
 # ── 6. ARCHIVOS SUBIDOS POR USUARIOS (IMÁGENES, COMPROBANTES DE PAGO) ─────
-static/uploads/*
-!static/uploads/.gitkeep
-!static/uploads/comprobantes/
+# Permitir imágenes iniciales de uploads en Git para despliegue en VPS
+!static/uploads/
+!static/uploads/*
+# Ignorar comprobantes de pago privados subidos por usuarios
 static/uploads/comprobantes/*
 !static/uploads/comprobantes/.gitkeep
 

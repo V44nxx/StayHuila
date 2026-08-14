@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stayhuila_app
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      # Montaje del volumen de uploads: garantiza persistencia permanente de imágenes
+      - stayhuila_uploads_data:/app/static/uploads
+
+volumes:
+  stayhuila_uploads_data:
+    name: stayhuila_uploads_data
