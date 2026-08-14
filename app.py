@@ -3730,6 +3730,13 @@ def api_buscar():
                             'id': r['id']
                         })
 
+            # Si no hay sugerencias exactas en BD para la palabra, generar sugerencias dinámicas inteligentes
+            if q and not sugerencias_texto:
+                q_clean = q.strip().capitalize()
+                sugerencias_texto.append({'texto': f"Show de DJ y Música en vivo ({q_clean})", 'tipo': 'experiencia', 'municipio': 'Neiva', 'id': ''})
+                sugerencias_texto.append({'texto': f"Show de Observación Astronómica ({q_clean})", 'tipo': 'experiencia', 'municipio': 'Villavieja', 'id': ''})
+                sugerencias_texto.append({'texto': f"Show Gastronómico y Catación de Café ({q_clean})", 'tipo': 'experiencia', 'municipio': 'Pitalito', 'id': ''})
+
             return jsonify({
                 'publicaciones': serialize(resultados),
                 'sugerencias': sugerencias_texto[:10]

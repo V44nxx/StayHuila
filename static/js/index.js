@@ -35,7 +35,7 @@ const experienceKeywords = [
 
 function getSearchDestination(query, items) {
     const qLower = (query || '').toLowerCase().trim();
-    if (!qLower) return '/hospedajes';
+    if (!qLower) return null; // No navegar si está vacío
 
     const isExpKeyword = experienceKeywords.some(kw => qLower.includes(kw));
     if (isExpKeyword) {
@@ -57,7 +57,10 @@ function getSearchDestination(query, items) {
 window.resetSearch = function () {
     const qInput = document.getElementById('sh-q');
     const sugBox = document.getElementById('search-suggestions');
+    const clearBtn = document.getElementById('sh-clear');
+
     if (qInput) qInput.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
     if (sugBox) sugBox.style.display = 'none';
 
     document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
@@ -161,7 +164,7 @@ function fetchSearchResults(queryStr) {
         .then(data => {
             const listings = Array.isArray(data) ? data : (data.publicaciones || []);
             const dest = getSearchDestination(q, listings);
-            window.location.href = dest;
+            if (dest) window.location.href = dest;
         })
         .catch(err => {
             console.error('Error en búsqueda:', err);
@@ -193,7 +196,6 @@ function renderSuggestions(sugerencias, queryStr, publicaciones = []) {
     if (queryStr && queryStr.trim()) {
         const qEscaped = escapeHtml(queryStr.trim());
 
-        // Fila 1: Opción rápida directa del término buscado (Ej. 🔍 show en Experiencias)
         const isExpRel = experienceKeywords.some(kw => queryStr.toLowerCase().includes(kw));
         const quickTag = isExpRel ? 'Experiencias' : 'Hospedajes';
         const quickUrl = isExpRel ? `/experiencias?q=${encodeURIComponent(queryStr.trim())}` : `/hospedajes?q=${encodeURIComponent(queryStr.trim())}`;
@@ -216,7 +218,7 @@ function renderSuggestions(sugerencias, queryStr, publicaciones = []) {
         sugerencias.forEach(function (sug, idx) {
             const actualIdx = (queryStr && queryStr.trim()) ? idx + 1 : idx;
             const isHosp = sug.tipo === 'hospedaje';
-            const targetUrl = isHosp ? `/hospedaje/${sug.id}` : `/experiencia/${sug.id}`;
+            const targetUrl = sug.id ? (isHosp ? `/hospedaje/${sug.id}` : `/experiencia/${sug.id}`) : (isHosp ? `/hospedajes?q=${encodeURIComponent(sug.texto)}` : `/experiencias?q=${encodeURIComponent(sug.texto)}`);
             const badgeTxt = isHosp ? 'Hospedaje' : 'Experiencia';
             const badgeColor = isHosp ? '#2C4A3B' : '#D97706';
             const badgeBg = isHosp ? '#E8F5E9' : '#FEF3C7';
@@ -290,16 +292,38 @@ document.addEventListener('DOMContentLoaded', function () {
     const qInput = document.getElementById('sh-q');
     const sugBox = document.getElementById('search-suggestions');
     const submitBtn = document.getElementById('sh-submit');
+    const clearBtn = document.getElementById('sh-clear');
     const container = document.getElementById('hospedajes');
 
     if (container) {
         _initialGridHTML = container.innerHTML;
     }
 
+    function updateClearBtn() {
+        if (!clearBtn || !qInput) return;
+        if (qInput.value.trim().length > 0) {
+            clearBtn.style.display = 'flex';
+        } else {
+            clearBtn.style.display = 'none';
+        }
+    }
+
+    if (clearBtn && qInput) {
+        clearBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            qInput.value = '';
+            updateClearBtn();
+            if (sugBox) sugBox.style.display = 'none';
+            resetSearch();
+            qInput.focus();
+        });
+    }
+
     let searchTimeout = null;
 
     if (qInput) {
         qInput.addEventListener('focus', function () {
+            updateClearBtn();
             const val = this.value.trim();
             if (!val) {
                 loadInitialRecommendations();
@@ -309,6 +333,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         qInput.addEventListener('click', function () {
+            updateClearBtn();
             const val = this.value.trim();
             if (!val) {
                 loadInitialRecommendations();
@@ -317,6 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // AUTOCOMPLETADO Y RECOMENDACIONES EN TIEMPO REAL AL ESCRIBIR
         qInput.addEventListener('input', function () {
+            updateClearBtn();
             clearTimeout(searchTimeout);
             const val = this.value.trim();
 
@@ -368,6 +394,15 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (e.key === 'Enter') {
                 e.preventDefault();
 
+                const queryVal = this.value.trim();
+
+                // SI ESTÁ VACÍO: NO HACER NADA, NO REDIRIGIR NI NAVEGAR A NINGÚN LADO
+                if (!queryVal) {
+                    if (sugBox) sugBox.style.display = 'none';
+                    return;
+                }
+
+                // Si se seleccionó una sugerencia con flechas:
                 if (_selectedIndex >= 0 && items[_selectedIndex]) {
                     const targetUrl = items[_selectedIndex].dataset.url;
                     if (targetUrl) {
@@ -376,16 +411,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
 
-                const queryVal = this.value.trim();
                 const destUrl = getSearchDestination(queryVal, _currentListingsData);
-                window.location.href = destUrl;
+                if (destUrl) window.location.href = destUrl;
             } else if (e.key === 'Escape') {
                 if (sugBox) sugBox.style.display = 'none';
             }
         });
 
         document.addEventListener('click', function (e) {
-            if (sugBox && !qInput.contains(e.target) && !sugBox.contains(e.target)) {
+            if (sugBox && !qInput.contains(e.target) && !sugBox.contains(e.target) && clearBtn && !clearBtn.contains(e.target)) {
                 sugBox.style.display = 'none';
             }
         });
@@ -395,8 +429,11 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.addEventListener('click', function () {
             if (qInput) {
                 const queryVal = qInput.value.trim();
+                // SI ESTÁ VACÍO: NO NAVEGAR NI REDIRIGIR
+                if (!queryVal) return;
+
                 const destUrl = getSearchDestination(queryVal, _currentListingsData);
-                window.location.href = destUrl;
+                if (destUrl) window.location.href = destUrl;
             }
         });
     }
@@ -408,11 +445,14 @@ document.addEventListener('DOMContentLoaded', function () {
             this.classList.add('active');
 
             const cat = this.dataset.cat;
-            if (qInput) qInput.value = cat;
+            if (qInput) {
+                qInput.value = cat;
+                updateClearBtn();
+            }
 
             if (cat) {
                 const destUrl = getSearchDestination(cat, []);
-                window.location.href = destUrl;
+                if (destUrl) window.location.href = destUrl;
             } else {
                 resetSearch();
             }
