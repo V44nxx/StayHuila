@@ -112,16 +112,19 @@ def convert_to_webp(src_path: Path, dry_run: bool = False, force: bool = False) 
     try:
         # Abrir imagen original
         with Image.open(src_path) as img:
-            # Convertir a RGB (elimina canal alpha y EXIF implícitamente)
-            img_rgb = img.convert('RGB')
+            # Preservar canal Alpha (transparencia) si la imagen original lo tiene
+            if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                img_conv = img.convert('RGBA')
+            else:
+                img_conv = img.convert('RGB')
 
             # Imagen principal
-            img_main = resize_if_needed(img_rgb.copy(), MAIN_MAX_WIDTH)
+            img_main = resize_if_needed(img_conv.copy(), MAIN_MAX_WIDTH)
             img_main.save(str(main_path), 'WEBP', quality=WEBP_QUALITY_MAIN, optimize=True, method=4)
             result['main_size'] = main_path.stat().st_size
 
             # Miniatura
-            img_thumb = resize_if_needed(img_rgb.copy(), THUMB_MAX_WIDTH)
+            img_thumb = resize_if_needed(img_conv.copy(), THUMB_MAX_WIDTH)
             img_thumb.save(str(thumb_path), 'WEBP', quality=WEBP_QUALITY_THUMB, optimize=True, method=4)
             result['thumb_size'] = thumb_path.stat().st_size
 

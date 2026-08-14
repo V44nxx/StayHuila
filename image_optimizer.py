@@ -88,12 +88,15 @@ def _strip_exif(pil_image: Image.Image) -> Image.Image:
     """
     Elimina todos los metadatos EXIF de la imagen.
     Mejora privacidad (GPS, cámara, fecha) y reduce tamaño del archivo.
-    Retorna una nueva imagen limpia.
+    Retorna una nueva imagen limpia preservando canal Alpha si existe.
     """
-    # Convertir siempre a RGB para descartar canal Alpha problemático y eliminar EXIF
-    clean = Image.new(pil_image.mode, pil_image.size)
+    if pil_image.mode in ('RGBA', 'LA') or (pil_image.mode == 'P' and 'transparency' in pil_image.info):
+        mode = 'RGBA'
+    else:
+        mode = 'RGB'
+    clean = Image.new(mode, pil_image.size)
     clean.putdata(list(pil_image.getdata()))
-    return clean.convert('RGB')
+    return clean.convert(mode)
 
 
 def _detect_blur(pil_image: Image.Image) -> tuple[bool, float]:
