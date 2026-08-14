@@ -1,4 +1,4 @@
-/* ── index.js — Buscador Unificado en Tiempo Real | StayHuila ── */
+/* ── index.js — Buscador Unificado con Recomendaciones en Tiempo Real | StayHuila ── */
 
 /* ── Cerrar dropdown al hacer clic fuera ── */
 document.addEventListener('click', function (event) {
@@ -20,6 +20,7 @@ function formatMoney(num) {
 
 /* ── Guardar el HTML original de la cuadrícula ── */
 let _initialGridHTML = null;
+let _cachedRecommendations = null;
 
 /* ── Función para reiniciar búsqueda a la vista completa ── */
 window.resetSearch = function () {
@@ -133,51 +134,88 @@ function fetchSearchResults(queryStr) {
         });
 }
 
-/* ── Renderizado de Sugerencias en Dropdown del Buscador ── */
-function renderSuggestions(items, queryStr) {
+/* ── Renderizado del Menú Desplegable de Recomendaciones ── */
+function renderSuggestions(items, queryStr, isInitial = false) {
     const sugBox = document.getElementById('search-suggestions');
     if (!sugBox) return;
 
     if (!items || items.length === 0) {
-        sugBox.innerHTML = `
-            <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.88rem;">
-                <i class="ph ph-magnifying-glass" style="font-size: 1.2rem; display: block; margin-bottom: 0.3rem;"></i>
-                Sin coincidencias directas para "${escapeHtml(queryStr)}"
-            </div>
-        `;
-        sugBox.style.display = 'block';
+        if (queryStr) {
+            sugBox.innerHTML = `
+                <div style="padding: 1.2rem; text-align: center; color: var(--text-muted); font-size: 0.88rem;">
+                    <i class="ph ph-magnifying-glass" style="font-size: 1.5rem; color:#9CA3AF; display: block; margin-bottom: 0.4rem;"></i>
+                    No hay recomendaciones directas para "<strong>${escapeHtml(queryStr)}</strong>"
+                </div>
+            `;
+            sugBox.style.display = 'block';
+        } else {
+            sugBox.style.display = 'none';
+        }
         return;
     }
 
-    sugBox.innerHTML = '';
+    let headerHTML = isInitial ? 
+        `<div style="padding: 0.6rem 1rem 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; display:flex; align-items:center; gap:0.4rem;">
+            <i class="ph-fill ph-sparkle" style="color:#F59E0B;"></i> Recomendaciones destacadas
+         </div>` :
+        `<div style="padding: 0.6rem 1rem 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; display:flex; align-items:center; gap:0.4rem;">
+            <i class="ph ph-magnifying-glass"></i> Coincidencias encontradas (${items.length})
+         </div>`;
+
+    sugBox.innerHTML = headerHTML;
+
     items.slice(0, 6).forEach(function (item) {
         const div = document.createElement('div');
-        div.style.cssText = 'display:flex;align-items:center;gap:0.7rem;padding:0.75rem 1rem;cursor:pointer;border-bottom:1px solid #f0f0f0;transition:background 0.2s;';
-        div.onmouseenter = function () { this.style.background = '#f9fafb'; };
+        div.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:all 0.15s;';
+        div.onmouseenter = function () { this.style.background = '#F8FAFC'; };
         div.onmouseleave = function () { this.style.background = 'white'; };
-        div.onclick = function () {
-            const qInput = document.getElementById('sh-q');
-            if (qInput) qInput.value = item.nombre;
-            sugBox.style.display = 'none';
-            fetchSearchResults(item.nombre);
+        
+        const isHosp = item.tipo === 'hospedaje';
+        const targetUrl = isHosp ? `/hospedaje/${item.id}` : `/experiencia/${item.id}`;
+        
+        div.onclick = function (e) {
+            e.stopPropagation();
+            window.location.href = targetUrl;
         };
 
-        const isHosp = item.tipo === 'hospedaje';
         const badgeTxt = isHosp ? 'Hospedaje' : 'Experiencia';
         const badgeColor = isHosp ? '#2C4A3B' : '#D97706';
-        const imgUrl = item.imagen || (isHosp ? 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=60' : 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=60');
+        const badgeBg = isHosp ? '#E8F5E9' : '#FEF3C7';
+        const imgUrl = item.imagen || (isHosp ? 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=80' : 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=80');
 
         div.innerHTML = `
-            <img src="${imgUrl}" style="width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0;">
+            <img src="${imgUrl}" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 5px rgba(0,0,0,0.1);">
             <div style="flex:1;min-width:0;">
-                <strong style="font-size:0.9rem;color:var(--text-main);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.nombre)}</strong>
-                <span style="font-size:0.78rem;color:var(--text-muted);">${escapeHtml(item.municipio)} &nbsp;·&nbsp; <span style="color:${badgeColor};font-weight:600;">${badgeTxt}</span></span>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+                    <strong style="font-size:0.9rem;color:var(--text-main);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.nombre)}</strong>
+                    <span style="font-size:0.7rem;font-weight:700;color:${badgeColor};background:${badgeBg};padding:2px 8px;border-radius:12px;flex-shrink:0;">${badgeTxt}</span>
+                </div>
+                <div style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+                    <span><i class="ph ph-map-pin" style="font-size:0.75rem;"></i> ${escapeHtml(item.municipio)}</span>
+                    <strong style="color:var(--primary);font-size:0.82rem;">$${formatMoney(item.precio)}</strong>
+                </div>
             </div>
         `;
         sugBox.appendChild(div);
     });
 
     sugBox.style.display = 'block';
+}
+
+/* ── Cargar Recomendaciones Destacadas Iniciales ── */
+function loadInitialRecommendations() {
+    if (_cachedRecommendations) {
+        renderSuggestions(_cachedRecommendations, '', true);
+        return;
+    }
+
+    fetch('/api/buscar?q=')
+        .then(res => res.json())
+        .then(data => {
+            _cachedRecommendations = data;
+            renderSuggestions(data, '', true);
+        })
+        .catch(err => console.error(err));
 }
 
 /* ── Inicialización de Eventos ── */
@@ -194,13 +232,30 @@ document.addEventListener('DOMContentLoaded', function () {
     let searchTimeout = null;
 
     if (qInput) {
-        // Búsqueda en TIEMPO REAL al escribir (input listener)
+        // Mostrar recomendaciones iniciales al hacer FOCUS o CLICK en el buscador
+        qInput.addEventListener('focus', function () {
+            const val = this.value.trim();
+            if (!val) {
+                loadInitialRecommendations();
+            } else if (sugBox && sugBox.children.length > 0) {
+                sugBox.style.display = 'block';
+            }
+        });
+
+        qInput.addEventListener('click', function () {
+            const val = this.value.trim();
+            if (!val) {
+                loadInitialRecommendations();
+            }
+        });
+
+        // Búsqueda y Recomendaciones en TIEMPO REAL al escribir (input listener)
         qInput.addEventListener('input', function () {
             clearTimeout(searchTimeout);
             const val = this.value.trim();
 
             if (!val) {
-                if (sugBox) sugBox.style.display = 'none';
+                loadInitialRecommendations();
                 resetSearch();
                 return;
             }
@@ -209,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 fetch('/api/buscar?q=' + encodeURIComponent(val))
                     .then(res => res.json())
                     .then(data => {
-                        renderSuggestions(data, val);
+                        renderSuggestions(data, val, false);
                         renderListings(data, val);
                     })
                     .catch(err => console.error(err));
@@ -226,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Ocultar sugerencias al hacer clic fuera
+        // Ocultar recomendaciones al hacer clic fuera
         document.addEventListener('click', function (e) {
             if (sugBox && !qInput.contains(e.target) && !sugBox.contains(e.target)) {
                 sugBox.style.display = 'none';
