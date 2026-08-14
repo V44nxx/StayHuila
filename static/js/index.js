@@ -159,7 +159,7 @@ function fetchSearchResults(queryStr) {
     fetch('/api/buscar?q=' + encodeURIComponent(q))
         .then(res => res.json())
         .then(data => {
-            const listings = data.publicaciones || [];
+            const listings = Array.isArray(data) ? data : (data.publicaciones || []);
             const dest = getSearchDestination(q, listings);
             window.location.href = dest;
         })
@@ -171,6 +171,7 @@ function fetchSearchResults(queryStr) {
 
 /* ── Highlight de coincidencias de texto ── */
 function highlightMatch(text, query) {
+    if (!text) return '';
     if (!query) return escapeHtml(text);
     const escapedText = escapeHtml(text);
     const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -219,6 +220,7 @@ function renderSuggestions(sugerencias, queryStr, publicaciones = []) {
             const badgeTxt = isHosp ? 'Hospedaje' : 'Experiencia';
             const badgeColor = isHosp ? '#2C4A3B' : '#D97706';
             const badgeBg = isHosp ? '#E8F5E9' : '#FEF3C7';
+            const textDisplay = sug.texto || sug.nombre || '';
 
             html += `
                 <div class="suggestion-item" data-index="${actualIdx}" data-url="${targetUrl}"
@@ -227,7 +229,7 @@ function renderSuggestions(sugerencias, queryStr, publicaciones = []) {
                      onmouseenter="highlightSuggestion(${actualIdx})" onmouseleave="this.style.background='white'">
                     <i class="ph ph-magnifying-glass" style="font-size:1.1rem;color:#64748B;flex-shrink:0;"></i>
                     <div style="flex:1;min-width:0;font-size:0.92rem;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                        ${highlightMatch(sug.texto, queryStr)}
+                        ${highlightMatch(textDisplay, queryStr)}
                     </div>
                     <span style="font-size:0.72rem;font-weight:700;color:${badgeColor};background:${badgeBg};padding:2px 9px;border-radius:12px;flex-shrink:0;">
                         ${badgeTxt}
@@ -266,7 +268,9 @@ function highlightSuggestion(index) {
 /* ── Cargar Recomendaciones Destacadas Iniciales ── */
 function loadInitialRecommendations() {
     if (_cachedRecommendations) {
-        renderSuggestions(_cachedRecommendations.sugerencias, '', _cachedRecommendations.publicaciones);
+        let sug = Array.isArray(_cachedRecommendations) ? _cachedRecommendations.map(p => ({ texto: p.nombre, tipo: p.tipo, id: p.id })) : (_cachedRecommendations.sugerencias || []);
+        let pubs = Array.isArray(_cachedRecommendations) ? _cachedRecommendations : (_cachedRecommendations.publicaciones || []);
+        renderSuggestions(sug, '', pubs);
         return;
     }
 
@@ -274,7 +278,9 @@ function loadInitialRecommendations() {
         .then(res => res.json())
         .then(data => {
             _cachedRecommendations = data;
-            renderSuggestions(data.sugerencias || [], '', data.publicaciones || []);
+            let sug = Array.isArray(data) ? data.map(p => ({ texto: p.nombre, tipo: p.tipo, id: p.id })) : (data.sugerencias || []);
+            let pubs = Array.isArray(data) ? data : (data.publicaciones || []);
+            renderSuggestions(sug, '', pubs);
         })
         .catch(err => console.error(err));
 }
@@ -324,8 +330,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 fetch('/api/buscar?q=' + encodeURIComponent(val))
                     .then(res => res.json())
                     .then(data => {
-                        const sug = data.sugerencias || [];
-                        const pubs = data.publicaciones || [];
+                        let sug = [];
+                        let pubs = [];
+                        if (Array.isArray(data)) {
+                            pubs = data;
+                            sug = data.map(item => ({ texto: item.nombre, tipo: item.tipo, id: item.id }));
+                        } else {
+                            pubs = data.publicaciones || [];
+                            sug = data.sugerencias || [];
+                        }
+                        if (!sug.length && pubs.length) {
+                            sug = pubs.map(p => ({ texto: p.nombre, tipo: p.tipo, id: p.id }));
+                        }
                         renderSuggestions(sug, val, pubs);
                         renderListings(pubs, val);
                     })
@@ -352,7 +368,6 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (e.key === 'Enter') {
                 e.preventDefault();
 
-                // Si se seleccionó una sugerencia de la lista con las flechas:
                 if (_selectedIndex >= 0 && items[_selectedIndex]) {
                     const targetUrl = items[_selectedIndex].dataset.url;
                     if (targetUrl) {
@@ -361,7 +376,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
 
-                // Al presionar Enter directo: redirigir a la página de Experiencias u Hospedajes según la relación (ej. "show" -> /experiencias?q=show)
                 const queryVal = this.value.trim();
                 const destUrl = getSearchDestination(queryVal, _currentListingsData);
                 window.location.href = destUrl;

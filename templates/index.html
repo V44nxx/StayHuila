@@ -182,20 +182,24 @@
             <p class="hero-subtitle" data-i18n="hero.subtitle">Hospedajes rurales, fincas y cabañas mágicas recomendadas
                 para ti</p>
 
-            <!-- Buscador Unificado Hospedajes & Experiencias -->
-            <div class="search-bar" style="grid-template-columns: 1fr auto; max-width: 680px; margin: 1rem auto 0; position:relative;">
-                <div class="search-field" style="position:relative; width:100%;">
-                    <label style="font-size:0.85rem; font-weight:700; color:var(--text-main);"><i class="ph ph-magnifying-glass"></i> ¿Qué buscas o a dónde quieres ir?</label>
-                    <input type="text" id="sh-q" 
-                        placeholder="Buscar hospedajes, experiencias, cabañas, Tatacoa, café, show..." 
-                        autocomplete="off">
-                    <div id="search-suggestions"
-                        style="display:none;position:absolute;top:calc(100% + 8px);left:0;right:0;background:white;border:1px solid rgba(0,0,0,0.12);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);z-index:99999;max-height:360px;overflow-y:auto;text-align:left;">
+            <!-- Buscador Unificado Hospedajes & Experiencias Estilo Amazon -->
+            <div class="search-wrapper" style="position:relative; max-width:680px; margin:1rem auto 0; z-index:100;">
+                <div class="search-bar" style="grid-template-columns: 1fr auto; width:100%;">
+                    <div class="search-field" style="width:100%;">
+                        <label style="font-size:0.85rem; font-weight:700; color:var(--text-main);"><i class="ph ph-magnifying-glass"></i> ¿Qué buscas o a dónde quieres ir?</label>
+                        <input type="text" id="sh-q" 
+                            placeholder="Buscar hospedajes, experiencias, cabañas, Tatacoa, café, show..." 
+                            autocomplete="off">
                     </div>
+                    <button class="search-btn" id="sh-submit" title="Buscar">
+                        <i class="ph-bold ph-magnifying-glass"></i>
+                    </button>
                 </div>
-                <button class="search-btn" id="sh-submit" title="Buscar">
-                    <i class="ph-bold ph-magnifying-glass"></i>
-                </button>
+
+                <!-- Cuadro Desplegable de Recomendaciones Autocompletado -->
+                <div id="search-suggestions"
+                    style="display:none; position:absolute; top:calc(100% + 8px); left:0; right:0; background:white; border:1px solid rgba(0,0,0,0.15); border-radius:16px; box-shadow:0 16px 40px rgba(0,0,0,0.25); z-index:999999; max-height:380px; overflow-y:auto; text-align:left; color:#1E293B;">
+                </div>
             </div>
         </div>
     </section>
