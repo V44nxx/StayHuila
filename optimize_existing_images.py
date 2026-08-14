@@ -52,7 +52,7 @@ WEBP_QUALITY_THUMB = 72    # Miniatura
 THUMB_MAX_WIDTH    = 480   # px
 MAIN_MAX_WIDTH     = 1280  # px
 
-EXTENSIONS_TO_CONVERT = {'.jpg', '.jpeg', '.png'}
+EXTENSIONS_TO_CONVERT = {'.jpg', '.jpeg', '.png', '.jfif', '.avif', '.bmp'}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -214,8 +214,9 @@ def main():
     parser.add_argument('--uploads-only', action='store_true', help='Solo procesar static/uploads/')
     args = parser.parse_args()
 
+    sys.stdout.reconfigure(encoding='utf-8')
     print("=" * 65)
-    print("  StayHuila — Optimizador masivo de imágenes → WebP")
+    print("  StayHuila - Optimizador masivo de imagenes -> WebP")
     print("=" * 65)
     if args.dry_run:
         print("  ⚠️  MODO DRY-RUN: No se escribirá nada en disco ni en BD\n")
