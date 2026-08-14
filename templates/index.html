@@ -173,7 +173,7 @@
             }
         });
     </script>
-    <script src="{{ url_for('static', filename='js/index.js') }}"></script><!-- Hero Section -->
+<!-- Hero Section -->
     <section class="hero">
         <div class="hero-overlay"></div>
         <div class="hero-content">
@@ -183,14 +183,14 @@
                 para ti</p>
 
             <!-- Buscador Unificado Hospedajes & Experiencias -->
-            <div class="search-bar" style="grid-template-columns: 1fr auto; max-width: 680px; margin: 1rem auto 0;">
-                <div class="search-field" style="position:relative;">
+            <div class="search-bar" style="grid-template-columns: 1fr auto; max-width: 680px; margin: 1rem auto 0; position:relative;">
+                <div class="search-field" style="position:relative; width:100%;">
                     <label style="font-size:0.85rem; font-weight:700; color:var(--text-main);"><i class="ph ph-magnifying-glass"></i> ¿Qué buscas o a dónde quieres ir?</label>
                     <input type="text" id="sh-q" 
                         placeholder="Buscar hospedajes, experiencias, cabañas, Tatacoa, café, show..." 
                         autocomplete="off">
                     <div id="search-suggestions"
-                        style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100;max-height:320px;overflow-y:auto;margin-top:6px;">
+                        style="display:none;position:absolute;top:calc(100% + 8px);left:0;right:0;background:white;border:1px solid rgba(0,0,0,0.12);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);z-index:99999;max-height:360px;overflow-y:auto;text-align:left;">
                     </div>
                 </div>
                 <button class="search-btn" id="sh-submit" title="Buscar">
@@ -782,9 +782,9 @@
 
 
 
-    <!-- Scripts no críticos con defer: se descargan en paralelo y ejecutan después del parsing -->
+    <!-- Scripts principal y recomendador -->
+    <script src="{{ url_for('static', filename='js/index.js') }}?v=3.0"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
-    <!-- i18n.js (81 KB): solo necesario si el usuario cambia idioma, defer evita bloqueo -->
     <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
 </body>
 </html>
