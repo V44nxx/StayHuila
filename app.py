@@ -3660,30 +3660,51 @@ def disponibilidad(id):
     finally:
         c.close()
 
-# ── API BUSCAR ────────────────────────────────────────────────
+# ── API BUSCAR UNIFICADO ──────────────────────────────────────
 @app.route('/api/buscar')
 def api_buscar():
-    q = request.args.get('q', '')
+    q = request.args.get('q', '').strip()
     tipo = request.args.get('tipo', None)
     c = db()
     try:
         with c.cursor() as cur:
             resultados = []
+            term = f"%{q}%"
+            
             if tipo is None or tipo == 'hospedaje':
-                cur.execute("""SELECT h.id,h.nombre,h.municipio,h.precio_noche as precio,'hospedaje' as tipo,i.url as imagen
-                    FROM hospedajes h LEFT JOIN hospedaje_imagenes i ON h.id=i.hospedaje_id AND i.es_portada=1
-                    WHERE (h.nombre LIKE %s OR h.municipio LIKE %s)
-                        AND h.activo=1 AND h.eliminado=0 AND h.estado='abierta'
-                    LIMIT 8""", (f'%{q}%', f'%{q}%'))
+                cur.execute("""
+                    SELECT DISTINCT h.id, h.nombre, h.municipio, h.precio_noche as precio, 'hospedaje' as tipo,
+                           COALESCE(h.descripcion_corta, h.tipo) as descripcion_corta,
+                           h.calificacion, h.total_resenas, h.es_eco, h.descuento_porcentaje,
+                           i.url as imagen, c.nombre as categoria_nombre
+                    FROM hospedajes h
+                    LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
+                    LEFT JOIN categorias c ON h.categoria_id = c.id
+                    LEFT JOIN hospedaje_servicios hs ON h.id = hs.hospedaje_id
+                    WHERE (h.nombre LIKE %s OR h.municipio LIKE %s OR h.descripcion LIKE %s OR h.descripcion_corta LIKE %s OR h.tipo LIKE %s OR c.nombre LIKE %s OR hs.servicio LIKE %s)
+                      AND h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
+                    ORDER BY h.destacado DESC, h.calificacion DESC
+                    LIMIT 30
+                """, (term, term, term, term, term, term, term))
                 resultados.extend(cur.fetchall())
+                
             if tipo is None or tipo == 'experiencia':
-                cur.execute("""SELECT e.id,e.nombre,e.municipio,e.precio_persona as precio,'experiencia' as tipo,i.url as imagen
-                    FROM experiencias e LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
-                    WHERE (e.nombre LIKE %s OR e.municipio LIKE %s)
-                        AND e.activo=1 AND e.eliminado=0 AND e.estado='abierta'
-                    LIMIT 8""", (f'%{q}%', f'%{q}%'))
+                cur.execute("""
+                    SELECT DISTINCT e.id, e.nombre, e.municipio, e.precio_persona as precio, 'experiencia' as tipo,
+                           COALESCE(e.descripcion_corta, e.tipo) as descripcion_corta,
+                           e.calificacion, e.total_resenas, 0 as es_eco, 0 as descuento_porcentaje,
+                           i.url as imagen, c.nombre as categoria_nombre
+                    FROM experiencias e
+                    LEFT JOIN experiencia_imagenes i ON e.id = e.experiencia_id AND i.es_portada = 1
+                    LEFT JOIN categorias c ON e.categoria_id = c.id
+                    WHERE (e.nombre LIKE %s OR e.municipio LIKE %s OR e.descripcion LIKE %s OR e.descripcion_corta LIKE %s OR e.tipo LIKE %s OR e.que_incluye LIKE %s OR e.que_traer LIKE %s OR c.nombre LIKE %s)
+                      AND e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
+                    ORDER BY e.destacado DESC, e.calificacion DESC
+                    LIMIT 30
+                """, (term, term, term, term, term, term, term, term))
                 resultados.extend(cur.fetchall())
-            return jsonify(resultados)
+                
+            return jsonify(serialize(resultados))
     finally:
         c.close()
 
