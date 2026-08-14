@@ -444,7 +444,19 @@ _ensure_columns()
 def serialize(obj):
     """Convert MySQL types to JSON-safe Python types."""
     if isinstance(obj, dict):
-        return {k: serialize(v) for k, v in obj.items()}
+        res = {}
+        for k, v in obj.items():
+            if k in ('foto_perfil', 'anf_foto', 'huesped_foto', 'autor_foto') and isinstance(v, str):
+                val_str = v.strip()
+                if not val_str or val_str in ('None', 'null'):
+                    res[k] = None
+                elif not val_str.startswith('http') and not val_str.startswith('/'):
+                    res[k] = '/' + val_str
+                else:
+                    res[k] = val_str
+            else:
+                res[k] = serialize(v)
+        return res
     if isinstance(obj, list):
         return [serialize(i) for i in obj]
     if isinstance(obj, timedelta):
@@ -472,7 +484,14 @@ class User(UserMixin):
     def __init__(self, d):
         self.id = d['id']; self.nombre = d['nombre']; self.apellido = d['apellido']
         self.email = d['email']; self.tipo = d['tipo']; self.puntos = d['puntos_gamificacion']
-        self.foto_perfil = d.get('foto_perfil')
+        foto = d.get('foto_perfil')
+        if foto and str(foto).strip() not in ('None', 'null', '', 'NoneType'):
+            foto_str = str(foto).strip()
+            if not foto_str.startswith('http') and not foto_str.startswith('/'):
+                foto_str = '/' + foto_str
+            self.foto_perfil = foto_str
+        else:
+            self.foto_perfil = None
         self.telefono = d.get('telefono')
         self.credito_descuento = float(d.get('credito_descuento') or 0)
 

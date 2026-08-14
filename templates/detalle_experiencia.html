@@ -404,7 +404,8 @@
                     <div class="resena-card" id="resena-{{ r.id }}">
                         <div class="resena-header">
                             <img src="{{ r.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ r.nombre ~ '&background=random' }}"
-                                alt="{{ r.nombre }}" class="resena-avatar">
+                                alt="{{ r.nombre }}" class="resena-avatar"
+                                onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ r.nombre | urlencode }}&background=2C4A3B&color=fff';">
                             <div>
                                 <strong>{{ r.nombre }} {{ r.apellido }}</strong>
                                 <p class="resena-fecha">{{ r.fecha_resena.strftime('%B %Y') if r.fecha_resena else '' }}
@@ -423,7 +424,8 @@
                             {% set es_anf = (resp.usuario_id == experiencia.anfitrion_id) %}
                             <div class="resena-respuesta {{ 'es-anfitrion' if es_anf else 'es-huesped' }}">
                                 <img src="{{ resp.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ resp.nombre ~ '&background=random' }}"
-                                     alt="{{ resp.nombre }}" class="resp-avatar">
+                                     alt="{{ resp.nombre }}" class="resp-avatar"
+                                     onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ resp.nombre | urlencode }}&background=2C4A3B&color=fff';">
                                 <div class="resp-body">
                                     <div class="resp-meta">
                                         <strong>{{ resp.nombre }} {{ resp.apellido }}</strong>

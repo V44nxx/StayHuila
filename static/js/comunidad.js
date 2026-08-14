@@ -21,11 +21,18 @@ function formatDate(isoString) {
 }
 
 function getAvatar(obj) {
+    if (!obj) obj = {};
     const name = (obj.nombre || '') + ' ' + (obj.apellido || '');
-    if (!obj.foto_perfil || obj.foto_perfil === 'None' || obj.foto_perfil === 'null' || obj.foto_perfil.trim() === '') {
-        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=2C4A3B&color=fff`;
+    const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim() || 'Usuario')}&background=2C4A3B&color=fff`;
+    let foto = obj.foto_perfil || obj.anf_foto || obj.huesped_foto;
+    if (!foto || foto === 'None' || foto === 'null' || String(foto).trim() === '') {
+        return defaultAvatar;
     }
-    return obj.foto_perfil;
+    foto = String(foto).trim();
+    if (!foto.startsWith('http') && !foto.startsWith('/')) {
+        foto = '/' + foto;
+    }
+    return foto;
 }
 
 function escapeHtml(str) {
@@ -395,7 +402,7 @@ function renderPost(post) {
 
     const commentInput = CURRENT_USER.id ? `
         <div class="create-comment">
-            <img src="${getAvatar(CURRENT_USER)}" alt="Tú">
+            <img src="${getAvatar(CURRENT_USER)}" alt="Tú" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(CURRENT_USER.nombre || 'Usuario')}&background=2C4A3B&color=fff';">
             <input type="text" id="comment-input-${post.id}" placeholder="Escribe un comentario..."
                    onkeypress="if(event.key==='Enter') submitComment(${post.id})">
             <button onclick="submitComment(${post.id})"><i class="ph ph-paper-plane-right"></i></button>
@@ -407,7 +414,7 @@ function renderPost(post) {
     div.innerHTML = `
         <div class="post-header">
             <a href="/anfitrion/${post.usuario_id}" class="post-avatar-link">
-                <img src="${getAvatar(post)}" alt="${escapeHtml(post.nombre)}">
+                <img src="${getAvatar(post)}" alt="${escapeHtml(post.nombre)}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(post.nombre || 'Usuario')}&background=2C4A3B&color=fff';">
             </a>
             <div class="post-meta" style="flex:1;">
                 <strong><a href="/anfitrion/${post.usuario_id}" class="post-author-link">${escapeHtml(post.nombre)} ${escapeHtml(post.apellido)}</a></strong>
