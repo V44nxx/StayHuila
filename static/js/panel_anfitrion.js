@@ -9,8 +9,8 @@
         let currentStep = 1;
         const totalSteps = 6;
 
-        // ?? Modo edici?n ??
-        let _editingId   = null;  // ID de la publicaci?n en edici?n (null = creaci?n)
+        // ── Modo edición ──
+        let _editingId   = null;  // ID de la publicación en edición (null = creación)
         let _editingTipo = null;  // tipo: 'hospedaje' | 'experiencia'
 
         function limitDigits(input, maxLength) {
@@ -32,16 +32,16 @@
             const minV = parseInt(minEl.value, 10) || 1;
             const maxV = parseInt(maxEl.value, 10) || 1;
             const invalid = minV > maxV;
-            minEl.setCustomValidity(invalid ? 'La capacidad minima no puede ser mayor que la maxima.' : '');
+            minEl.setCustomValidity(invalid ? 'La capacidad mínima no puede ser mayor que la máxima.' : '');
             return !invalid;
         }
 
         const categoriesData = {
             hospedaje: [
-                "Finca", "Caba?a", "Glamping", "Habitaci?n privada", "Hotel boutique", "Casa entera"
+                "Finca", "Cabaña", "Glamping", "Habitación privada", "Hotel boutique", "Casa entera"
             ],
             experiencia: [
-                "Aventura", "Cultural", "Gastronom?a", "Naturaleza", "Deportes", "Bienestar", "Arte", "Noche"
+                "Aventura", "Cultural", "Gastronomía", "Naturaleza", "Deportes", "Bienestar", "Arte", "Noche"
             ]
         };
 
@@ -105,13 +105,13 @@
             `;
 
             if (tipo) {
-                // Eliminar la otra opci?n y bloquear el selector
+                // Eliminar la otra opción y bloquear el selector
                 Array.from(pubTipo.options).forEach(opt => {
                     if (opt.value !== tipo && opt.value !== "") {
                         opt.remove();
                     }
                 });
-                pubTipo.disabled = true; // Para que no despliegue el men? o no se sienta editable
+                pubTipo.disabled = true; // Para que no despliegue el menú o no se sienta editable
             } else {
                 pubTipo.disabled = false;
                 pubTipo.value = "";
@@ -128,12 +128,12 @@
             document.getElementById('wizard-modal').classList.remove('show');
             document.body.style.overflow = 'auto';
             if (typeof ImageUploader !== 'undefined') ImageUploader.reset();
-            // Resetear modo edici?n
+            // Resetear modo edición
             _editingId   = null;
             _editingTipo = null;
             document.getElementById('pub-id-edit').value = '';
             const titleEl = document.getElementById('wizard-title-action');
-            if (titleEl) titleEl.textContent = '/ Crear publicaci?n';
+            if (titleEl) titleEl.textContent = '/ Crear publicación';
             // Restaurar campo documento como requerido
             const docEl = document.getElementById('v-documento');
             if (docEl) { docEl.removeAttribute('disabled'); docEl.setAttribute('required', ''); docEl.value = ''; }
@@ -237,11 +237,11 @@
                         updateLocationData(lat, lng);
                     },
                     (err) => {
-                        showToast("No pudimos obtener tu ubicaci?n. Por favor, selecciona el lugar manualmente en el mapa.");
+                        showToast("No pudimos obtener tu ubicación. Por favor, selecciona el lugar manualmente en el mapa.");
                     }
                 );
             } else {
-                showToast("Tu navegador no soporta geolocalizaci?n.");
+                showToast("Tu navegador no soporta geolocalización.");
             }
         }
 
@@ -266,7 +266,7 @@
                 if (docEl && !docEl.disabled) {
                     const digits = docEl.value.replace(/\D/g, '');
                     if (digits.length !== 10) {
-                        docEl.setCustomValidity('El documento debe tener exactamente 10 digitos.');
+                        docEl.setCustomValidity('El documento debe tener exactamente 10 dígitos.');
                         docEl.reportValidity();
                         docEl.setCustomValidity('');
                         return;
@@ -286,9 +286,9 @@
                     }
                 }
 
-                // Inicializar el m?dulo de im?genes cuando el usuario llega al paso 6
+                // Inicializar el módulo de imágenes cuando el usuario llega al paso 6
                 if (currentStep === 6 && typeof ImageUploader !== 'undefined') {
-                    // Peque?o delay para que el DOM del paso sea visible
+                    // Pequeño delay para que el DOM del paso sea visible
                     setTimeout(() => ImageUploader.init(), 50);
                 }
             } else {
@@ -309,7 +309,7 @@
             if (!isEditing) {
                 const validUrls = typeof ImageUploader !== 'undefined' ? ImageUploader.getValidUrls() : [];
                 if (validUrls.length === 0) {
-                    showToast('Debes subir al menos una imagen valida para crear la publicacion.', 'error');
+                    showToast('Debes subir al menos una imagen válida para crear la publicación.', 'error');
                     return;
                 }
             }
@@ -322,7 +322,7 @@
             formData.append('pub-tipo', pubTipo);
             formData.append('pub-categoria', document.getElementById('pub-categoria').value);
 
-            // Paso 2: Verificaci?n (solo relevante al crear; en edici?n se omite en backend si ya es anfitri?n)
+            // Paso 2: Verificación (solo relevante al crear; en edición se omite en backend si ya es anfitrión)
             formData.append('v_tipo_doc', document.getElementById('v-tipo-doc').value);
             formData.append('v_documento', document.getElementById('v-documento').value);
             formData.append('v_telefono', document.getElementById('v-telefono').value);
@@ -358,11 +358,11 @@
                 formData.append('e_traer',       document.getElementById('e-traer').value);
             }
 
-            // Paso 6 - Im?genes (URLs ya optimizadas por ImageUploader)
+            // Paso 6 - Imágenes (URLs ya optimizadas por ImageUploader)
             const validUrls = typeof ImageUploader !== 'undefined' ? ImageUploader.getValidUrls() : [];
             validUrls.forEach(url => formData.append('fotos_urls', url));
 
-            // En modo edici?n incluir pub_id y apuntar a /actualizar
+            // En modo edición incluir pub_id y apuntar a /actualizar
             const endpoint = isEditing ? '/actualizar' : '/publicar';
             if (isEditing) formData.append('pub_id', _editingId);
 
@@ -370,7 +370,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        showToast(isEditing ? '?Publicaci?n actualizada correctamente!' : '?Felicidades! Tu publicaci?n ha sido creada y estar? visible en StayHuila pronto.');
+                        showToast(isEditing ? '¡Publicación actualizada correctamente!' : '¡Felicidades! Tu publicación ha sido creada y estará visible en StayHuila pronto.');
                         closeWizard();
                         window.location.reload();
                     } else {
@@ -381,12 +381,12 @@
                     }
                 })
                 .catch(() => {
-                    showToast('Ocurri? un error en la conexi?n.', 'error');
+                    showToast('Ocurrió un error en la conexión.', 'error');
                     document.getElementById('btn-next').innerHTML = 'Reintentar <i class="ph-bold ph-check"></i>';
                 });
         }
 
-        /** Abre el wizard pre-llenado con los datos de una publicaci?n existente para edici?n. */
+        /** Abre el wizard pre-llenado con los datos de una publicación existente para edición. */
         function editPublicacion(tipo, id) {
             fetch(`/api/publicacion/${tipo}/${id}`)
                 .then(r => { if (!r.ok) throw new Error('Sin permiso'); return r.json(); })
@@ -398,20 +398,20 @@
 
                     // Actualizar t?tulo del wizard
                     const titleEl = document.getElementById('wizard-title-action');
-                    if (titleEl) titleEl.textContent = '/ Editar publicaci?n';
+                    if (titleEl) titleEl.textContent = '/ Editar publicación';
 
                     // Guardar pub_id en el campo oculto
                     document.getElementById('pub-id-edit').value = id;
 
-                    // Pre-llenar despu?s de que el DOM del wizard sea visible
+                    // Pre-llenar después de que el DOM del wizard sea visible
                     setTimeout(() => prefillWizard(data, tipo), 120);
                 })
-                .catch(() => showToast('No se pudo cargar la publicaci?n.', 'error'));
+                .catch(() => showToast('No se pudo cargar la publicación.', 'error'));
         }
 
-        /** Pre-llena todos los campos del wizard con los datos de la publicaci?n. */
+        /** Pre-llena todos los campos del wizard con los datos de la publicación. */
         function prefillWizard(data, tipo) {
-            // ? Paso 2: Verificaci?n ? (en edici?n ya est? verificado; rellenar tel?fono y poner placeholder en doc)
+            // ── Paso 2: Verificación ── (en edici?n ya est? verificado; rellenar tel?fono y poner placeholder en doc)
             const docEl = document.getElementById('v-documento');
             if (docEl) {
                 docEl.value = 'Ya verificado';
@@ -419,7 +419,7 @@
                 docEl.setAttribute('disabled', '');
             }
 
-            // ? Paso 3: Info b?sica ?
+            // ── Paso 3: Info básica ──
             const step3 = document.getElementById('step-3');
             const inputs3 = step3.querySelectorAll('input:not([type=hidden]), textarea');
             if (inputs3[0]) inputs3[0].value = data.nombre || '';
@@ -429,7 +429,7 @@
             document.getElementById('pub-lat').value       = data.latitud  || '';
             document.getElementById('pub-lng').value       = data.longitud || '';
 
-            // Si el mapa ya est? inicializado, mover el marcador a la posici?n guardada
+            // Si el mapa ya está inicializado, mover el marcador a la posición guardada
             if (wizardMap && wizardMarker && data.latitud && data.longitud) {
                 wizardMarker.setLatLng([data.latitud, data.longitud]);
                 wizardMap.setView([data.latitud, data.longitud], 13);
@@ -438,7 +438,7 @@
             }
 
             if (tipo === 'hospedaje') {
-                // ? Paso 4: Detalles hospedaje ?
+                // ── Paso 4: Detalles hospedaje ──
                 document.getElementById('h-huespedes').value    = data.capacidad_max    || 2;
                 document.getElementById('h-habitaciones').value = data.num_habitaciones || 1;
                 document.getElementById('h-banos').value        = data.num_banos        || 1;
@@ -446,7 +446,7 @@
                 document.querySelectorAll('input[name="servicios"]').forEach(cb => {
                     cb.checked = (data.servicios || []).includes(cb.value);
                 });
-                // ? Paso 5: Precios hospedaje ?
+                // ── Paso 5: Precios hospedaje ──
                 document.getElementById('h-precio').value       = data.precio_noche     || '';
                 document.getElementById('h-checkin').value      = data.hora_checkin     || '15:00';
                 document.getElementById('h-checkout').value     = data.hora_checkout    || '11:00';
@@ -455,23 +455,23 @@
                 if (minEl) minEl.value = data.estadia_minima || 1;
                 if (maxEl) maxEl.value = data.estadia_maxima || 30;
             } else {
-                // ? Paso 4: Detalles experiencia ?
+                // ── Paso 4: Detalles experiencia ──
                 document.getElementById('e-cap-min').value  = data.capacidad_min    || 1;
                 document.getElementById('e-cap-max').value  = data.capacidad_max    || 10;
                 document.getElementById('e-duracion').value = data.duracion_horas   || 4;
                 document.getElementById('e-nivel').value    = data.nivel_dificultad || 'moderado';
-                // ? Paso 5: Precios experiencia ?
+                // ── Paso 5: Precios experiencia ──
                 document.getElementById('e-precio').value   = data.precio_persona   || '';
                 document.getElementById('e-incluye').value  = data.que_incluye      || '';
                 document.getElementById('e-traer').value    = data.que_traer        || '';
             }
 
-            // Actualizar texto del bot?n final
+            // Actualizar texto del botón final
             document.getElementById('btn-next').innerHTML = 'Guardar cambios <i class="ph-bold ph-check"></i>';
         }
 
-        // El m?dulo image_uploader.js maneja toda la l?gica de carga de im?genes.
-        // Se inicializa autom?ticamente cuando el usuario llega al paso 6 del wizard.
+        // El módulo image_uploader.js maneja toda la lógica de carga de imágenes.
+        // Se inicializa automáticamente cuando el usuario llega al paso 6 del wizard.
 
         /** Valida que estadia_minima <= estadia_maxima en el wizard. */
         function validarEstadiaWizard() {
@@ -483,11 +483,11 @@
             const maxV = parseInt(maxEl.value) || 30;
             const invalid = minV > maxV;
             errEl.style.display = invalid ? 'block' : 'none';
-            minEl.setCustomValidity(invalid ? 'El m?nimo no puede ser mayor que el m?ximo.' : '');
+            minEl.setCustomValidity(invalid ? 'El mínimo no puede ser mayor que el máximo.' : '');
             return !invalid;
         }
 
-        // ??? GESTOR DE SESIONES (EXPERIENCIAS) ??????????????????????
+        // ── GESTOR DE SESIONES (EXPERIENCIAS) ──
 
         function openSessionManager(expId, expName) {
             document.getElementById('sm-exp-id').value = expId;
@@ -538,7 +538,7 @@
                             </div>
                             <div style="display:flex; gap:0.5rem;">
                                 ${!isPast && s.estado !== 'cancelado' ? `
-                                    <button onclick="cancelSession(${s.id})" style="background:#fee2e2; color:#b91c1c; border:none; border-radius:8px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="Cancelar sesi?n">
+                                    <button onclick="cancelSession(${s.id})" style="background:#fee2e2; color:#b91c1c; border:none; border-radius:8px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="Cancelar sesión">
                                         <i class="ph ph-calendar-x" style="font-size:1.2rem;"></i>
                                     </button>
                                 ` : ''}
@@ -547,7 +547,7 @@
                         list.appendChild(item);
                     });
                 } else {
-                    list.innerHTML = '<div style="text-align:center; padding:3rem; border:1px dashed #cbd5e1; border-radius:12px; color:var(--text-muted);">No tienes sesiones programadas. ?Crea la primera!</div>';
+                    list.innerHTML = '<div style="text-align:center; padding:3rem; border:1px dashed #cbd5e1; border-radius:12px; color:var(--text-muted);">No tienes sesiones programadas. ¡Crea la primera!</div>';
                 }
             } catch (err) {
                 list.innerHTML = '<div style="color:#b91c1c; text-align:center; padding:2rem;">Error al cargar las sesiones.</div>';
@@ -578,14 +578,14 @@
                 const result = await res.json();
 
                 if (result.success) {
-                    showToast('?Sesi?n creada con ?xito!');
+                    showToast('¡Sesión creada con éxito!');
                     document.getElementById('create-session-form').reset();
                     loadSessionsManager(expId);
                 } else {
-                    showToast(result.error || 'Error al crear la sesi?n', 'error');
+                    showToast(result.error || 'Error al crear la sesión', 'error');
                 }
             } catch (err) {
-                showToast('Error de conexi?n', 'error');
+                showToast('Error de conexión', 'error');
             } finally {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
@@ -593,20 +593,20 @@
         }
 
         async function cancelSession(sesionId) {
-            if (!confirm('?Est?s seguro de cancelar esta sesi?n? Se notificar? a los viajeros con reserva.')) return;
+            if (!confirm('¿Estás seguro de cancelar esta sesión? Se notificará a los viajeros con reserva.')) return;
 
             try {
                 const res = await fetch(`/api/experiencias/sesiones/cancelar/${sesionId}`, { method: 'POST' });
                 const data = await res.json();
 
                 if (data.success) {
-                    showToast('Sesi?n cancelada correctamente.');
+                    showToast('Sesión cancelada correctamente.');
                     loadSessionsManager(document.getElementById('sm-exp-id').value);
                 } else {
-                    showToast(data.error || 'Error al cancelar la sesi?n', 'error');
+                    showToast(data.error || 'Error al cancelar la sesión', 'error');
                 }
             } catch (err) {
-                showToast('Error de conexi?n', 'error');
+                showToast('Error de conexión', 'error');
             }
         }
 
