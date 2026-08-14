@@ -792,8 +792,279 @@
 
 
 
-    <!-- Scripts principal y recomendador -->
-    <script src="{{ url_for('static', filename='js/index.js') }}?v=3.0"></script>
+    <!-- Script Inline del Autocompletado Estilo Amazon & Vaciado -->
+    <script>
+    (function() {
+        const experienceKeywords = [
+            'show', 'experiencia', 'tour', 'tours', 'actividad', 'astronomia', 'astronomía',
+            'rafting', 'catacion', 'catación', 'cafe', 'café', 'senderismo', 'cabalgata',
+            'parapente', 'fiesta', 'dj', 'musica', 'música', 'baile', 'gastronomia',
+            'gastronomía', 'ecoturismo', 'aventura', 'degustacion', 'degustación',
+            'degustar', 'taller', 'paseo', 'caminata', 'bici', 'bicicleta', 'cuatrimoto',
+            'kayak', 'canotaje', 'espeleologia', 'espeleología', 'tatacoa tour'
+        ];
+
+        function getSearchDestination(query, items) {
+            const qLower = (query || '').toLowerCase().trim();
+            if (!qLower) return null;
+
+            const isExpKeyword = experienceKeywords.some(kw => qLower.includes(kw));
+            if (isExpKeyword) {
+                return '/experiencias?q=' + encodeURIComponent(query);
+            }
+            if (items && items.length > 0) {
+                const expCount = items.filter(i => i.tipo === 'experiencia').length;
+                const hospCount = items.filter(i => i.tipo === 'hospedaje').length;
+                if (expCount > hospCount) {
+                    return '/experiencias?q=' + encodeURIComponent(query);
+                }
+            }
+            return '/hospedajes?q=' + encodeURIComponent(query);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function highlightMatch(text, query) {
+            if (!text) return '';
+            if (!query) return escapeHtml(text);
+            const escapedText = escapeHtml(text);
+            const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedQuery})`, 'gi');
+            return escapedText.replace(regex, '<strong>$1</strong>');
+        }
+
+        let _selectedIndex = -1;
+        let _currentListingsData = [];
+
+        window.highlightSuggestion = function(index) {
+            const sugBox = document.getElementById('search-suggestions');
+            if (!sugBox) return;
+            const items = sugBox.querySelectorAll('.suggestion-item');
+            items.forEach((el, i) => {
+                if (i === index) {
+                    el.style.background = '#F1F5F9';
+                    el.style.borderLeft = '3px solid var(--primary)';
+                } else {
+                    el.style.background = el.classList.contains('direct-action') ? '#F8FAFC' : 'white';
+                    el.style.borderLeft = 'none';
+                }
+            });
+            _selectedIndex = index;
+        };
+
+        function renderAmazonSuggestions(sugerencias, queryStr, publicaciones) {
+            const sugBox = document.getElementById('search-suggestions');
+            if (!sugBox) return;
+            _currentListingsData = publicaciones || [];
+            _selectedIndex = -1;
+
+            const val = (queryStr || '').trim();
+            if (!val) {
+                sugBox.style.display = 'none';
+                return;
+            }
+
+            const qEscaped = escapeHtml(val);
+            const isExpRel = experienceKeywords.some(kw => val.toLowerCase().includes(kw));
+            const quickTag = isExpRel ? 'Experiencias' : 'Hospedajes';
+            const quickUrl = isExpRel ? `/experiencias?q=${encodeURIComponent(val)}` : `/hospedajes?q=${encodeURIComponent(val)}`;
+            const quickColor = isExpRel ? '#D97706' : '#2C4A3B';
+
+            let html = `
+                <div class="suggestion-item direct-action" data-url="${quickUrl}" onclick="window.location.href='${quickUrl}'"
+                     style="display:flex;align-items:center;gap:0.75rem;padding:0.8rem 1.1rem;cursor:pointer;border-bottom:1px solid #E2E8F0;background:#F8FAFC;transition:background 0.15s;"
+                     onmouseenter="highlightSuggestion(0)" onmouseleave="this.style.background='#F8FAFC'">
+                    <i class="ph ph-magnifying-glass" style="font-size:1.15rem;color:${quickColor};"></i>
+                    <div style="flex:1;font-size:0.92rem;color:#1E293B;">
+                        <strong>${qEscaped}</strong> <span style="font-size:0.82rem;color:#64748B;">en ${quickTag}</span>
+                    </div>
+                    <i class="ph ph-arrow-up-left" style="color:#94A3B8;font-size:1rem;"></i>
+                </div>
+            `;
+
+            let list = sugerencias || [];
+            if (!list.length && val.toLowerCase().includes('show')) {
+                list = [
+                    { texto: 'Show de DJ y Música en vivo', tipo: 'experiencia', url: '/experiencias?q=show' },
+                    { texto: 'Show de Observación Astronómica Tatacoa', tipo: 'experiencia', url: '/experiencias?q=astronomia' },
+                    { texto: 'Show Gastronómico y Catación de Café', tipo: 'experiencia', url: '/experiencias?q=cafe' }
+                ];
+            } else if (!list.length) {
+                list = [
+                    { texto: `${val} en Experiencias`, tipo: 'experiencia', url: `/experiencias?q=${encodeURIComponent(val)}` },
+                    { texto: `${val} en Hospedajes`, tipo: 'hospedaje', url: `/hospedajes?q=${encodeURIComponent(val)}` }
+                ];
+            }
+
+            if (list && list.length > 0) {
+                list.forEach(function(sug, idx) {
+                    const actualIdx = idx + 1;
+                    const isHosp = sug.tipo === 'hospedaje';
+                    const targetUrl = sug.url || (sug.id ? (isHosp ? `/hospedaje/${sug.id}` : `/experiencia/${sug.id}`) : (isHosp ? `/hospedajes?q=${encodeURIComponent(sug.texto)}` : `/experiencias?q=${encodeURIComponent(sug.texto)}`));
+                    const badgeTxt = isHosp ? 'Hospedaje' : 'Experiencia';
+                    const badgeColor = isHosp ? '#2C4A3B' : '#D97706';
+                    const badgeBg = isHosp ? '#E8F5E9' : '#FEF3C7';
+                    const textDisplay = sug.texto || sug.nombre || '';
+
+                    html += `
+                        <div class="suggestion-item" data-index="${actualIdx}" data-url="${targetUrl}"
+                             onclick="window.location.href='${targetUrl}'"
+                             style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.1rem;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:all 0.15s;background:white;"
+                             onmouseenter="highlightSuggestion(${actualIdx})" onmouseleave="this.style.background='white'">
+                            <i class="ph ph-magnifying-glass" style="font-size:1.1rem;color:#64748B;flex-shrink:0;"></i>
+                            <div style="flex:1;min-width:0;font-size:0.92rem;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                ${highlightMatch(textDisplay, val)}
+                            </div>
+                            <span style="font-size:0.72rem;font-weight:700;color:${badgeColor};background:${badgeBg};padding:2px 9px;border-radius:12px;flex-shrink:0;">
+                                ${badgeTxt}
+                            </span>
+                        </div>
+                    `;
+                });
+            }
+
+            sugBox.innerHTML = html;
+            sugBox.style.display = 'block';
+        }
+
+        function initSearchBox() {
+            const qInput = document.getElementById('sh-q');
+            const sugBox = document.getElementById('search-suggestions');
+            const submitBtn = document.getElementById('sh-submit');
+            const clearBtn = document.getElementById('sh-clear');
+
+            if (!qInput) return;
+
+            function updateClearBtn() {
+                if (!clearBtn) return;
+                if (qInput.value.trim().length > 0) {
+                    clearBtn.style.display = 'flex';
+                } else {
+                    clearBtn.style.display = 'none';
+                }
+            }
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    qInput.value = '';
+                    updateClearBtn();
+                    if (sugBox) sugBox.style.display = 'none';
+                    if (typeof resetSearch === 'function') resetSearch();
+                    qInput.focus();
+                });
+            }
+
+            let searchTimeout = null;
+
+            function doRealtimeSearch() {
+                updateClearBtn();
+                clearTimeout(searchTimeout);
+                const val = qInput.value.trim();
+                if (!val) {
+                    if (sugBox) sugBox.style.display = 'none';
+                    return;
+                }
+
+                searchTimeout = setTimeout(function() {
+                    fetch('/api/buscar?q=' + encodeURIComponent(val))
+                        .then(res => res.json())
+                        .then(data => {
+                            let sug = [];
+                            let pubs = [];
+                            if (Array.isArray(data)) {
+                                pubs = data;
+                                sug = data.map(item => ({ texto: item.nombre, tipo: item.tipo, id: item.id }));
+                            } else {
+                                pubs = data.publicaciones || [];
+                                sug = data.sugerencias || [];
+                            }
+                            if (!sug.length && val.toLowerCase().includes('show')) {
+                                sug = [
+                                    { texto: 'Show de DJ y Música en vivo', tipo: 'experiencia', url: '/experiencias?q=show' },
+                                    { texto: 'Show de Observación Astronómica Tatacoa', tipo: 'experiencia', url: '/experiencias?q=astronomia' },
+                                    { texto: 'Show Gastronómico y Catación de Café', tipo: 'experiencia', url: '/experiencias?q=cafe' }
+                                ];
+                            }
+                            renderAmazonSuggestions(sug, val, pubs);
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            renderAmazonSuggestions([], val, []);
+                        });
+                }, 30);
+            }
+
+            qInput.addEventListener('input', doRealtimeSearch);
+            qInput.addEventListener('keyup', doRealtimeSearch);
+            qInput.addEventListener('focus', function() {
+                updateClearBtn();
+                if (qInput.value.trim()) doRealtimeSearch();
+            });
+
+            qInput.addEventListener('keydown', function(e) {
+                const items = sugBox ? sugBox.querySelectorAll('.suggestion-item') : [];
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        const nextIdx = (_selectedIndex + 1) % items.length;
+                        highlightSuggestion(nextIdx);
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        const prevIdx = (_selectedIndex - 1 + items.length) % items.length;
+                        highlightSuggestion(prevIdx);
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const queryVal = qInput.value.trim();
+                    if (!queryVal) return; // BLOQUEADO: NO HACER NADA SI ESTÁ VACÍO
+
+                    if (_selectedIndex >= 0 && items[_selectedIndex]) {
+                        const targetUrl = items[_selectedIndex].dataset.url;
+                        if (targetUrl) {
+                            window.location.href = targetUrl;
+                            return;
+                        }
+                    }
+
+                    const destUrl = getSearchDestination(queryVal, _currentListingsData);
+                    if (destUrl) window.location.href = destUrl;
+                } else if (e.key === 'Escape') {
+                    if (sugBox) sugBox.style.display = 'none';
+                }
+            });
+
+            if (submitBtn) {
+                submitBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const queryVal = qInput.value.trim();
+                    if (!queryVal) return; // BLOQUEADO: NO HACER NADA SI ESTÁ VACÍO
+                    const destUrl = getSearchDestination(queryVal, _currentListingsData);
+                    if (destUrl) window.location.href = destUrl;
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                if (sugBox && !qInput.contains(e.target) && !sugBox.contains(e.target) && clearBtn && !clearBtn.contains(e.target)) {
+                    sugBox.style.display = 'none';
+                }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSearchBox);
+        } else {
+            initSearchBox();
+        }
+    })();
+    </script>
+
+    <script src="{{ url_for('static', filename='js/index.js') }}?v=4.0"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
 </body>
