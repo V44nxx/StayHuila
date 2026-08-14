@@ -45,6 +45,24 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
+.host-nav-link {
+    font-weight: 700 !important;
+    color: inherit !important;
+    transition: color 0.3s ease, transform 0.2s ease;
+}
+
+.host-nav-link:hover {
+    color: var(--secondary) !important;
+}
+
+.navbar.scrolled .host-nav-link {
+    color: var(--text-main) !important;
+}
+
+.navbar.scrolled .host-nav-link:hover {
+    color: var(--primary) !important;
+}
+
 .logo {
     display: flex;
     align-items: center;
