@@ -886,18 +886,6 @@
             `;
 
             let list = sugerencias || [];
-            if (!list.length && val.toLowerCase().includes('show')) {
-                list = [
-                    { texto: 'Show de DJ y Música en vivo', tipo: 'experiencia', url: '/experiencias?q=show' },
-                    { texto: 'Show de Observación Astronómica Tatacoa', tipo: 'experiencia', url: '/experiencias?q=astronomia' },
-                    { texto: 'Show Gastronómico y Catación de Café', tipo: 'experiencia', url: '/experiencias?q=cafe' }
-                ];
-            } else if (!list.length) {
-                list = [
-                    { texto: `${val} en Experiencias`, tipo: 'experiencia', url: `/experiencias?q=${encodeURIComponent(val)}` },
-                    { texto: `${val} en Hospedajes`, tipo: 'hospedaje', url: `/hospedajes?q=${encodeURIComponent(val)}` }
-                ];
-            }
 
             if (list && list.length > 0) {
                 list.forEach(function(sug, idx) {
@@ -981,14 +969,6 @@
                             } else {
                                 pubs = data.publicaciones || [];
                                 sug = data.sugerencias || [];
-                            }
-                            if (!sug.length && val.toLowerCase().includes('show')) {
-                                sug = [
-                                    { texto: 'Show de DJ y Música en vivo', tipo: 'experiencia', url: '/experiencias?q=show' },
-                                    { texto: 'Show de Observación Astronómica Tatacoa', tipo: 'experiencia', url: '/experiencias?q=astronomia' },
-                                    { texto: 'Show Gastronómico y Catación de Café', tipo: 'experiencia', url: '/experiencias?q=cafe' }
-                                ];
-                            }
                             renderAmazonSuggestions(sug, val, pubs);
                         })
                         .catch(err => {

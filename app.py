@@ -3660,7 +3660,7 @@ def disponibilidad(id):
     finally:
         c.close()
 
-# ── API BUSCAR UNIFICADO ESTILO AMAZON ─────────────────────────
+# ── API BUSCAR UNIFICADO REAL ──────────────────────────────────
 @app.route('/api/buscar')
 def api_buscar():
     q = request.args.get('q', '').strip()
@@ -3685,9 +3685,9 @@ def api_buscar():
                     LEFT JOIN categorias c ON h.categoria_id = c.id
                     LEFT JOIN hospedaje_servicios hs ON h.id = hs.hospedaje_id
                     WHERE (h.nombre LIKE %s OR h.municipio LIKE %s OR h.descripcion LIKE %s OR h.descripcion_corta LIKE %s OR h.tipo LIKE %s OR c.nombre LIKE %s OR hs.servicio LIKE %s)
-                      AND h.activo = 1 AND h.eliminado = 0 AND h.estado = 'abierta'
+                      AND h.activo = 1 AND (h.eliminado = 0 OR h.eliminado IS NULL)
                     ORDER BY h.destacado DESC, h.calificacion DESC
-                    LIMIT 20
+                    LIMIT 25
                 """, (term, term, term, term, term, term, term))
                 h_rows = cur.fetchall()
                 for r in h_rows:
@@ -3713,9 +3713,9 @@ def api_buscar():
                     LEFT JOIN experiencia_imagenes i ON e.id = e.experiencia_id AND i.es_portada = 1
                     LEFT JOIN categorias c ON e.categoria_id = c.id
                     WHERE (e.nombre LIKE %s OR e.municipio LIKE %s OR e.descripcion LIKE %s OR e.descripcion_corta LIKE %s OR e.tipo LIKE %s OR e.que_incluye LIKE %s OR e.que_traer LIKE %s OR c.nombre LIKE %s)
-                      AND e.activo = 1 AND e.eliminado = 0 AND e.estado = 'abierta'
+                      AND e.activo = 1 AND (e.eliminado = 0 OR e.eliminado IS NULL)
                     ORDER BY e.destacado DESC, e.calificacion DESC
-                    LIMIT 20
+                    LIMIT 25
                 """, (term, term, term, term, term, term, term, term))
                 e_rows = cur.fetchall()
                 for r in e_rows:
@@ -3729,13 +3729,6 @@ def api_buscar():
                             'municipio': r['municipio'],
                             'id': r['id']
                         })
-
-            # Si no hay sugerencias exactas en BD para la palabra, generar sugerencias dinámicas inteligentes
-            if q and not sugerencias_texto:
-                q_clean = q.strip().capitalize()
-                sugerencias_texto.append({'texto': f"Show de DJ y Música en vivo ({q_clean})", 'tipo': 'experiencia', 'municipio': 'Neiva', 'id': ''})
-                sugerencias_texto.append({'texto': f"Show de Observación Astronómica ({q_clean})", 'tipo': 'experiencia', 'municipio': 'Villavieja', 'id': ''})
-                sugerencias_texto.append({'texto': f"Show Gastronómico y Catación de Café ({q_clean})", 'tipo': 'experiencia', 'municipio': 'Pitalito', 'id': ''})
 
             return jsonify({
                 'publicaciones': serialize(resultados),
