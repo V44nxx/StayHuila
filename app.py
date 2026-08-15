@@ -3684,7 +3684,7 @@ def api_buscar():
                     SELECT DISTINCT h.id, h.nombre, h.municipio, h.precio_noche as precio, 'hospedaje' as tipo,
                            COALESCE(h.descripcion_corta, h.tipo) as descripcion_corta,
                            h.calificacion, h.total_resenas, h.es_eco, h.descuento_porcentaje,
-                           i.url as imagen, h.tipo as sub_tipo
+                           i.url as imagen, h.tipo as sub_tipo, h.destacado
                     FROM hospedajes h
                     LEFT JOIN hospedaje_imagenes i ON h.id = i.hospedaje_id AND i.es_portada = 1
                     LEFT JOIN hospedaje_servicios hs ON h.id = hs.hospedaje_id
@@ -3719,7 +3719,7 @@ def api_buscar():
                     SELECT DISTINCT e.id, e.nombre, e.municipio, e.precio_persona as precio, 'experiencia' as tipo,
                            COALESCE(e.descripcion_corta, e.tipo) as descripcion_corta,
                            e.calificacion, e.total_resenas, 0 as es_eco, 0 as descuento_porcentaje,
-                           i.url as imagen, e.tipo as sub_tipo
+                           i.url as imagen, e.tipo as sub_tipo, e.destacado
                     FROM experiencias e
                     LEFT JOIN experiencia_imagenes i ON e.id = i.experiencia_id AND i.es_portada = 1
                     WHERE (e.nombre LIKE %s OR e.municipio LIKE %s OR e.descripcion LIKE %s OR e.descripcion_corta LIKE %s OR e.tipo LIKE %s OR e.que_incluye LIKE %s OR e.que_traer LIKE %s)
