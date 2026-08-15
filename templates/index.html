@@ -301,7 +301,7 @@
                     style="cursor:pointer;">
                     <div class="image-wrapper">
                         <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
-                            alt="{{ h.tipo }}">
+                            alt="{{ h.tipo }}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600';">
                         {% if h.es_eco %}
                         <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>
                         {% endif %}
@@ -334,7 +334,7 @@
                     style="cursor:pointer;">
                     <div class="image-wrapper">
                         <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
-                            alt="{{ e.tipo }}">
+                            alt="{{ e.tipo }}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500';">
                     </div>
                     <div class="listing-info">
                         <div class="listing-header">

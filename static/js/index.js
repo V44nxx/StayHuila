@@ -108,8 +108,8 @@ function renderListings(items, queryStr) {
     let html = '';
     items.forEach(function (item) {
         const isHosp = item.tipo === 'hospedaje';
-        const url = isHosp ? `/hospedaje/${item.id}` : `/experiencia/${item.id}`;
-        const imgUrl = item.imagen || (isHosp ? 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' : 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500');
+        const fallbackUrl = isHosp ? 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' : 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500';
+        const imgUrl = item.imagen || fallbackUrl;
         const badgeTxt = isHosp ? '🏠 Hospedaje' : '✨ Experiencia';
         const badgeBg = isHosp ? '#2C4A3B' : '#D97706';
         const priceUnit = isHosp ? 'noche' : 'persona';
@@ -121,7 +121,7 @@ function renderListings(items, queryStr) {
         html += `
             <article class="listing-card" onclick="window.location.href='${url}'" style="cursor:pointer;">
                 <div class="image-wrapper">
-                    <img src="${imgUrl}" alt="${escapeHtml(item.nombre)}">
+                    <img src="${imgUrl}" alt="${escapeHtml(item.nombre)}" onerror="this.onerror=null; this.src='${fallbackUrl}';">
                     <div class="badge" style="background:${badgeBg}; color:white; font-size:0.75rem; font-weight:700; top:12px; left:12px; position:absolute; padding:4px 10px; border-radius:20px; box-shadow:0 2px 6px rgba(0,0,0,0.2);">
                         ${badgeTxt}
                     </div>
