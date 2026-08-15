@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         renderListings(pubs, val);
                     })
                     .catch(err => console.error(err));
-            }, 80);
+            }, 30);
         });
 
         // MANEJO DE ENTER Y NAVEGACIÓN TECLADO ESTILO AMAZON
