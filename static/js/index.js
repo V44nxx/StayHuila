@@ -288,7 +288,7 @@ function loadInitialRecommendations() {
 }
 
 /* ── Inicialización de Eventos ── */
-document.addEventListener('DOMContentLoaded', function () {
+function initIndexApp() {
     const qInput = document.getElementById('sh-q');
     const sugBox = document.getElementById('search-suggestions');
     const submitBtn = document.getElementById('sh-submit');
@@ -458,4 +458,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initIndexApp);
+} else {
+    initIndexApp();
+}
