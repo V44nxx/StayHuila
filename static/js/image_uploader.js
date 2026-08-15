@@ -29,7 +29,7 @@ const ImageUploader = (() => {
     // ── Constantes de validación client-side ──────────────────────────────────
     const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/jfif', 'image/pjpeg'];
     const ALLOWED_EXTS  = ['jpg', 'jpeg', 'png', 'webp', 'jfif'];
-    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+    const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB (igual que el servidor)
 
     // ── TEXTOS DE BADGE POR ESTADO ────────────────────────────────────────────
     const BADGE_CONFIG = {
@@ -44,17 +44,21 @@ const ImageUploader = (() => {
         client_size:       { cls: 'badge-error',   icon: 'ph-x-circle',       text: 'Archivo muy pesado' },
     };
 
+    function _ensureDom() {
+        if (!_zone) _zone = document.getElementById('img-upload-zone');
+        if (!_input) _input = document.getElementById('img-upload-input');
+        if (!_grid) _grid = document.getElementById('img-preview-grid');
+        if (!_summary) _summary = document.getElementById('img-validation-summary');
+        if (!_progressWrap) _progressWrap = document.getElementById('img-progress-wrap');
+        if (!_progressFill) _progressFill = document.getElementById('img-progress-fill');
+        if (!_progressLabel) _progressLabel = document.getElementById('img-progress-label');
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // INIT — Conecta el módulo a los elementos del DOM del paso 6 del wizard
     // ─────────────────────────────────────────────────────────────────────────
     function init() {
-        _zone         = document.getElementById('img-upload-zone');
-        _input        = document.getElementById('img-upload-input');
-        _grid         = document.getElementById('img-preview-grid');
-        _summary      = document.getElementById('img-validation-summary');
-        _progressWrap = document.getElementById('img-progress-wrap');
-        _progressFill = document.getElementById('img-progress-fill');
-        _progressLabel= document.getElementById('img-progress-label');
+        _ensureDom();
 
         if (!_zone || !_input) return;  // El paso 6 no está en el DOM aún
 
@@ -72,15 +76,18 @@ const ImageUploader = (() => {
 
     function _onDragOver(e) {
         e.preventDefault();
+        _ensureDom();
         if (_zone) _zone.classList.add('drag-active');
     }
 
     function _onDragLeave(e) {
+        _ensureDom();
         if (_zone) _zone.classList.remove('drag-active');
     }
 
     function _onDrop(e) {
         e.preventDefault();
+        _ensureDom();
         if (_zone) _zone.classList.remove('drag-active');
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             _handleFiles(e.dataTransfer.files);
@@ -102,6 +109,7 @@ const ImageUploader = (() => {
     // _handleFiles — Punto de entrada cuando el usuario selecciona archivos
     // ─────────────────────────────────────────────────────────────────────────
     function _handleFiles(fileList) {
+        _ensureDom();
         const files = Array.from(fileList);
         if (files.length === 0) return;
 
@@ -125,7 +133,7 @@ const ImageUploader = (() => {
                 return;
             }
 
-            // 2. Crear tarjeta con skeleton mientras se procesa en el servidor
+            // 2. Crear tarjeta con vista previa inmediata
             const cardEl = _createPreviewCard(file, idx);
             _updateCard(cardEl, 'loading', 'Procesando...', null);
 
@@ -149,7 +157,7 @@ const ImageUploader = (() => {
         if (status === 'client_format')
             return `Formato "${file.type || file.name.split('.').pop()}" no permitido. Usa JPG, JPEG, PNG, WEBP o JFIF.`;
         if (status === 'client_size')
-            return `El archivo pesa ${(file.size / (1024*1024)).toFixed(1)} MB. Máximo permitido: 5 MB.`;
+            return `El archivo pesa ${(file.size / (1024*1024)).toFixed(1)} MB. Máximo permitido: 15 MB.`;
         return 'Error de validación.';
     }
 
@@ -157,13 +165,21 @@ const ImageUploader = (() => {
     // _createPreviewCard — Crea la tarjeta de previsualización en el grid
     // ─────────────────────────────────────────────────────────────────────────
     function _createPreviewCard(file, idx) {
+        _ensureDom();
         const card = document.createElement('div');
         card.className = 'img-preview-card status-loading';
         card.dataset.idx = idx;
 
-        // Skeleton inicial
+        let imgSrc = '';
+        try {
+            imgSrc = URL.createObjectURL(file);
+        } catch(e) {
+            imgSrc = '';
+        }
+
+        // Estructura con previsualización inmediata
         card.innerHTML = `
-            <div class="img-preview-skeleton"></div>
+            <img src="${imgSrc}" alt="${file.name || 'Vista previa'}">
             <span class="img-preview-badge badge-loading">
                 <span class="img-spinner"></span>
                 Procesando...
@@ -174,25 +190,10 @@ const ImageUploader = (() => {
             <div class="img-preview-tooltip">Verificando imagen...</div>
         `;
 
-        // Si el archivo pasa cliente-check, mostrar preview local mientras el servidor responde
-        if (_clientValidate(file) === 'ok') {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const skeleton = card.querySelector('.img-preview-skeleton');
-                if (skeleton) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.alt = file.name;
-                    skeleton.replaceWith(img);
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-
         // Botón eliminar
         card.querySelector('.img-preview-remove').addEventListener('click', ev => {
             ev.stopPropagation();
-            // Si tenía URL válida, quitarla del array
+            try { if (imgSrc && imgSrc.startsWith('blob:')) URL.revokeObjectURL(imgSrc); } catch(e) {}
             const url = card.dataset.validUrl;
             if (url) {
                 _validUrls = _validUrls.filter(u => u !== url);
@@ -201,7 +202,11 @@ const ImageUploader = (() => {
             _updateSummary();
         });
 
-        _grid.appendChild(card);
+        if (_grid) {
+            _grid.appendChild(card);
+        } else {
+            console.error('StayHuila: No se encontró el contenedor #img-preview-grid');
+        }
         return card;
     }
 
@@ -232,9 +237,9 @@ const ImageUploader = (() => {
             _validUrls.push(savedUrl);
 
             // Reemplazar preview local por la imagen ya optimizada del servidor
-            const existing = card.querySelector('img');
-            if (existing) {
-                existing.src = savedUrl + '?t=' + Date.now();
+            const img = card.querySelector('img');
+            if (img) {
+                img.src = savedUrl + '?t=' + Date.now();
             }
 
             // Agregar etiqueta "Portada" a la primera imagen válida
