@@ -603,7 +603,7 @@
                             <!-- Etiquetas de requisitos -->
                             <div class="img-upload-reqs">
                                 <span class="img-upload-req-badge">
-                                    <i class="ph ph-check"></i> JPG / PNG
+                                    <i class="ph ph-check"></i> JPG / PNG / JFIF / WEBP
                                 </span>
                                 <span class="img-upload-req-badge">
                                     <i class="ph ph-check"></i> Máx. 5 MB
@@ -615,11 +615,11 @@
                                     <i class="ph ph-check"></i> Nitidez verificada
                                 </span>
                             </div>
-
-                            <!-- Input oculto de archivos -->
-                            <input type="file" id="img-upload-input" multiple accept=".jpg,.jpeg,.png,.jfif,.webp,image/*"
-                                style="display:none;" aria-hidden="true">
                         </div>
+
+                        <!-- Input oculto de archivos (fuera de la zona para evitar recursión de clic) -->
+                        <input type="file" id="img-upload-input" multiple accept=".jpg,.jpeg,.png,.jfif,.webp,image/*"
+                            style="display:none;" aria-hidden="true">
 
                         <!-- Barra de progreso global -->
                         <div class="img-upload-progress-wrap" id="img-progress-wrap">

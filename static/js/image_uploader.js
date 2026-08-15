@@ -21,6 +21,7 @@ const ImageUploader = (() => {
     let _validUrls     = [];   // Array de URLs de imágenes exitosamente optimizadas
     let _pendingCount  = 0;    // Número de validaciones en curso
     let _totalSelected = 0;    // Total de archivos seleccionados en este batch
+    let _isInitialized = false; // Evita registrar múltiples listeners en init()
 
     // ── Referencias al DOM (se inicializan en init()) ─────────────────────────
     let _zone, _input, _grid, _summary, _progressWrap, _progressFill, _progressLabel;
@@ -56,12 +57,21 @@ const ImageUploader = (() => {
         _progressLabel= document.getElementById('img-progress-label');
 
         if (!_zone || !_input) return;  // El paso 6 no está en el DOM aún
+        if (_isInitialized) return;     // Evita registrar event listeners duplicados
+        _isInitialized = true;
 
-        // Abrir selector de archivos al hacer clic en la zona
-        _zone.addEventListener('click', () => _input.click());
+        // Abrir selector de archivos al hacer clic en la zona (evitando recursión si el target es el input)
+        _zone.addEventListener('click', (e) => {
+            if (e.target !== _input) {
+                _input.click();
+            }
+        });
 
         // Selección manual de archivos
-        _input.addEventListener('change', e => _handleFiles(e.target.files));
+        _input.addEventListener('change', e => {
+            _handleFiles(e.target.files);
+            _input.value = ''; // Limpiar para permitir seleccionar el mismo archivo de nuevo si se requiere
+        });
 
         // Drag & Drop — efectos visuales
         _zone.addEventListener('dragover', e => {
@@ -314,6 +324,7 @@ const ImageUploader = (() => {
         _validUrls     = [];
         _pendingCount  = 0;
         _totalSelected = 0;
+        _isInitialized = false;
         if (_grid)    _grid.innerHTML    = '';
         if (_summary) _summary.classList.remove('visible');
         if (_progressWrap) _progressWrap.classList.remove('visible');
