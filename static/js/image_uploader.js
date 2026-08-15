@@ -26,7 +26,8 @@ const ImageUploader = (() => {
     let _zone, _input, _grid, _summary, _progressWrap, _progressFill, _progressLabel;
 
     // ── Constantes de validación client-side ──────────────────────────────────
-    const ALLOWED_TYPES  = ['image/jpeg', 'image/jpg', 'image/png'];
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/jfif', 'image/pjpeg'];
+    const ALLOWED_EXTS  = ['jpg', 'jpeg', 'png', 'webp', 'jfif'];
     const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
     // ── TEXTOS DE BADGE POR ESTADO ────────────────────────────────────────────
@@ -115,14 +116,16 @@ const ImageUploader = (() => {
     // _clientValidate — Validación rápida en el navegador (sin red)
     // ─────────────────────────────────────────────────────────────────────────
     function _clientValidate(file) {
-        if (!ALLOWED_TYPES.includes(file.type)) return 'client_format';
-        if (file.size > MAX_SIZE_BYTES)          return 'client_size';
+        const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
+        const isTypeValid = ALLOWED_TYPES.includes(file.type) || ALLOWED_EXTS.includes(ext) || (file.type && file.type.startsWith('image/'));
+        if (!isTypeValid) return 'client_format';
+        if (file.size > MAX_SIZE_BYTES) return 'client_size';
         return 'ok';
     }
 
     function _getClientMessage(status, file) {
         if (status === 'client_format')
-            return `Formato "${file.type || file.name.split('.').pop()}" no permitido. Usa JPG o PNG.`;
+            return `Formato "${file.type || file.name.split('.').pop()}" no permitido. Usa JPG, JPEG, PNG, WEBP o JFIF.`;
         if (status === 'client_size')
             return `El archivo pesa ${(file.size / (1024*1024)).toFixed(1)} MB. Máximo permitido: 5 MB.`;
         return 'Error de validación.';

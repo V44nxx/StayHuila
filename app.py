@@ -1136,10 +1136,10 @@ def api_pago_ocr_confirmar(reserva_id):
         return jsonify({'success': False, 'error': 'No se cargó ningún archivo de comprobante.'}), 400
 
     # 1. Validar extensión de la imagen
-    allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
+    allowed_extensions = {'jpg', 'jpeg', 'png', 'webp', 'jfif'}
     ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
     if ext not in allowed_extensions:
-        return jsonify({'success': False, 'error': f'Formato no permitido (.{ext}). Usa JPG, JPEG, PNG o WEBP.'}), 400
+        return jsonify({'success': False, 'error': f'Formato no permitido (.{ext}). Usa JPG, JPEG, PNG, WEBP o JFIF.'}), 400
 
     c = db()
     try:

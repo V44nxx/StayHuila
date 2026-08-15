@@ -28,7 +28,7 @@ from PIL import Image, ImageEnhance, ExifTags
 import cv2
 
 # ── CONSTANTES DE VALIDACIÓN ────────────────────────────────────────────────
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}  # Formatos aceptados (añadido webp)
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'jfif'}  # Formatos aceptados (incluido jfif)
 MAX_FILE_SIZE_MB   = 15                               # Aumentado para aceptar fotos de celular sin rechazar
 MIN_WIDTH          = 800                              # Resolución mínima: ancho (reducido para mayor compatibilidad)
 MIN_HEIGHT         = 400                              # Resolución mínima: alto
