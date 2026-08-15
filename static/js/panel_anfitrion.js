@@ -329,23 +329,31 @@
             const eFields5 = document.getElementById('fields-experiencia-5');
             const lblDin = document.querySelector('.lbl-tipo-dinamico');
 
+            function toggleFieldGroup(group, enable) {
+                if (!group) return;
+                group.style.display = enable ? 'block' : 'none';
+                group.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.disabled = !enable;
+                });
+            }
+
             if(tipo === 'hospedaje') {
-                if(hFields4) hFields4.style.display = 'block';
-                if(eFields4) eFields4.style.display = 'none';
-                if(hFields5) hFields5.style.display = 'block';
-                if(eFields5) eFields5.style.display = 'none';
+                toggleFieldGroup(hFields4, true);
+                toggleFieldGroup(eFields4, false);
+                toggleFieldGroup(hFields5, true);
+                toggleFieldGroup(eFields5, false);
                 if(lblDin) lblDin.textContent = 'del alojamiento';
             } else if (tipo === 'experiencia') {
-                if(hFields4) hFields4.style.display = 'none';
-                if(eFields4) eFields4.style.display = 'block';
-                if(hFields5) hFields5.style.display = 'none';
-                if(eFields5) eFields5.style.display = 'block';
+                toggleFieldGroup(hFields4, false);
+                toggleFieldGroup(eFields4, true);
+                toggleFieldGroup(hFields5, false);
+                toggleFieldGroup(eFields5, true);
                 if(lblDin) lblDin.textContent = 'de la experiencia';
             } else {
-                if(hFields4) hFields4.style.display = 'none';
-                if(eFields4) eFields4.style.display = 'none';
-                if(hFields5) hFields5.style.display = 'none';
-                if(eFields5) eFields5.style.display = 'none';
+                toggleFieldGroup(hFields4, false);
+                toggleFieldGroup(eFields4, false);
+                toggleFieldGroup(hFields5, false);
+                toggleFieldGroup(eFields5, false);
                 if(lblDin) lblDin.textContent = 'del anuncio';
             }
         }
@@ -508,6 +516,9 @@
             const inputs = currentStepEl.querySelectorAll('input, select, textarea');
             let isValid = true;
             for (let input of inputs) {
+                // Omitir validación de campos deshabilitados o invisibles (ej. campos del otro tipo de publicación)
+                if (input.disabled || (input.offsetParent === null && input.type !== 'hidden')) continue;
+
                 if (input.id === 'e-cap-min' || input.id === 'e-cap-max') {
                     validarCapacidadExperiencia();
                 }
