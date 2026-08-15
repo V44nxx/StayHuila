@@ -792,46 +792,7 @@
 
 
 
-    <!-- Script Inline del Autocompletado Estilo Amazon & Vaciado -->
-    <script>
-    (function() {
-        const experienceKeywords = [
-            'show', 'experiencia', 'tour', 'tours', 'actividad', 'astronomia', 'astronomía',
-            'rafting', 'catacion', 'catación', 'cafe', 'café', 'senderismo', 'cabalgata',
-            'parapente', 'fiesta', 'dj', 'musica', 'música', 'baile', 'gastronomia',
-            'gastronomía', 'ecoturismo', 'aventura', 'degustacion', 'degustación',
-            'degustar', 'taller', 'paseo', 'caminata', 'bici', 'bicicleta', 'cuatrimoto',
-            'kayak', 'canotaje', 'espeleologia', 'espeleología', 'tatacoa tour'
-        ];
 
-        function getSearchDestination(query, items) {
-            const qLower = (query || '').toLowerCase().trim();
-            if (!qLower) return null;
-
-            const isExpKeyword = experienceKeywords.some(kw => qLower.includes(kw));
-            if (isExpKeyword) {
-                return '/experiencias?q=' + encodeURIComponent(query);
-            }
-            if (items && items.length > 0) {
-                const expCount = items.filter(i => i.tipo === 'experiencia').length;
-                const hospCount = items.filter(i => i.tipo === 'hospedaje').length;
-                if (expCount > hospCount) {
-                    return '/experiencias?q=' + encodeURIComponent(query);
-                }
-            }
-            return '/hospedajes?q=' + encodeURIComponent(query);
-        }
-
-        function highlightMatch(text, query) {
-            if (!text) return '';
-            if (!query) return escapeHtml(text);
-            const escapedText = escapeHtml(text);
-            const escapedQuery = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedQuery})`, 'gi');
-            return escapedText.replace(regex, '<strong>$1</strong>');
-        }
-    })();
-    </script>
 
     <script src="{{ url_for('static', filename='js/index.js') }}?v=4.0"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
