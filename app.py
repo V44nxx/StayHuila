@@ -1526,7 +1526,11 @@ def hospedajes():
                 if cat in _cat_params:
                     params.extend(_cat_params[cat])
 
-            query += " ORDER BY h.destacado DESC, h.calificacion DESC"
+            if q:
+                query += " ORDER BY (CASE WHEN LOWER(h.nombre) LIKE LOWER(%s) THEN 1 WHEN LOWER(h.nombre) LIKE LOWER(%s) THEN 2 ELSE 3 END) ASC, h.destacado DESC, h.calificacion DESC"
+                params.extend([f"{q}%", f"%{q}%"])
+            else:
+                query += " ORDER BY h.destacado DESC, h.calificacion DESC"
 
             cur.execute(query, tuple(params))
             data = serialize(cur.fetchall())
@@ -3672,6 +3676,7 @@ def api_buscar():
             sugerencias_texto = []
             vistas = set()
             term = f"%{q}%"
+            starts_term = f"{q}%"
             
             # Hospedajes
             if tipo is None or tipo == 'hospedaje':
@@ -3686,9 +3691,16 @@ def api_buscar():
                     LEFT JOIN hospedaje_servicios hs ON h.id = hs.hospedaje_id
                     WHERE (h.nombre LIKE %s OR h.municipio LIKE %s OR h.descripcion LIKE %s OR h.descripcion_corta LIKE %s OR h.tipo LIKE %s OR c.nombre LIKE %s OR hs.servicio LIKE %s)
                       AND h.activo = 1 AND (h.eliminado = 0 OR h.eliminado IS NULL)
-                    ORDER BY h.destacado DESC, h.calificacion DESC
+                    ORDER BY 
+                      (CASE 
+                        WHEN LOWER(h.nombre) LIKE LOWER(%s) THEN 1
+                        WHEN LOWER(h.nombre) LIKE LOWER(%s) THEN 2
+                        WHEN LOWER(h.tipo) LIKE LOWER(%s) THEN 3
+                        ELSE 4
+                       END) ASC,
+                      h.destacado DESC, h.calificacion DESC
                     LIMIT 25
-                """, (term, term, term, term, term, term, term))
+                """, (term, term, term, term, term, term, term, starts_term, term, term))
                 h_rows = cur.fetchall()
                 for r in h_rows:
                     resultados.append(r)
@@ -3714,9 +3726,16 @@ def api_buscar():
                     LEFT JOIN categorias c ON e.categoria_id = c.id
                     WHERE (e.nombre LIKE %s OR e.municipio LIKE %s OR e.descripcion LIKE %s OR e.descripcion_corta LIKE %s OR e.tipo LIKE %s OR e.que_incluye LIKE %s OR e.que_traer LIKE %s OR c.nombre LIKE %s)
                       AND e.activo = 1 AND (e.eliminado = 0 OR e.eliminado IS NULL)
-                    ORDER BY e.destacado DESC, e.calificacion DESC
+                    ORDER BY 
+                      (CASE 
+                        WHEN LOWER(e.nombre) LIKE LOWER(%s) THEN 1
+                        WHEN LOWER(e.nombre) LIKE LOWER(%s) THEN 2
+                        WHEN LOWER(e.tipo) LIKE LOWER(%s) THEN 3
+                        ELSE 4
+                       END) ASC,
+                      e.destacado DESC, e.calificacion DESC
                     LIMIT 25
-                """, (term, term, term, term, term, term, term, term))
+                """, (term, term, term, term, term, term, term, term, starts_term, term, term))
                 e_rows = cur.fetchall()
                 for r in e_rows:
                     resultados.append(r)
@@ -3729,6 +3748,11 @@ def api_buscar():
                             'municipio': r['municipio'],
                             'id': r['id']
                         })
+
+            # Re-ordenar sugerencias en Python para que las coincidencias exactas por nombre al inicio vayan primero
+            if q:
+                q_lower = q.lower()
+                sugerencias_texto.sort(key=lambda s: 0 if s['texto'].lower().startswith(q_lower) else (1 if q_lower in s['texto'].lower() else 2))
 
             return jsonify({
                 'publicaciones': serialize(resultados),
