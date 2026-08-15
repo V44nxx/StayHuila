@@ -3097,7 +3097,7 @@ def publicar():
     direccion = request.form.get('direccion', '')
     lat = request.form.get('lat')
     lng = request.form.get('lng')
-    precio = request.form.get('precio')
+    precio = bounded_int(digits_only(request.form.get('precio'), 12), 10000, 10000, 100000000)
     
     max_huespedes = bounded_int(request.form.get('max_huespedes'), 2, 1, 30)
     habitaciones = bounded_int(request.form.get('habitaciones'), 1, 1, 20)
@@ -3259,7 +3259,7 @@ def actualizar_publicacion():
     direccion = request.form.get('direccion', '')
     lat      = request.form.get('lat')
     lng      = request.form.get('lng')
-    precio   = request.form.get('precio')
+    precio   = bounded_int(digits_only(request.form.get('precio'), 12), 10000, 10000, 100000000)
 
     if not pub_id or tipo not in ('hospedaje', 'experiencia'):
         return jsonify({'success': False, 'error': 'Datos incompletos.'})

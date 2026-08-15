@@ -615,3 +615,114 @@
         justify-content: center !important;
     }
 }
+
+/* ── BANNER Y BOTONES DE BORRADOR ─────────────────────────────────────── */
+.draft-banner {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1.5px solid #f59e0b;
+    border-radius: 16px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.12);
+    animation: fadeIn 0.3s ease;
+}
+.draft-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.draft-icon {
+    width: 44px;
+    height: 44px;
+    background: #f59e0b;
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+.draft-banner strong {
+    color: #92400e;
+    font-size: 1.05rem;
+    display: block;
+}
+.draft-banner p {
+    color: #b45309;
+    font-size: 0.88rem;
+    margin: 0.2rem 0 0;
+}
+.draft-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+.btn-resume-draft {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 0.65rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: background 0.2s;
+}
+.btn-resume-draft:hover {
+    background: #d97706;
+}
+.btn-discard-draft {
+    background: transparent;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+.btn-discard-draft:hover {
+    background: #fef2f2;
+}
+.btn-draft {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.8rem 1.2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+.btn-draft:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+@media (max-width: 768px) {
+    .draft-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .draft-banner-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+

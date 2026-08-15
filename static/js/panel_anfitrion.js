@@ -17,6 +17,262 @@
             input.value = input.value.replace(/\D/g, '').slice(0, maxLength);
         }
 
+        // ── Formateador de inputs de dinero / precio (COP) ──
+        function setupMoneyInputs() {
+            ['h-precio', 'e-precio'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.removeEventListener('input', onMoneyInput);
+                el.addEventListener('input', onMoneyInput);
+                el.addEventListener('blur', function() {
+                    if (!this.value.trim()) this.value = '';
+                });
+            });
+        }
+
+        function onMoneyInput() {
+            formatAsCurrencyInput(this);
+        }
+
+        function formatAsCurrencyInput(input) {
+            const rawValue = input.value;
+            const selectionStart = input.selectionStart || rawValue.length;
+
+            // Contar cuántos dígitos había a la izquierda del cursor
+            const digitsLeftOfCursor = rawValue.slice(0, selectionStart).replace(/\D/g, '').length;
+
+            const digits = rawValue.replace(/\D/g, '');
+            if (!digits) {
+                input.value = '';
+                return;
+            }
+
+            const numberVal = parseInt(digits, 10);
+            // Formato moneda Colombia: $ 150.000 (separadores de miles con punto)
+            const formatted = '$ ' + numberVal.toLocaleString('es-CO');
+            input.value = formatted;
+
+            // Reconstruir posición del cursor
+            let newCursor = 0;
+            let countDigits = 0;
+            for (let i = 0; i < formatted.length; i++) {
+                if (/\d/.test(formatted[i])) {
+                    countDigits++;
+                }
+                if (countDigits >= digitsLeftOfCursor) {
+                    newCursor = i + 1;
+                    break;
+                }
+            }
+            if (digitsLeftOfCursor === 0) {
+                const firstDigitIdx = formatted.search(/\d/);
+                newCursor = firstDigitIdx >= 0 ? firstDigitIdx : formatted.length;
+            }
+            if (newCursor > formatted.length) newCursor = formatted.length;
+
+            try {
+                input.setSelectionRange(newCursor, newCursor);
+            } catch (e) {}
+        }
+
+        function getCleanMoneyValue(input) {
+            if (!input || !input.value) return 0;
+            const digits = input.value.replace(/\D/g, '');
+            return digits ? parseInt(digits, 10) : 0;
+        }
+
+        function setMoneyInputValue(input, val) {
+            if (!input) return;
+            if (val === null || val === undefined || val === '') {
+                input.value = '';
+                return;
+            }
+            const digits = String(val).replace(/\D/g, '');
+            if (!digits) {
+                input.value = '';
+                return;
+            }
+            const numberVal = parseInt(digits, 10);
+            input.value = '$ ' + numberVal.toLocaleString('es-CO');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupMoneyInputs();
+            updateDraftBanner();
+        });
+
+        // ── GESTIÓN DE BORRADORES DEL WIZARD DE PUBLICACIÓN ─────────────────────
+        const DRAFT_STORAGE_KEY = 'stayhuila_wizard_draft';
+
+        /** Guardar borrador actual del wizard en localStorage */
+        function saveWizardDraft(showToastNotice = false) {
+            // No guardar borrador en modo edición de una publicación existente
+            if (_editingId) return;
+
+            const pubTipo = document.getElementById('pub-tipo') ? document.getElementById('pub-tipo').value : '';
+            if (!pubTipo && currentStep === 1) {
+                if (showToastNotice) showToast('Selecciona un tipo de publicación antes de guardar el borrador.', 'error');
+                return;
+            }
+
+            const step3Inputs = document.getElementById('step-3') ? document.getElementById('step-3').querySelectorAll('input, select, textarea') : [];
+            
+            const draftData = {
+                updatedAt: new Date().toISOString(),
+                currentStep: currentStep,
+                pubTipo: pubTipo,
+                pubCategoria: document.getElementById('pub-categoria') ? document.getElementById('pub-categoria').value : '',
+                vTipoDoc: document.getElementById('v-tipo-doc') ? document.getElementById('v-tipo-doc').value : '',
+                vDocumento: document.getElementById('v-documento') ? document.getElementById('v-documento').value : '',
+                vTelefono: document.getElementById('v-telefono') ? document.getElementById('v-telefono').value : '',
+                nombre: step3Inputs[0] ? step3Inputs[0].value : '',
+                descripcion: step3Inputs[1] ? step3Inputs[1].value : '',
+                municipio: document.getElementById('pub-municipio') ? document.getElementById('pub-municipio').value : '',
+                direccion: document.getElementById('pub-direccion') ? document.getElementById('pub-direccion').value : '',
+                lat: document.getElementById('pub-lat') ? document.getElementById('pub-lat').value : '',
+                lng: document.getElementById('pub-lng') ? document.getElementById('pub-lng').value : '',
+                hHuespedes: document.getElementById('h-huespedes') ? document.getElementById('h-huespedes').value : 2,
+                hHabitaciones: document.getElementById('h-habitaciones') ? document.getElementById('h-habitaciones').value : 1,
+                hBanos: document.getElementById('h-banos') ? document.getElementById('h-banos').value : 1,
+                servicios: Array.from(document.querySelectorAll('input[name="servicios"]:checked')).map(cb => cb.value),
+                hPrecio: getCleanMoneyValue(document.getElementById('h-precio')),
+                hCheckin: document.getElementById('h-checkin') ? document.getElementById('h-checkin').value : '15:00',
+                hCheckout: document.getElementById('h-checkout') ? document.getElementById('h-checkout').value : '11:00',
+                hEstadiaMin: document.getElementById('h-estadia-min') ? document.getElementById('h-estadia-min').value : 1,
+                hEstadiaMax: document.getElementById('h-estadia-max') ? document.getElementById('h-estadia-max').value : 30,
+                eCapMin: document.getElementById('e-cap-min') ? document.getElementById('e-cap-min').value : 1,
+                eCapMax: document.getElementById('e-cap-max') ? document.getElementById('e-cap-max').value : 10,
+                eDuracion: document.getElementById('e-duracion') ? document.getElementById('e-duracion').value : 4,
+                eNivel: document.getElementById('e-nivel') ? document.getElementById('e-nivel').value : 'moderado',
+                ePrecio: getCleanMoneyValue(document.getElementById('e-precio')),
+                eIncluye: document.getElementById('e-incluye') ? document.getElementById('e-incluye').value : '',
+                eTraer: document.getElementById('e-traer') ? document.getElementById('e-traer').value : '',
+                fotosUrls: typeof ImageUploader !== 'undefined' ? ImageUploader.getValidUrls() : []
+            };
+
+            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+            updateDraftBanner();
+
+            if (showToastNotice) {
+                showToast('¡Borrador guardado! Podrás continuar tu publicación en cualquier momento.');
+            }
+        }
+
+        /** Comprueba y muestra el banner de borrador en el dashboard */
+        function updateDraftBanner() {
+            const banner = document.getElementById('draft-banner');
+            const info = document.getElementById('draft-banner-info');
+            if (!banner || !info) return;
+
+            const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+            if (!raw) {
+                banner.style.display = 'none';
+                return;
+            }
+
+            try {
+                const draft = JSON.parse(raw);
+                const tipoLabel = draft.pubTipo === 'hospedaje' ? 'Hospedaje' : (draft.pubTipo === 'experiencia' ? 'Experiencia' : 'Publicación');
+                const titleText = draft.nombre ? `"${draft.nombre}"` : 'Sin título';
+                info.textContent = `Borrador de ${tipoLabel}: ${titleText} (Paso ${draft.currentStep || 1} de 6).`;
+                banner.style.display = 'flex';
+            } catch (e) {
+                banner.style.display = 'none';
+            }
+        }
+
+        /** Reanudar el borrador guardado en el wizard */
+        function resumeWizardDraft() {
+            const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+            if (!raw) return;
+
+            try {
+                const draft = JSON.parse(raw);
+                if (!draft.pubTipo) return;
+
+                openWizard(draft.pubTipo);
+
+                // Seleccionar tipo y categoría
+                const pubTipo = document.getElementById('pub-tipo');
+                if (pubTipo) pubTipo.value = draft.pubTipo;
+                updateCategories();
+
+                const pubCat = document.getElementById('pub-categoria');
+                if (pubCat && draft.pubCategoria) pubCat.value = draft.pubCategoria;
+
+                // Paso 2
+                if (draft.vTipoDoc && document.getElementById('v-tipo-doc')) document.getElementById('v-tipo-doc').value = draft.vTipoDoc;
+                if (draft.vDocumento && document.getElementById('v-documento')) document.getElementById('v-documento').value = draft.vDocumento;
+                if (draft.vTelefono && document.getElementById('v-telefono')) document.getElementById('v-telefono').value = draft.vTelefono;
+
+                // Paso 3
+                const step3Inputs = document.getElementById('step-3') ? document.getElementById('step-3').querySelectorAll('input, select, textarea') : [];
+                if (step3Inputs[0] && draft.nombre) step3Inputs[0].value = draft.nombre;
+                if (step3Inputs[1] && draft.descripcion) step3Inputs[1].value = draft.descripcion;
+                if (draft.municipio) document.getElementById('pub-municipio').value = draft.municipio;
+                if (draft.direccion) document.getElementById('pub-direccion').value = draft.direccion;
+                if (draft.lat) document.getElementById('pub-lat').value = draft.lat;
+                if (draft.lng) document.getElementById('pub-lng').value = draft.lng;
+
+                if (wizardMap && wizardMarker && draft.lat && draft.lng) {
+                    wizardMarker.setLatLng([draft.lat, draft.lng]);
+                    wizardMap.setView([draft.lat, draft.lng], 13);
+                }
+
+                // Paso 4 & 5
+                if (draft.pubTipo === 'hospedaje') {
+                    if (draft.hHuespedes) document.getElementById('h-huespedes').value = draft.hHuespedes;
+                    if (draft.hHabitaciones) document.getElementById('h-habitaciones').value = draft.hHabitaciones;
+                    if (draft.hBanos) document.getElementById('h-banos').value = draft.hBanos;
+                    
+                    if (Array.isArray(draft.servicios)) {
+                        document.querySelectorAll('input[name="servicios"]').forEach(cb => {
+                            cb.checked = draft.servicios.includes(cb.value);
+                        });
+                    }
+                    if (draft.hPrecio) setMoneyInputValue(document.getElementById('h-precio'), draft.hPrecio);
+                    if (draft.hCheckin) document.getElementById('h-checkin').value = draft.hCheckin;
+                    if (draft.hCheckout) document.getElementById('h-checkout').value = draft.hCheckout;
+                    if (draft.hEstadiaMin) document.getElementById('h-estadia-min').value = draft.hEstadiaMin;
+                    if (draft.hEstadiaMax) document.getElementById('h-estadia-max').value = draft.hEstadiaMax;
+                } else {
+                    if (draft.eCapMin) document.getElementById('e-cap-min').value = draft.eCapMin;
+                    if (draft.eCapMax) document.getElementById('e-cap-max').value = draft.eCapMax;
+                    if (draft.eDuracion) document.getElementById('e-duracion').value = draft.eDuracion;
+                    if (draft.eNivel) document.getElementById('e-nivel').value = draft.eNivel;
+                    if (draft.ePrecio) setMoneyInputValue(document.getElementById('e-precio'), draft.ePrecio);
+                    if (draft.eIncluye) document.getElementById('e-incluye').value = draft.eIncluye;
+                    if (draft.eTraer) document.getElementById('e-traer').value = draft.eTraer;
+                }
+
+                // Paso 6 Fotos
+                if (Array.isArray(draft.fotosUrls) && draft.fotosUrls.length > 0 && typeof ImageUploader !== 'undefined') {
+                    ImageUploader.loadExistingUrls(draft.fotosUrls);
+                }
+
+                // Restaurar paso actual
+                currentStep = Math.max(1, Math.min(6, parseInt(draft.currentStep, 10) || 1));
+                updateWizard();
+
+                showToast(`¡Borrador reanudado en el Paso ${currentStep}!`);
+            } catch (err) {
+                showToast('No se pudo reanudar el borrador.', 'error');
+            }
+        }
+
+        /** Descartar borrador almacenado */
+        function discardWizardDraft() {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+            updateDraftBanner();
+            showToast('Borrador descartado.');
+        }
+
+        /** Eliminar borrador al publicar exitosamente */
+        function clearWizardDraft() {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+            updateDraftBanner();
+        }
+
         function clampNumberInput(input, min, max) {
             input.value = input.value.replace(/[^\d]/g, '');
             if (input.value === '') return;
@@ -118,6 +374,7 @@
             }
 
             updateCategories();
+            setupMoneyInputs();
             document.getElementById('wizard-modal').classList.add('show');
             document.body.style.overflow = 'hidden';
             currentStep = 1;
@@ -274,9 +531,22 @@
                 }
             }
 
+            if (currentStep === 5) {
+                const pubTipo = document.getElementById('pub-tipo').value;
+                const priceInput = pubTipo === 'hospedaje' ? document.getElementById('h-precio') : document.getElementById('e-precio');
+                const cleanVal = getCleanMoneyValue(priceInput);
+                if (!cleanVal || cleanVal < 10000) {
+                    priceInput.setCustomValidity('El precio debe ser de al menos $ 10.000 COP.');
+                    priceInput.reportValidity();
+                    priceInput.setCustomValidity('');
+                    return;
+                }
+            }
+
             if (currentStep < totalSteps) {
                 currentStep++;
                 updateWizard();
+                saveWizardDraft(false); // Auto-guardar progreso del borrador
                 
                 if (currentStep === 3) {
                     if (!wizardMap) {
@@ -300,6 +570,7 @@
             if (currentStep > 1) {
                 currentStep--;
                 updateWizard();
+                saveWizardDraft(false); // Auto-guardar progreso del borrador
             }
         }
 
@@ -343,7 +614,7 @@
                 formData.append('banos',          document.getElementById('h-banos').value);
                 const servicios = Array.from(document.querySelectorAll('input[name="servicios"]:checked')).map(cb => cb.value);
                 formData.append('servicios', JSON.stringify(servicios));
-                formData.append('precio',          document.getElementById('h-precio').value);
+                formData.append('precio',          getCleanMoneyValue(document.getElementById('h-precio')));
                 formData.append('checkin',         document.getElementById('h-checkin').value);
                 formData.append('checkout',        document.getElementById('h-checkout').value);
                 formData.append('estadia_minima',   document.getElementById('h-estadia-min').value || 1);
@@ -353,7 +624,7 @@
                 formData.append('max_huespedes', document.getElementById('e-cap-max').value);
                 formData.append('e_duracion',    document.getElementById('e-duracion').value);
                 formData.append('e_nivel',       document.getElementById('e-nivel').value);
-                formData.append('precio',        document.getElementById('e-precio').value);
+                formData.append('precio',        getCleanMoneyValue(document.getElementById('e-precio')));
                 formData.append('e_incluye',     document.getElementById('e-incluye').value);
                 formData.append('e_traer',       document.getElementById('e-traer').value);
             }
@@ -370,6 +641,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
+                        clearWizardDraft();
                         showToast(isEditing ? '¡Publicación actualizada correctamente!' : '¡Felicidades! Tu publicación ha sido creada y estará visible en StayHuila pronto.');
                         closeWizard();
                         window.location.reload();
@@ -447,7 +719,7 @@
                     cb.checked = (data.servicios || []).includes(cb.value);
                 });
                 // ── Paso 5: Precios hospedaje ──
-                document.getElementById('h-precio').value       = data.precio_noche     || '';
+                setMoneyInputValue(document.getElementById('h-precio'), data.precio_noche);
                 document.getElementById('h-checkin').value      = data.hora_checkin     || '15:00';
                 document.getElementById('h-checkout').value     = data.hora_checkout    || '11:00';
                 const minEl = document.getElementById('h-estadia-min');
@@ -461,7 +733,7 @@
                 document.getElementById('e-duracion').value = data.duracion_horas   || 4;
                 document.getElementById('e-nivel').value    = data.nivel_dificultad || 'moderado';
                 // ── Paso 5: Precios experiencia ──
-                document.getElementById('e-precio').value   = data.precio_persona   || '';
+                setMoneyInputValue(document.getElementById('e-precio'), data.precio_persona);
                 document.getElementById('e-incluye').value  = data.que_incluye      || '';
                 document.getElementById('e-traer').value    = data.que_traer        || '';
             }

@@ -112,6 +112,25 @@
         });
     </script><div class="panel-container">
 
+        <!-- BANNER DE BORRADOR GUARDADO -->
+        <div id="draft-banner" class="draft-banner" style="display:none;">
+            <div class="draft-banner-content">
+                <div class="draft-icon"><i class="ph-fill ph-note-pencil"></i></div>
+                <div>
+                    <strong>Tienes una publicación en borrador</strong>
+                    <p id="draft-banner-info">Progreso guardado de una publicación anterior.</p>
+                </div>
+            </div>
+            <div class="draft-banner-actions">
+                <button type="button" class="btn-resume-draft" onclick="resumeWizardDraft()">
+                    <i class="ph-bold ph-play-circle"></i> Continuar borrador
+                </button>
+                <button type="button" class="btn-discard-draft" onclick="discardWizardDraft()">
+                    <i class="ph-bold ph-trash"></i> Descartar
+                </button>
+            </div>
+        </div>
+
         {% if not mis_hospedajes and not mis_experiencias %}
         <!-- ESTADO CERO: ONBOARDING -->
         <div class="onboarding-wrap">
@@ -336,7 +355,12 @@
         <div class="wizard-header">
             <div style="font-weight:700;font-size:1.2rem;color:var(--primary);">StayHuila <span
                     id="wizard-title-action" style="color:var(--text-muted);font-weight:400;">/ Crear publicación</span></div>
-            <button class="wizard-close" onclick="closeWizard()"><i class="ph ph-x"></i></button>
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <button type="button" class="btn-draft" style="padding:0.4rem 0.85rem; font-size:0.85rem;" onclick="saveWizardDraft(true)" title="Guardar borrador para continuar luego">
+                    <i class="ph ph-floppy-disk"></i> Guardar borrador
+                </button>
+                <button class="wizard-close" onclick="closeWizard()"><i class="ph ph-x"></i></button>
+            </div>
         </div>
 
         <div class="wizard-body">
@@ -506,7 +530,7 @@
                         <div id="fields-hospedaje-5">
                             <div class="form-group">
                                 <label>Precio por noche (COP)</label>
-                                <input type="number" id="h-precio" placeholder="Ej. 150000" min="10000">
+                                <input type="text" id="h-precio" placeholder="Ej. $ 150.000" inputmode="numeric" autocomplete="off" required>
                             </div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                                 <div class="form-group">
@@ -550,7 +574,7 @@
                         <div id="fields-experiencia-5" style="display:none;">
                             <div class="form-group">
                                 <label>Precio por persona (COP)</label>
-                                <input type="number" id="e-precio" placeholder="Ej. 50000" min="10000">
+                                <input type="text" id="e-precio" placeholder="Ej. $ 50.000" inputmode="numeric" autocomplete="off" required>
                             </div>
                             <div class="form-group">
                                 <label>Qué incluye (Opcional)</label>
@@ -617,8 +641,13 @@
         </div>
 
         <div class="wizard-footer">
-            <button class="btn-prev" id="btn-prev" onclick="prevStep()">Volver</button>
-            <button class="btn-next" id="btn-next" onclick="nextStep()">Siguiente</button>
+            <button type="button" class="btn-prev" id="btn-prev" onclick="prevStep()">Volver</button>
+            <div style="display:flex; gap:0.8rem; align-items:center;">
+                <button type="button" class="btn-draft" id="btn-save-draft" onclick="saveWizardDraft(true)">
+                    <i class="ph ph-floppy-disk"></i> Guardar borrador
+                </button>
+                <button type="button" class="btn-next" id="btn-next" onclick="nextStep()">Siguiente</button>
+            </div>
         </div>
     </div>
 

@@ -316,12 +316,41 @@ const ImageUploader = (() => {
         if (_progressWrap) _progressWrap.classList.remove('visible');
     }
 
+    function loadExistingUrls(urls) {
+        if (!Array.isArray(urls) || urls.length === 0) return;
+        init();
+        _validUrls = [...urls];
+        if (_grid) {
+            urls.forEach((url, idx) => {
+                const cardId = 'card-exist-' + idx + '-' + Date.now();
+                const card = document.createElement('div');
+                card.className = 'img-preview-card';
+                card.id = cardId;
+                card.dataset.url = url;
+                card.innerHTML = `
+                    <img src="${url}" alt="Vista previa">
+                    <div class="img-preview-overlay">
+                        <span class="img-preview-badge badge-ok">
+                            <i class="ph ph-check-circle"></i> Imagen cargada
+                        </span>
+                        <button type="button" class="img-preview-remove" title="Eliminar imagen" onclick="event.stopPropagation(); ImageUploader.removeCard('${cardId}', '${url}')">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                    </div>
+                `;
+                _grid.appendChild(card);
+            });
+        }
+        _updateSummary();
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // API pública del módulo
     // ─────────────────────────────────────────────────────────────────────────
     return {
         init,
         reset,
+        loadExistingUrls,
         /** Devuelve el array de URLs de imágenes válidas y optimizadas. */
         getValidUrls: () => [..._validUrls],
         /** True si aún hay validaciones en curso. */
