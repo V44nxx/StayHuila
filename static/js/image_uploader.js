@@ -57,33 +57,45 @@ const ImageUploader = (() => {
         _progressLabel= document.getElementById('img-progress-label');
 
         if (!_zone || !_input) return;  // El paso 6 no está en el DOM aún
-        if (_isInitialized) return;     // Evita registrar event listeners duplicados
-        _isInitialized = true;
 
-        // Abrir selector de archivos al hacer clic en la zona (evitando recursión si el target es el input)
-        _zone.addEventListener('click', (e) => {
-            if (e.target !== _input) {
-                _input.click();
-            }
-        });
+        // Remover event listeners anteriores para evitar acumulaciones
+        _zone.removeEventListener('dragover', _onDragOver);
+        _zone.removeEventListener('dragleave', _onDragLeave);
+        _zone.removeEventListener('drop', _onDrop);
+        if (_input) _input.removeEventListener('change', _onInputChange);
 
-        // Selección manual de archivos
-        _input.addEventListener('change', e => {
-            _handleFiles(e.target.files);
-            _input.value = ''; // Limpiar para permitir seleccionar el mismo archivo de nuevo si se requiere
-        });
+        _zone.addEventListener('dragover', _onDragOver);
+        _zone.addEventListener('dragleave', _onDragLeave);
+        _zone.addEventListener('drop', _onDrop);
+        if (_input) _input.addEventListener('change', _onInputChange);
+    }
 
-        // Drag & Drop — efectos visuales
-        _zone.addEventListener('dragover', e => {
-            e.preventDefault();
-            _zone.classList.add('drag-active');
-        });
-        _zone.addEventListener('dragleave', () => _zone.classList.remove('drag-active'));
-        _zone.addEventListener('drop', e => {
-            e.preventDefault();
-            _zone.classList.remove('drag-active');
+    function _onDragOver(e) {
+        e.preventDefault();
+        if (_zone) _zone.classList.add('drag-active');
+    }
+
+    function _onDragLeave(e) {
+        if (_zone) _zone.classList.remove('drag-active');
+    }
+
+    function _onDrop(e) {
+        e.preventDefault();
+        if (_zone) _zone.classList.remove('drag-active');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             _handleFiles(e.dataTransfer.files);
-        });
+        }
+    }
+
+    function _onInputChange(e) {
+        if (e && e.target && e.target.files && e.target.files.length > 0) {
+            _handleFiles(e.target.files);
+            e.target.value = '';
+        }
+    }
+
+    function handleInputChange(e) {
+        _onInputChange(e);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -358,6 +370,15 @@ const ImageUploader = (() => {
         _updateSummary();
     }
 
+    function removeCard(cardId, url) {
+        if (url) {
+            _validUrls = _validUrls.filter(u => u !== url);
+        }
+        const card = document.getElementById(cardId);
+        if (card) card.remove();
+        _updateSummary();
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // API pública del módulo
     // ─────────────────────────────────────────────────────────────────────────
@@ -365,6 +386,8 @@ const ImageUploader = (() => {
         init,
         reset,
         loadExistingUrls,
+        removeCard,
+        handleInputChange,
         /** Devuelve el array de URLs de imágenes válidas y optimizadas. */
         getValidUrls: () => [..._validUrls],
         /** True si aún hay validaciones en curso. */

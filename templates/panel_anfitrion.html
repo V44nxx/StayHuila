@@ -594,8 +594,8 @@
                             <strong>Las imágenes se validan y optimizan automáticamente.</strong></p>
 
                         <!-- Zona de carga con drag & drop -->
-                        <div class="img-upload-zone" id="img-upload-zone" role="button" tabindex="0"
-                            aria-label="Zona de carga de imágenes">
+                        <label class="img-upload-zone" id="img-upload-zone" for="img-upload-input" role="button" tabindex="0"
+                            aria-label="Zona de carga de imágenes" style="display:block; cursor:pointer;">
                             <i class="ph ph-images upload-icon"></i>
                             <h3>Arrastra tus fotos aquí o haz clic para seleccionar</h3>
                             <p>Puedes subir varias imágenes a la vez</p>
@@ -615,11 +615,11 @@
                                     <i class="ph ph-check"></i> Nitidez verificada
                                 </span>
                             </div>
-                        </div>
+                        </label>
 
-                        <!-- Input oculto de archivos (fuera de la zona para evitar recursión de clic) -->
+                        <!-- Input oculto de archivos -->
                         <input type="file" id="img-upload-input" multiple accept=".jpg,.jpeg,.png,.jfif,.webp,image/*"
-                            style="display:none;" aria-hidden="true">
+                            style="display:none;" aria-hidden="true" onchange="if (typeof ImageUploader !== 'undefined') ImageUploader.handleInputChange(event)">
 
                         <!-- Barra de progreso global -->
                         <div class="img-upload-progress-wrap" id="img-progress-wrap">
