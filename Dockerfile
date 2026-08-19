@@ -21,6 +21,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Crear y asegurar directorio de uploads persistente
+RUN mkdir -p /app/static/uploads/comprobantes && chmod -R 777 /app/static/uploads
+
+# Declarar volumen persistente para uploads
+VOLUME ["/app/static/uploads"]
+
 EXPOSE 5000
 
 # Usar gunicorn.conf.py para configuración optimizada:
