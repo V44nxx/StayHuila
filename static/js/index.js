@@ -58,10 +58,15 @@ window.resetSearch = function () {
     const qInput = document.getElementById('sh-q');
     const sugBox = document.getElementById('search-suggestions');
     const clearBtn = document.getElementById('sh-clear');
+    const heading = document.getElementById('listings-heading');
+    const subheading = document.getElementById('listings-subheading');
 
     if (qInput) qInput.value = '';
     if (clearBtn) clearBtn.style.display = 'none';
     if (sugBox) sugBox.style.display = 'none';
+
+    if (heading) heading.textContent = 'Recomendaciones para ti';
+    if (subheading) subheading.textContent = 'Seleccionados especialmente según tus gustos';
 
     document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
     const allCatBtn = document.querySelector('.category-item[data-cat=""]');
@@ -75,7 +80,7 @@ window.resetSearch = function () {
     }
 };
 
-/* ── Renderizado de Cuadrícula Principal ── */
+/* ── Renderizado de Cuadrícula Principal (Recomendaciones en la misma página) ── */
 function renderListings(items, queryStr) {
     const container = document.getElementById('hospedajes');
     if (!container) return;
@@ -85,20 +90,20 @@ function renderListings(items, queryStr) {
     }
 
     if (!items || items.length === 0) {
-        const queryDisplay = escapeHtml(queryStr || 'tu búsqueda');
+        const queryDisplay = escapeHtml(queryStr || 'esta categoría');
         container.innerHTML = `
             <div class="no-results-state" style="grid-column: 1 / -1; text-align: center; padding: 3.5rem 1.5rem; background: white; border-radius: 16px; border: 1.5px dashed var(--border); margin: 1rem 0;">
                 <div style="width:70px; height:70px; background: rgba(44, 74, 59, 0.08); border-radius: 50%; display:flex; align-items:center; justify-content:center; margin: 0 auto 1.2rem;">
-                    <i class="ph ph-magnifying-glass" style="font-size: 2.2rem; color: var(--primary);"></i>
+                    <i class="ph ph-tag" style="font-size: 2.2rem; color: var(--primary);"></i>
                 </div>
                 <h3 style="font-size: 1.25rem; color: var(--text-main); margin-bottom: 0.5rem; font-weight: 700;">
-                    No se encontraron publicaciones relacionadas con "${queryDisplay}"
+                    No encontramos publicaciones en "${queryDisplay}"
                 </h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 460px; margin: 0 auto 1.5rem; line-height: 1.5;">
-                    Intenta buscar con otros términos como <strong>Cabaña</strong>, <strong>Tatacoa</strong>, <strong>Café</strong>, <strong>Rafting</strong> o explora las categorías en la barra lateral.
+                    Prueba seleccionando <strong>Todos</strong> o explorando otras opciones como <strong>Finca</strong>, <strong>Cabaña</strong>, <strong>Glamping</strong> o <strong>Aventura</strong>.
                 </p>
-                <button id="clear-search-btn" onclick="resetSearch()" style="background: var(--primary); color: white; border: none; padding: 0.65rem 1.6rem; border-radius: 50px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(44,74,59,0.2);">
-                    <i class="ph ph-arrow-counter-clockwise"></i> Ver todas las publicaciones
+                <button onclick="resetSearch()" style="background: var(--primary); color: white; border: none; padding: 0.65rem 1.6rem; border-radius: 50px; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(44,74,59,0.2);">
+                    <i class="ph ph-arrow-counter-clockwise"></i> Ver todas las recomendaciones
                 </button>
             </div>
         `;
@@ -107,36 +112,39 @@ function renderListings(items, queryStr) {
 
     let html = '';
     items.forEach(function (item) {
-        const isHosp = item.tipo === 'hospedaje';
-        const fallbackUrl = isHosp ? 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' : 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500';
-        const imgUrl = item.imagen || fallbackUrl;
-        const badgeTxt = isHosp ? '🏠 Hospedaje' : '✨ Experiencia';
-        const badgeBg = isHosp ? '#2C4A3B' : '#D97706';
+        const isHosp = (item.tipo === 'hospedaje' || item.tipo_publicacion === 'hospedaje');
+        const itemType = isHosp ? 'hospedaje' : 'experiencia';
+        const itemUrl = `/${itemType}/${item.id}`;
+        const fallbackUrl = isHosp ? '/static/images/default_hospedaje_thumb.webp' : '/static/images/default_experiencia_thumb.webp';
+        const imgUrl = item.image_thumb || item.imagen || item.image || fallbackUrl;
         const priceUnit = isHosp ? 'noche' : 'persona';
+        const rawPrice = item.precio || item.precio_noche || item.precio_persona || 0;
         const rating = item.calificacion ? Number(item.calificacion).toFixed(1) : '5.0';
         const totalReviews = item.total_resenas || 0;
         const ecoBadge = item.es_eco ? `<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>` : '';
         const discBadge = item.descuento_porcentaje ? `<div class="discount-badge">-${item.descuento_porcentaje}% Hoy</div>` : '';
+        const repairBadge = item.estado === 'reparacion' ? `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.75); color:white; padding:6px 14px; border-radius:20px; font-weight:600; font-size:0.85rem; z-index:10; white-space:nowrap;"><i class="ph-fill ph-wrench"></i> En reparación</div>` : '';
+        const locationText = item.distanceText ? item.distanceText : escapeHtml(item.municipio || 'Huila');
 
         html += `
-            <article class="listing-card" onclick="window.location.href='${url}'" style="cursor:pointer;">
-                <div class="image-wrapper">
-                    <img src="${imgUrl}" alt="${escapeHtml(item.nombre)}" onerror="this.onerror=null; this.src='${fallbackUrl}';">
-                    <div class="badge" style="background:${badgeBg}; color:white; font-size:0.75rem; font-weight:700; top:12px; left:12px; position:absolute; padding:4px 10px; border-radius:20px; box-shadow:0 2px 6px rgba(0,0,0,0.2);">
-                        ${badgeTxt}
-                    </div>
+            <article class="listing-card" onclick="window.location.href='${itemUrl}'" style="cursor:pointer; ${item.estado === 'reparacion' ? 'opacity:0.8;' : ''}">
+                <div class="image-wrapper" style="position:relative;">
+                    <img src="${imgUrl}" alt="${escapeHtml(item.nombre)}" loading="lazy" decoding="async"
+                         onerror="this.onerror=null; this.src='${fallbackUrl}';"
+                         style="${item.estado === 'reparacion' ? 'filter: grayscale(80%);' : ''}">
+                    ${repairBadge}
                     ${ecoBadge}
                     ${discBadge}
                 </div>
                 <div class="listing-info">
                     <div class="listing-header">
-                        <h3 style="font-size:1.05rem; font-weight:700;">${escapeHtml(item.nombre)}</h3>
-                        <span class="rating"><i class="ph-fill ph-star" style="color:#F59E0B;"></i> ${rating} (${totalReviews})</span>
+                        <h3>${escapeHtml(item.nombre)}</h3>
+                        <span class="rating"><i class="ph-fill ph-star"></i> ${rating} (${totalReviews})</span>
                     </div>
-                    <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> ${escapeHtml(item.municipio)}</p>
-                    <p class="details">${escapeHtml(item.descripcion_corta || item.categoria_nombre || item.tipo)}</p>
-                    <p class="price"><strong>$${formatMoney(item.precio)} COP</strong> ${priceUnit}</p>
-                    <a href="${url}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
+                    <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> ${locationText}</p>
+                    <p class="details">${escapeHtml(item.descripcion_corta || item.categoria || item.sub_tipo || item.tipo || '')}</p>
+                    <p class="price"><strong>$${formatMoney(rawPrice)} COP</strong> ${priceUnit}</p>
+                    <a href="${itemUrl}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
                 </div>
             </article>
         `;
@@ -144,6 +152,141 @@ function renderListings(items, queryStr) {
 
     container.innerHTML = html;
 }
+
+/* ── Filtrar y mostrar publicaciones en el grid de recomendaciones ── */
+window.filterByCategory = function (catName) {
+    const qInput = document.getElementById('sh-q');
+    const sugBox = document.getElementById('search-suggestions');
+    const clearBtn = document.getElementById('sh-clear');
+    const heading = document.getElementById('listings-heading');
+    const subheading = document.getElementById('listings-subheading');
+    const container = document.getElementById('hospedajes');
+
+    if (sugBox) sugBox.style.display = 'none';
+
+    // Actualizar clase activa en la barra lateral
+    document.querySelectorAll('.category-item').forEach(i => {
+        if ((i.dataset.cat || '') === (catName || '')) {
+            i.classList.add('active');
+        } else {
+            i.classList.remove('active');
+        }
+    });
+
+    // Actualizar input de búsqueda y botón limpiar
+    if (qInput) {
+        qInput.value = catName || '';
+        if (clearBtn) clearBtn.style.display = catName ? 'flex' : 'none';
+    }
+
+    // Caso 1: "Todos" (catName vacío)
+    if (!catName || catName === 'Todos') {
+        if (heading) heading.textContent = 'Recomendaciones para ti';
+        if (subheading) subheading.textContent = 'Seleccionados especialmente según tus gustos';
+
+        if (container) {
+            if (_initialGridHTML) {
+                container.innerHTML = _initialGridHTML;
+            } else {
+                fetch('/api/buscar?q=')
+                    .then(r => r.json())
+                    .then(data => renderListings(data.publicaciones || data, ''));
+            }
+        }
+        return;
+    }
+
+    // Caso 2: "Cerca de ti"
+    if (catName === 'Cerca de ti') {
+        if (heading) heading.innerHTML = '<i class="ph ph-map-pin" style="color:var(--primary)"></i> Cerca de ti';
+        if (subheading) subheading.textContent = 'Publicaciones ordenadas por distancia a tu ubicación';
+
+        if (!navigator.geolocation) {
+            if (typeof showToast === 'function') showToast('Geolocalización no soportada por el navegador.', 'info');
+            return;
+        }
+
+        if (container) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align:center; padding:3rem;">
+                    <i class="ph ph-spinner ph-spin" style="font-size:2.2rem; color:var(--primary);"></i>
+                    <p style="margin-top:0.8rem; color:var(--text-muted);">Calculando distancias a tu ubicación...</p>
+                </div>
+            `;
+        }
+
+        navigator.geolocation.getCurrentPosition(position => {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            const items = window._allItems || [];
+
+            function getDist(lat1, lon1, lat2, lon2) {
+                const R = 6371;
+                const dLat = (lat2 - lat1) * (Math.PI / 180);
+                const dLon = (lon2 - lon1) * (Math.PI / 180);
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+            }
+
+            const sorted = items.map(item => {
+                const itLat = item.lat || item.latitud;
+                const itLng = item.lng || item.longitud;
+                const dist = (itLat && itLng) ? getDist(userLat, userLng, itLat, itLng) : Infinity;
+                return {
+                    ...item,
+                    distance: dist,
+                    distanceText: dist < 1000 ? `A ${dist.toFixed(1)} km de ti` : item.municipio
+                };
+            }).sort((a, b) => a.distance - b.distance);
+
+            renderListings(sorted, 'Cerca de ti');
+        }, err => {
+            if (typeof showToast === 'function') showToast('No pudimos acceder a tu ubicación. Mostrando recomendaciones generales.', 'info');
+            if (container && _initialGridHTML) container.innerHTML = _initialGridHTML;
+        });
+        return;
+    }
+
+    // Caso 3: Categoría específica ("Finca", "Cabaña", "Glamping", "Aventura", etc.)
+    if (heading) heading.textContent = `${catName}`;
+    if (subheading) subheading.textContent = `Mostrando publicaciones en la categoría "${catName}"`;
+
+    if (container) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align:center; padding:3rem;">
+                <i class="ph ph-spinner ph-spin" style="font-size:2.2rem; color:var(--primary);"></i>
+                <p style="margin-top:0.8rem; color:var(--text-muted);">Cargando publicaciones de ${escapeHtml(catName)}...</p>
+            </div>
+        `;
+    }
+
+    const catLower = catName.toLowerCase().trim();
+    const localItems = window._allItems || [];
+    const localMatches = localItems.filter(item => {
+        const cat = (item.categoria || item.sub_tipo || '').toLowerCase();
+        const tipo = (item.tipo_publicacion || item.tipo || '').toLowerCase();
+        const nom = (item.nombre || '').toLowerCase();
+        const desc = (item.descripcion_corta || '').toLowerCase();
+        return cat.includes(catLower) || nom.includes(catLower) || desc.includes(catLower) || tipo === catLower;
+    });
+
+    if (localMatches.length > 0) {
+        renderListings(localMatches, catName);
+    } else {
+        fetch('/api/buscar?q=' + encodeURIComponent(catName))
+            .then(res => res.json())
+            .then(data => {
+                const pubs = Array.isArray(data) ? data : (data.publicaciones || []);
+                renderListings(pubs, catName);
+            })
+            .catch(err => {
+                console.error('Error buscando categoría:', err);
+                if (container && _initialGridHTML) container.innerHTML = _initialGridHTML;
+            });
+    }
+};
 
 /* ── Fetch API Buscar ── */
 function fetchSearchResults(queryStr) {
@@ -438,24 +581,12 @@ function initIndexApp() {
         });
     }
 
-    /* ── Filtrado por Categorías en Barra Lateral ── */
+    /* ── Filtrado por Categorías en Barra Lateral (Sin salir de la página) ── */
     document.querySelectorAll('.category-item[data-cat]').forEach(function (item) {
-        item.addEventListener('click', function () {
-            document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
-            this.classList.add('active');
-
-            const cat = this.dataset.cat;
-            if (qInput) {
-                qInput.value = cat;
-                updateClearBtn();
-            }
-
-            if (cat) {
-                const destUrl = getSearchDestination(cat, []);
-                if (destUrl) window.location.href = destUrl;
-            } else {
-                resetSearch();
-            }
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            const cat = this.dataset.cat || '';
+            filterByCategory(cat);
         });
     });
 }

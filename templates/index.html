@@ -288,10 +288,8 @@
         <!-- CONTENIDO PRINCIPAL -->
         <div class="listings-main">
             <div style="text-align:center; padding: 2rem 2rem 0;">
-                <h2 style="font-size:1.8rem; color:var(--primary);" data-i18n="listings.title">Recomendaciones para ti
-                </h2>
-                <p style="color:var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus
-                    gustos</p>
+                <h2 id="listings-heading" style="font-size:1.8rem; color:var(--primary);" data-i18n="listings.title">Recomendaciones para ti</h2>
+                <p id="listings-subheading" style="color:var(--text-muted);" data-i18n="listings.subtitle">Seleccionados especialmente según tus gustos</p>
             </div>
             <main class="listings-container" id="hospedajes">
                 {# Renderizado inicial: Hospedajes #}
@@ -533,6 +531,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(document.getElementById('map-data').textContent);
             allItems = [...data.hospedajes, ...data.experiencias];
+            window._allItems = allItems;
             // Los click handlers de categorías los gestiona index.js para evitar duplicados
         });
 
@@ -543,95 +542,6 @@
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
-        }
-
-        function deg2rad(deg) { return deg * (Math.PI / 180); }
-
-        function filterCategory(catName) {
-            const container = document.getElementById('hospedajes');
-            container.style.opacity = '0.5';
-
-            let filtered = [];
-
-            if (catName === 'Cerca de ti') {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(position => {
-                        const userLat = position.coords.latitude;
-                        const userLng = position.coords.longitude;
-                        allItems.forEach(item => {
-                            if (item.lat && item.lng) {
-                                item.distance = getDistanceFromLatLonInKm(userLat, userLng, item.lat, item.lng);
-                                item.distanceText = `A ${item.distance.toFixed(1)} km de ti`;
-                            } else {
-                                item.distance = Infinity;
-                            }
-                        });
-                        filtered = [...allItems].sort((a, b) => a.distance - b.distance);
-                        renderListings(filtered);
-                        container.style.opacity = '1';
-                    }, error => {
-                        alert("No pudimos acceder a tu ubicación. Mostrando todos los resultados.");
-                        renderListings(allItems);
-                        container.style.opacity = '1';
-                    });
-                    return; // exit early, rendering will happen in callback
-                } else {
-                    alert("Geolocalización no es soportada por este navegador.");
-                    filtered = allItems;
-                }
-            } else if (!catName || catName === 'Todos') {
-                // "Todos": mostrar todo sin filtro
-                filtered = allItems;
-            } else {
-                // Filtrar por categoría exacta (coincide con los valores del campo `categoria` en BD)
-                filtered = allItems.filter(i => i.categoria === catName);
-            }
-
-            renderListings(filtered);
-            container.style.opacity = '1';
-        }
-
-        function renderListings(items) {
-            const container = document.getElementById('hospedajes');
-            if (items.length === 0) {
-                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 3rem; color:var(--text-muted); font-size:1.1rem;">No se encontraron resultados para esta categoría.</div>';
-                return;
-            }
-
-            let html = '';
-            items.forEach(item => {
-                const isHospedaje = item.tipo_publicacion === 'hospedaje';
-                const url = `/${item.tipo_publicacion}/${item.id}`;
-                const locationText = item.distanceText ? item.distanceText : `${item.municipio}`;
-                const priceText = isHospedaje ? 'noche' : 'persona';
-                const badgeHtml = item.es_eco ? '<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>' : '';
-                const discountHtml = item.descuento_porcentaje ? `<div class="discount-badge">-${item.descuento_porcentaje}% Hoy</div>` : '';
-                const repairHtml = item.estado === 'reparacion' ? '<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); color:white; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.9rem; z-index:10; white-space:nowrap;"><i class="ph-fill ph-wrench"></i> En reparación</div>' : '';
-
-                html += `
-                <article class="listing-card" onclick="window.location.href='${url}'" style="cursor:pointer; ${item.estado === 'reparacion' ? 'opacity: 0.8;' : ''}">
-                    <div class="image-wrapper" style="position:relative;">
-                        <img src="${item.image_thumb || item.image}" alt="${item.categoria}"
-                             loading="lazy" decoding="async"
-                             style="${item.estado === 'reparacion' ? 'filter: grayscale(80%);' : ''}">
-                        ${repairHtml}
-                        ${badgeHtml}
-                        ${discountHtml}
-                    </div>
-                    <div class="listing-info">
-                        <div class="listing-header">
-                            <h3>${item.nombre}</h3>
-                            <span class="rating"><i class="ph-fill ph-star"></i> ${item.calificacion} (${item.total_resenas})</span>
-                        </div>
-                        <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> ${locationText}</p>
-                        <p class="details">${item.descripcion_corta}</p>
-                        <p class="price"><strong>$${parseFloat(item.precio).toLocaleString('es-CO')} COP</strong> ${priceText}</p>
-                        <a href="${url}" class="book-now-btn" style="text-align:center;display:block;text-decoration:none;">Ver detalles</a>
-                    </div>
-                </article>
-                `;
-            });
-            container.innerHTML = html;
         }
 
         async function toggleFavInline(e, btn) {
