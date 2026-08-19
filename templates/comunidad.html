@@ -134,7 +134,7 @@
         <aside class="comunidad-sidebar">
             {% if current_user.is_authenticated %}
             <div class="profile-card">
-                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=2C4A3B&color=fff' }}" alt="Tu perfil">
+                <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=2C4A3B&color=fff' }}" alt="Tu perfil" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                 <h3>{{ current_user.nombre }} {{ current_user.apellido }}</h3>
                 <p>@{{ current_user.nombre|lower }}{{ current_user.id }}</p>
                 <div style="color:var(--secondary);font-weight:600;font-size:0.9rem;">

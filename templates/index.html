@@ -300,8 +300,8 @@
                 <article class="listing-card" onclick="window.location.href='/hospedaje/{{ h.id }}'"
                     style="cursor:pointer;">
                     <div class="image-wrapper">
-                        <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
-                            alt="{{ h.tipo }}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600';">
+                        <img src="{{ h.image or '/static/images/default_hospedaje_thumb.webp' }}"
+                            alt="{{ h.tipo }}" onerror="this.onerror=null; this.src='/static/images/default_hospedaje_thumb.webp';">
                         {% if h.es_eco %}
                         <div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>
                         {% endif %}
@@ -333,8 +333,8 @@
                 <article class="listing-card" onclick="window.location.href='/experiencia/{{ e.id }}'"
                     style="cursor:pointer;">
                     <div class="image-wrapper">
-                        <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
-                            alt="{{ e.tipo }}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500';">
+                        <img src="{{ e.image or '/static/images/default_experiencia_thumb.webp' }}"
+                            alt="{{ e.tipo }}" onerror="this.onerror=null; this.src='/static/images/default_experiencia_thumb.webp';">
                     </div>
                     <div class="listing-info">
                         <div class="listing-header">

@@ -45,8 +45,8 @@
     <!-- NAVBAR -->
     <header class="navbar navbar-solid" id="navbar">
         <div class="logo" onclick="window.location.href='/'">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StayHuila" class="logo-img" loading="eager" fetchpriority="high"
-                onerror="this.src='https://via.placeholder.com/65x65?text=SH'">
+            <img src="{{ url_for('static', filename='images/logo.webp') }}" alt="StayHuila" class="logo-img" loading="eager" fetchpriority="high"
+                onerror="this.onerror=null;this.src='/static/images/logo.png'">
             <span>StayHuila</span>
         </div>
                         <nav class="nav-links">
@@ -63,7 +63,7 @@
                 <div class="profile-btn" style="position:relative;" onclick="document.getElementById('user-dropdown').classList.toggle('show'); event.stopPropagation();">
                     <div class="gamification-points"><i class="ph-fill ph-coin"></i> {{ current_user.puntos }} pts</div>
                     <i class="ph ph-list"></i>
-                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;">
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random' }}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: 5px;" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                     
                     <!-- Dropdown -->
                     <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
@@ -206,8 +206,9 @@
             <div class="list-card {% if h.estado == 'deshabilitada' %}card-disabled{% endif %}">
                 <!-- Imagen con overlay si está deshabilitada -->
                 <div style="position:relative;">
-                    <img src="{{ h.image or 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=500' }}"
+                    <img src="{{ h.image or '/static/images/default_hospedaje_thumb.webp' }}"
                         alt="{{ h.nombre }}" class="list-img"
+                        onerror="this.onerror=null;this.src='/static/images/default_hospedaje_thumb.webp'"
                         style="{% if h.estado == 'deshabilitada' %}filter:grayscale(60%) opacity(0.7);{% endif %}">
                     {% if h.estado == 'deshabilitada' %}
                     <div class="card-disabled-badge"><i class="ph-fill ph-pause-circle"></i> Deshabilitada</div>
@@ -231,8 +232,9 @@
             {% for e in mis_experiencias %}
             <div class="list-card {% if e.estado == 'deshabilitada' %}card-disabled{% endif %}">
                 <div style="position:relative;">
-                    <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
+                    <img src="{{ e.image or '/static/images/default_experiencia_thumb.webp' }}"
                         alt="{{ e.nombre }}" class="list-img"
+                        onerror="this.onerror=null;this.src='/static/images/default_experiencia_thumb.webp'"
                         style="{% if e.estado == 'deshabilitada' %}filter:grayscale(60%) opacity(0.7);{% endif %}">
                     {% if e.estado == 'deshabilitada' %}
                     <div class="card-disabled-badge"><i class="ph-fill ph-pause-circle"></i> Deshabilitada</div>

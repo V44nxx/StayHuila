@@ -197,9 +197,9 @@
                     <div class="image-wrapper" style="position:relative;">
                     <!-- loading=lazy: imagen de tarjeta, fuera del viewport inicial -->
                     <!-- image_thumb: miniatura 480px para listados (3-4x más ligera) -->
-                    <img src="{{ h.image_thumb or h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}"
+                    <img src="{{ h.image_thumb or h.image or '/static/images/default_hospedaje_thumb.webp' }}"
                          alt="{{ h.tipo }}" loading="lazy" decoding="async"
-                         onerror="this.onerror=null;this.src='{{ h.image or "https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600" }}';"
+                         onerror="this.onerror=null;this.src='/static/images/default_hospedaje_thumb.webp';"
                          {% if h.estado == 'reparacion' %}style="filter: grayscale(80%);"{% endif %}>
                         {% if h.estado == 'reparacion' %}
                         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.7); color:white; padding:8px 16px; border-radius:20px; font-weight:600; font-size:0.9rem; z-index:10; white-space:nowrap;">
@@ -242,8 +242,9 @@
                     <article class="listing-card" style="margin:0;cursor:pointer;" onclick="window.location.href='/experiencia/{{ e.id }}'">
                         <div class="image-wrapper" style="position:relative;">
                     <!-- Experiencias sugeridas: también lazy -->
-                            <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}"
-                                 alt="{{ e.tipo }}" loading="lazy" decoding="async">
+                            <img src="{{ e.image or '/static/images/default_experiencia_thumb.webp' }}"
+                                 alt="{{ e.tipo }}" loading="lazy" decoding="async"
+                                 onerror="this.onerror=null;this.src='/static/images/default_experiencia_thumb.webp';">
                             <div class="badge" style="position:absolute; top:10px; left:10px; background:var(--secondary); color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:600;">
                                 <i class="ph ph-shooting-star"></i> Experiencia
                             </div>

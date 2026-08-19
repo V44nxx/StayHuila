@@ -150,7 +150,7 @@
             {% for h in hospedajes %}
             <article class="listing-card" id="card-h-{{ h.id }}" style="margin:0;cursor:pointer;" onclick="window.location.href='/hospedaje/{{ h.id }}'">
                 <div class="image-wrapper">
-                    <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}" alt="{{ h.tipo }}">
+                    <img src="{{ h.image or '/static/images/default_hospedaje_thumb.webp' }}" alt="{{ h.tipo }}" onerror="this.onerror=null;this.src='/static/images/default_hospedaje_thumb.webp'">
                     <button class="favorite-btn" data-id="{{ h.id }}" data-tipo="hospedaje" onclick="event.stopPropagation()"><i class="ph-fill ph-heart"></i></button>
                 </div>
                 <div class="listing-info">
@@ -172,7 +172,7 @@
             {% for e in experiencias %}
             <article class="listing-card" id="card-e-{{ e.id }}" style="margin:0;cursor:pointer;" onclick="window.location.href='/experiencia/{{ e.id }}'">
                 <div class="image-wrapper">
-                    <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600' }}" alt="{{ e.tipo }}">
+                    <img src="{{ e.image or '/static/images/default_experiencia_thumb.webp' }}" alt="{{ e.tipo }}" onerror="this.onerror=null;this.src='/static/images/default_experiencia_thumb.webp'">
                     <button class="favorite-btn" data-id="{{ e.id }}" data-tipo="experiencia" onclick="event.stopPropagation()"><i class="ph-fill ph-heart"></i></button>
                 </div>
                 <div class="listing-info">

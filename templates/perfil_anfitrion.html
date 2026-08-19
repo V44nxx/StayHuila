@@ -536,7 +536,7 @@
         <!-- Sidebar -->
         <aside class="profile-sidebar">
             <div class="profile-sidebar-card">
-                <img src="{{ host.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ host.nombre ~ '&background=random' }}" alt="{{ host.nombre }}" class="host-avatar-large">
+                <img src="{{ host.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ host.nombre ~ '&background=random' }}" alt="{{ host.nombre }}" class="host-avatar-large" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                 <h1 class="host-name-large">{{ host.nombre }}</h1>
                 
                 {% if host.super_anfitrion %}
@@ -595,7 +595,7 @@
                 <div class="listings-grid">
                     {% for h in hospedajes %}
                     <div class="mini-card" onclick="window.location.href='/hospedaje/{{ h.id }}'">
-                        <img src="{{ h.image or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=600' }}" class="mini-card-img" alt="{{ h.nombre }}">
+                        <img src="{{ h.image or '/static/images/default_hospedaje_thumb.webp' }}" class="mini-card-img" alt="{{ h.nombre }}" onerror="this.onerror=null;this.src='/static/images/default_hospedaje_thumb.webp'">
                         <div class="mini-card-info">
                             <div class="mini-card-title">{{ h.nombre }}</div>
                             <div class="mini-card-price">${{ "{:,.0f}".format(h.precio_noche).replace(',','.') }} COP</div>
@@ -612,7 +612,7 @@
                 <div class="listings-grid">
                     {% for e in experiencias %}
                     <div class="mini-card" onclick="window.location.href='/experiencia/{{ e.id }}'">
-                        <img src="{{ e.image or 'https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=500' }}" class="mini-card-img" alt="{{ e.nombre }}">
+                        <img src="{{ e.image or '/static/images/default_experiencia_thumb.webp' }}" class="mini-card-img" alt="{{ e.nombre }}" onerror="this.onerror=null;this.src='/static/images/default_experiencia_thumb.webp'">
                         <div class="mini-card-info">
                             <div class="mini-card-title">{{ e.nombre }}</div>
                             <div class="mini-card-price">${{ "{:,.0f}".format(e.precio_persona).replace(',','.') }} COP</div>
@@ -630,7 +630,7 @@
                     {% for r in resenas %}
                     <div class="review-card-modern" id="resena-{{ r.id }}">
                         <div class="review-header">
-                            <img src="{{ r.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ r.nombre ~ '&background=random' }}" class="review-avatar" alt="{{ r.nombre }}">
+                            <img src="{{ r.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ r.nombre ~ '&background=random' }}" class="review-avatar" alt="{{ r.nombre }}" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                             <div>
                                 <span class="review-user-name">{{ r.nombre }} {{ r.apellido }}</span>
                                 <span class="review-date">{{ r.fecha_resena.strftime('%B %Y') if r.fecha_resena else '' }}</span>
@@ -648,7 +648,9 @@
                             {% set es_anf = (resp.usuario_id == host.id) %}
                             <div class="resena-respuesta {{ 'es-anfitrion' if es_anf else 'es-huesped' }}">
                                 <img src="{{ resp.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ resp.nombre ~ '&background=random' }}"
-                                     alt="{{ resp.nombre }}" class="resp-avatar">
+                                     class="resena-resp-avatar"
+                                     alt="{{ resp.nombre }}"
+                                     onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                                 <div class="resp-body">
                                     <div class="resp-meta">
                                         <strong>{{ resp.nombre }} {{ resp.apellido }}</strong>

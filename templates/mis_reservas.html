@@ -132,7 +132,7 @@
         {% for r in reservas %}
         <div class="reserva-card" data-estado="{{ r.estado }}" data-checkin-ts="{{ r.checkin_ts }}" data-checkout-ts="{{ r.checkout_ts }}">
             <div class="rc-body">
-                <img src="{{ r.hosp_img or 'https://images.unsplash.com/photo-1518136247453-74e7b5265980?w=400' }}" class="rc-img" alt="{{ r.hosp_nombre }}">
+                <img src="{{ r.hosp_img or '/static/images/default_hospedaje_thumb.webp' }}" class="rc-img" alt="{{ r.hosp_nombre }}" onerror="this.onerror=null;this.src='/static/images/default_hospedaje_thumb.webp'">
                 <div class="rc-info">
                     <div class="rc-top">
                         <div>

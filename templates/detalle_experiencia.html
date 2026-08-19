@@ -146,14 +146,16 @@
         <!-- GALERÍA DE FOTOS -->
         <div class="galeria-grid" id="galeria">
             <div class="galeria-main" onclick="openLightbox(0)">
-                <img src="{{ imagenes[0].url if imagenes else "" }}" alt="{{ experiencia.nombre }}" id="main-img">
+                <img src="{{ (imagenes[0].url if imagenes else '') | safe_img('experiencia') }}" alt="{{ experiencia.nombre }}" id="main-img"
+                     loading="eager" fetchpriority="high" onerror="this.onerror=null;this.src='/static/images/default_experiencia.webp'">
                 <div class="galeria-overlay"><i class="ph ph-arrows-out"></i></div>
             </div>
             <div class="galeria-side">
                 {% for img_obj in imagenes[1:5] %}
                 <div class="galeria-thumb {% if loop.last and imagenes|length > 5 %}galeria-more{% endif %}"
                     onclick="openLightbox({{ loop.index }})">
-                    <img src="{{ img_obj.url }}" alt="Foto {{ loop.index + 1 }}">
+                    <img src="{{ img_obj.url }}" alt="Foto {{ loop.index + 1 }}"
+                         loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/default_experiencia.webp'">
                     {% if loop.last and imagenes|length > 4 %}
                     <div class="galeria-more-overlay"><i class="ph ph-images"></i> <span data-i18n="detail.all_photos">Ver todas las fotos</span></div>
                     {% endif %}
@@ -614,7 +616,7 @@
             <!-- Card anfitrión -->
             <a href="/anfitrion/{{ experiencia.anfitrion_id }}" style="text-decoration: none; color: inherit;">
                 <div class="host-card">
-                    <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}" alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="hc-avatar">
+                    <img src="{{ experiencia.anf_foto or 'https://ui-avatars.com/api/?name=' ~ experiencia.anf_nombre ~ '&background=random' }}" alt="{{ experiencia.anf_nombre ~ ' ' ~ experiencia.anf_apellido }}" class="hc-avatar" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                     <div class="hc-info">
                         <strong>{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</strong>
                         <p>Anfitrión desde {{ experiencia.anf_desde[:4] if experiencia.anf_desde else '' }}</p>
@@ -643,7 +645,7 @@
             <article class="listing-card" onclick="window.location.href='/experiencia/{{ s.id }}'"
                 style="cursor:pointer;">
                 <div class="image-wrapper">
-                    <img src="{{ s.image or "" }}" alt="{{ s.nombre }}">
+                    <img src="{{ s.image | safe_img('experiencia') }}" alt="{{ s.nombre }}" onerror="this.onerror=null;this.src='/static/images/default_experiencia.webp'">
                     {% if s.es_eco %}<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> Sostenible</div>{%
                     elif "" %}<div class="badge">{{ "" }}</div>{% endif %}
                     <button class="favorite-btn" onclick="event.stopPropagation()"><i class="ph ph-heart"></i></button>
@@ -672,7 +674,7 @@
     "price": {{ experiencia.precio_persona }},
     "price_weekend": {{ experiencia.precio_persona }},
     "discount": {{ experiencia.descuento_porcentaje or 0 }},
-    "images": {{ imagenes | map(attribute="url") | list | tojson | safe }},
+    "images": {{ (imagenes | map(attribute="url") | list if imagenes else ['/static/images/default_experiencia.webp']) | tojson | safe }},
     "name": {{ experiencia.nombre | tojson | safe }},
     "max_guests": {{ experiencia.capacidad_max }}
 }

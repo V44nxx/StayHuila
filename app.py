@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 import pymysql
@@ -15,8 +15,12 @@ import time
 from payment_service import PaymentService, NequiProvider
 # Módulo de validación y optimización de imágenes (OpenCV + Pillow + WebP)
 from image_optimizer import process_image, thumb_url_from_url
-# Compresión gzip/brotli automática de respuestas HTML, CSS, JS, JSON
-from flask_compress import Compress
+# Compresión gzip/brotli automática de respuestas HTML, CSS, JS, JSON (opcional)
+try:
+    from flask_compress import Compress
+    HAS_FLASK_COMPRESS = True
+except ImportError:
+    HAS_FLASK_COMPRESS = False
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde .env
@@ -47,19 +51,69 @@ login_manager.login_message = 'Inicia sesión para continuar'
 # Garantizar estructura de carpetas para imágenes subidas
 os.makedirs(os.path.join(app.root_path, 'static', 'uploads', 'comprobantes'), exist_ok=True)
 
-# Flask-Compress comprime automáticamente respuestas HTML, CSS, JS y JSON.
-# El navegador envía 'Accept-Encoding: br, gzip' y Flask-Compress elige el mejor.
-# Brotli (br) ofrece 15-25% mejor compresión que gzip para texto.
-app.config['COMPRESS_REGISTER'] = False          # Registramos manualmente para control
-app.config['COMPRESS_MIMETYPES'] = [
-    'text/html', 'text/css', 'text/javascript',
-    'application/javascript', 'application/json',
-    'text/xml', 'application/xml', 'image/svg+xml',
-]
-app.config['COMPRESS_LEVEL'] = 6                 # Nivel de compresión gzip (1-9). 6 = balance óptimo
-app.config['COMPRESS_MIN_SIZE'] = 500            # No comprimir respuestas < 500 bytes (overhead no vale)
-compress = Compress()
-compress.init_app(app)
+# ── MANEJADOR DE UPLOADS CON FALLBACK INTELIGENTE ─────────────────────────────
+@app.route('/static/uploads/<path:filename>')
+def serve_static_upload(filename):
+    """
+    Sirve archivos subidos a static/uploads/.
+    Si el archivo no existe en disco (debido a un commit, clonación en nuevo servidor o despliegue),
+    no devuelve 404 roto; en su lugar, sirve de forma transparente la imagen fallback adecuada
+    (hospedaje, experiencia, avatar o miniatura) garantizando que la interfaz nunca muestre iconos rotos.
+    """
+    upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+    file_path = os.path.join(upload_folder, filename)
+    if os.path.isfile(file_path):
+        return send_from_directory(upload_folder, filename)
+
+    images_folder = os.path.join(app.root_path, 'static', 'images')
+    if filename.startswith('perfil_'):
+        fallback = 'default_avatar.webp'
+    elif 'experiencia' in filename or filename.startswith('post_'):
+        fallback = 'default_experiencia_thumb.webp' if '_thumb' in filename else 'default_experiencia.webp'
+    elif '_thumb' in filename:
+        fallback = 'default_hospedaje_thumb.webp'
+    else:
+        fallback = 'default_hospedaje.webp'
+
+    fallback_path = os.path.join(images_folder, fallback)
+    if os.path.isfile(fallback_path):
+        return send_from_directory(images_folder, fallback)
+
+    return send_from_directory(images_folder, 'default_placeholder.webp') if os.path.isfile(os.path.join(images_folder, 'default_placeholder.webp')) else ('', 404)
+
+
+# ── FILTROS JINJA PARA IMÁGENES SEGURAS ──────────────────────────────────────
+@app.template_filter('safe_img')
+def safe_img_filter(url, tipo='hospedaje'):
+    if not url or not str(url).strip():
+        if tipo in ('avatar', 'perfil'):
+            return '/static/images/default_avatar.webp'
+        elif tipo == 'experiencia':
+            return '/static/images/default_experiencia.webp'
+        return '/static/images/default_hospedaje.webp'
+    return url
+
+@app.template_filter('safe_thumb')
+def safe_thumb_filter(url, tipo='hospedaje'):
+    if not url or not str(url).strip():
+        if tipo == 'experiencia':
+            return '/static/images/default_experiencia_thumb.webp'
+        return '/static/images/default_hospedaje_thumb.webp'
+    return thumb_url_from_url(url)
+
+
+# Flask-Compress comprime automáticamente respuestas HTML, CSS, JS y JSON si está instalado.
+if HAS_FLASK_COMPRESS:
+    app.config['COMPRESS_REGISTER'] = False          # Registramos manualmente para control
+    app.config['COMPRESS_MIMETYPES'] = [
+        'text/html', 'text/css', 'text/javascript',
+        'application/javascript', 'application/json',
+        'text/xml', 'application/xml', 'image/svg+xml',
+    ]
+    app.config['COMPRESS_LEVEL'] = 6                 # Nivel de compresión gzip (1-9). 6 = balance óptimo
+    app.config['COMPRESS_MIN_SIZE'] = 500            # No comprimir respuestas < 500 bytes (overhead no vale)
+    compress = Compress()
+    compress.init_app(app)
 
 # ── CACHÉ SELECTIVO ───────────────────────────────────────────────────────────
 # Estrategia:

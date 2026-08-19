@@ -337,6 +337,27 @@ const ImageUploader = (() => {
     // ─────────────────────────────────────────────────────────────────────────
     // reset — Limpia el estado al cerrar/reiniciar el wizard
     // ─────────────────────────────────────────────────────────────────────────
+    function _refreshCoverTags() {
+        if (!_grid) return;
+        const okCards = _grid.querySelectorAll('.img-preview-card.status-ok');
+        okCards.forEach((card, idx) => {
+            const tag = card.querySelector('.img-preview-cover-tag');
+            if (idx === 0) {
+                if (!tag) {
+                    const newTag = document.createElement('span');
+                    newTag.className = 'img-preview-cover-tag';
+                    newTag.textContent = '★ Portada';
+                    card.appendChild(newTag);
+                }
+            } else if (tag) {
+                tag.remove();
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // reset — Limpia el estado al cerrar/reiniciar el wizard
+    // ─────────────────────────────────────────────────────────────────────────
     function reset() {
         _validUrls     = [];
         _pendingCount  = 0;
@@ -349,25 +370,27 @@ const ImageUploader = (() => {
 
     function loadExistingUrls(urls) {
         if (!Array.isArray(urls) || urls.length === 0) return;
+        _ensureDom();
         init();
-        _validUrls = [...urls];
+        const cleanUrls = urls.filter(u => u && typeof u === 'string' && u.trim().length > 0);
+        _validUrls = [...cleanUrls];
         if (_grid) {
-            urls.forEach((url, idx) => {
-                const cardId = 'card-exist-' + idx + '-' + Date.now();
+            _grid.innerHTML = ''; // Limpiar antes de rellenar
+            cleanUrls.forEach((url, idx) => {
+                const cardId = 'card-exist-' + idx + '-' + Math.random().toString(36).substring(2, 8);
                 const card = document.createElement('div');
-                card.className = 'img-preview-card';
+                card.className = 'img-preview-card status-ok';
                 card.id = cardId;
-                card.dataset.url = url;
+                card.dataset.validUrl = url;
                 card.innerHTML = `
-                    <img src="${url}" alt="Vista previa">
-                    <div class="img-preview-overlay">
-                        <span class="img-preview-badge badge-ok">
-                            <i class="ph ph-check-circle"></i> Imagen cargada
-                        </span>
-                        <button type="button" class="img-preview-remove" title="Eliminar imagen" onclick="event.stopPropagation(); ImageUploader.removeCard('${cardId}', '${url}')">
-                            <i class="ph ph-trash"></i>
-                        </button>
-                    </div>
+                    <img src="${url}" alt="Foto ${idx + 1}" onerror="this.onerror=null;this.src='/static/images/default_hospedaje.webp'">
+                    <span class="img-preview-badge badge-ok">
+                        <i class="ph-fill ph-check-circle"></i> Imagen cargada
+                    </span>
+                    <button type="button" class="img-preview-remove" title="Eliminar imagen" onclick="event.stopPropagation(); ImageUploader.removeCard('${cardId}', '${url}')">
+                        <i class="ph ph-x"></i>
+                    </button>
+                    ${idx === 0 ? '<span class="img-preview-cover-tag">★ Portada</span>' : ''}
                 `;
                 _grid.appendChild(card);
             });
@@ -381,6 +404,7 @@ const ImageUploader = (() => {
         }
         const card = document.getElementById(cardId);
         if (card) card.remove();
+        _refreshCoverTags();
         _updateSummary();
     }
 

@@ -749,6 +749,18 @@
                 document.getElementById('e-traer').value    = data.que_traer        || '';
             }
 
+            // ── Paso 6: Cargar fotos existentes en ImageUploader ──
+            if (typeof ImageUploader !== 'undefined') {
+                ImageUploader.reset();
+                const rawFotos = data.fotos || '';
+                const fotosList = Array.isArray(rawFotos)
+                    ? rawFotos
+                    : (typeof rawFotos === 'string' ? rawFotos.split('|').map(s => s.trim()).filter(Boolean) : []);
+                if (fotosList.length > 0) {
+                    ImageUploader.loadExistingUrls(fotosList);
+                }
+            }
+
             // Actualizar texto del botón final
             document.getElementById('btn-next').innerHTML = 'Guardar cambios <i class="ph-bold ph-check"></i>';
         }

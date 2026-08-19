@@ -110,7 +110,7 @@
         <aside class="perfil-sidebar">
             <div class="perfil-avatar-container">
                 <button type="button" class="perfil-avatar-button" onclick="openAvatarModal()" aria-label="Ver foto de perfil">
-                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random&size=150' }}" alt="{{ current_user.nombre }}" class="perfil-avatar" id="avatar-preview">
+                    <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random&size=150' }}" alt="{{ current_user.nombre }}" class="perfil-avatar" id="avatar-preview" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                     <span class="perfil-avatar-overlay"><i class="ph ph-arrows-out-simple"></i></span>
                 </button>
                 {% if current_user.foto_perfil %}
@@ -334,7 +334,7 @@
             <button type="button" class="avatar-modal-close" onclick="closeAvatarModal()" aria-label="Cerrar">
                 <i class="ph ph-x"></i>
             </button>
-            <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random&size=420' }}" alt="{{ current_user.nombre }}" class="avatar-modal-img" id="avatar-modal-preview">
+            <img src="{{ current_user.foto_perfil or 'https://ui-avatars.com/api/?name=' ~ current_user.nombre ~ '&background=random&size=420' }}" alt="{{ current_user.nombre }}" class="avatar-modal-img" id="avatar-modal-preview" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
             <div class="avatar-modal-actions">
                 <button type="button" class="avatar-action-btn" onclick="document.getElementById('foto-input').click(); closeAvatarModal();">
                     <i class="ph ph-camera"></i>

@@ -151,8 +151,8 @@
         <div class="galeria-grid" id="galeria">
             <div class="galeria-main" onclick="openLightbox(0)">
                 <!-- Primera imagen de galería: eager+fetchpriority (es el LCP de la página) -->
-                <img src="{{ imagenes[0].url if imagenes else '' }}" alt="{{ hospedaje.nombre }}" id="main-img"
-                     loading="eager" fetchpriority="high">
+                <img src="{{ (imagenes[0].url if imagenes else '') | safe_img('hospedaje') }}" alt="{{ hospedaje.nombre }}" id="main-img"
+                     loading="eager" fetchpriority="high" onerror="this.onerror=null;this.src='/static/images/default_hospedaje.webp'">
                 <div class="galeria-overlay"><i class="ph ph-arrows-out"></i></div>
             </div>
             <div class="galeria-side">
@@ -160,7 +160,7 @@
                 <div class="galeria-thumb {% if loop.last and imagenes|length > 5 %}galeria-more{% endif %}"
                     onclick="openLightbox({{ loop.index }})">
                     <img src="{{ img_obj.url }}" alt="Foto {{ loop.index + 1 }}"
-                         loading="lazy" decoding="async">
+                         loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/default_hospedaje.webp'">
                     {% if loop.last and imagenes|length > 4 %}
                     <div class="galeria-more-overlay"><i class="ph ph-images"></i> <span data-i18n="detail.all_photos">Ver todas las fotos</span></div>
                     {% endif %}
@@ -584,7 +584,7 @@
             <!-- Card anfitrión -->
             <a href="/anfitrion/{{ hospedaje.anfitrion_id }}" style="text-decoration: none; color: inherit;">
                 <div class="host-card">
-                    <img src="{{ hospedaje.anf_foto or 'https://ui-avatars.com/api/?name=' ~ hospedaje.anf_nombre ~ '&background=random' }}" alt="{{ hospedaje.anf_nombre ~ ' ' ~ hospedaje.anf_apellido }}" class="hc-avatar">
+                    <img src="{{ hospedaje.anf_foto or 'https://ui-avatars.com/api/?name=' ~ hospedaje.anf_nombre ~ '&background=random' }}" alt="{{ hospedaje.anf_nombre ~ ' ' ~ hospedaje.anf_apellido }}" class="hc-avatar" onerror="this.onerror=null;this.src='/static/images/default_avatar.webp'">
                     <div class="hc-info">
                         <strong>{{ hospedaje.anf_nombre ~ " " ~ hospedaje.anf_apellido }}</strong>
                         <p>Anfitrión desde {{ hospedaje.anf_desde[:4] if hospedaje.anf_desde else '' }}</p>
@@ -613,7 +613,7 @@
             <article class="listing-card" onclick="window.location.href='/hospedaje/{{ s.id }}'"
                 style="cursor:pointer;">
                 <div class="image-wrapper">
-                    <img src="{{ s.image or "" }}" alt="{{ s.nombre }}">
+                    <img src="{{ s.image | safe_img('hospedaje') }}" alt="{{ s.nombre }}" onerror="this.onerror=null;this.src='/static/images/default_hospedaje.webp'">
                     {% if s.es_eco %}<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> Sostenible</div>{%
                     elif "" %}<div class="badge">{{ "" }}</div>{% endif %}
                     <button class="favorite-btn" onclick="event.stopPropagation()"><i class="ph ph-heart"></i></button>
@@ -642,7 +642,7 @@
     "price": {{ hospedaje.precio_noche }},
     "price_weekend": {{ hospedaje.precio_fin_semana or hospedaje.precio_noche }},
     "discount": {{ hospedaje.descuento_porcentaje or 0 }},
-    "images": {{ imagenes | map(attribute="url") | list | tojson | safe }},
+    "images": {{ (imagenes | map(attribute="url") | list if imagenes else ['/static/images/default_hospedaje.webp']) | tojson | safe }},
     "name": {{ hospedaje.nombre | tojson | safe }},
     "max_guests": {{ hospedaje.capacidad_max }},
     "estadia_minima": {{ hospedaje.estadia_minima or 1 }},
