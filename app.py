@@ -51,26 +51,40 @@ login_manager.login_message = 'Inicia sesión para continuar'
 # Garantizar estructura de carpetas para imágenes subidas
 os.makedirs(os.path.join(app.root_path, 'static', 'uploads', 'comprobantes'), exist_ok=True)
 
-# ── MANEJADOR DE UPLOADS CON FALLBACK INTELIGENTE ─────────────────────────────
+# ── MANEJADOR DE UPLOADS CON RESTAURACIÓN DESDE BD Y FALLBACK INTELIGENTE ────
 @app.route('/static/uploads/<path:filename>')
 def serve_static_upload(filename):
     """
     Sirve archivos subidos a static/uploads/.
-    Si el archivo no existe en disco (debido a un commit, clonación en nuevo servidor o despliegue),
-    no devuelve 404 roto; en su lugar, sirve de forma transparente la imagen fallback adecuada
-    (hospedaje, experiencia, avatar o miniatura) garantizando que la interfaz nunca muestre iconos rotos.
+    1. Si el archivo existe en disco, se sirve inmediatamente.
+    2. Si el contenedor se reconstruyó tras un commit y el archivo no está en disco,
+       lo restaura automáticamente desde la base de datos MySQL (tabla almacen_imagenes)
+       y lo escribe a disco para que nunca se pierda.
+    3. Si no existe en BD, sirve el fallback WebP correspondiente.
     """
+    safe_name = os.path.basename(filename)
     upload_folder = os.path.join(app.root_path, 'static', 'uploads')
-    file_path = os.path.join(upload_folder, filename)
-    if os.path.isfile(file_path):
-        return send_from_directory(upload_folder, filename)
+    file_path = os.path.join(upload_folder, safe_name)
 
+    if os.path.isfile(file_path):
+        return send_from_directory(upload_folder, safe_name)
+
+    # Intentar restaurar desde MySQL
+    try:
+        from image_store import restaurar_imagen_bd
+        if restaurar_imagen_bd(safe_name, upload_folder):
+            if os.path.isfile(file_path):
+                return send_from_directory(upload_folder, safe_name)
+    except Exception as e_res:
+        app.logger.warning(f"Error restaurando imagen {safe_name} desde BD: {e_res}")
+
+    # Fallback inteligente si no existe en BD
     images_folder = os.path.join(app.root_path, 'static', 'images')
-    if filename.startswith('perfil_'):
+    if safe_name.startswith('perfil_'):
         fallback = 'default_avatar.webp'
-    elif 'experiencia' in filename or filename.startswith('post_'):
-        fallback = 'default_experiencia_thumb.webp' if '_thumb' in filename else 'default_experiencia.webp'
-    elif '_thumb' in filename:
+    elif 'experiencia' in safe_name or safe_name.startswith('post_'):
+        fallback = 'default_experiencia_thumb.webp' if '_thumb' in safe_name else 'default_experiencia.webp'
+    elif '_thumb' in safe_name:
         fallback = 'default_hospedaje_thumb.webp'
     else:
         fallback = 'default_hospedaje.webp'
@@ -80,6 +94,13 @@ def serve_static_upload(filename):
         return send_from_directory(images_folder, fallback)
 
     return send_from_directory(images_folder, 'default_placeholder.webp') if os.path.isfile(os.path.join(images_folder, 'default_placeholder.webp')) else ('', 404)
+
+# Restaurar imágenes almacenadas en BD en segundo plano al arrancar
+try:
+    from image_store import restaurar_todas_imagenes_bd
+    restaurar_todas_imagenes_bd(os.path.join(app.root_path, 'static', 'uploads'))
+except Exception as e_init_img:
+    app.logger.warning(f"Note init image sync: {e_init_img}")
 
 
 # ── FILTROS JINJA PARA IMÁGENES SEGURAS ──────────────────────────────────────
@@ -2040,6 +2061,11 @@ def perfil():
             path = os.path.join(app.root_path, 'static', 'uploads', filename)
             foto.save(path)
             foto_url = f"/static/uploads/{filename}"
+            try:
+                from image_store import guardar_imagen_bd
+                guardar_imagen_bd(filename, path, f'image/{ext.lstrip(".")}')
+            except Exception as e_img:
+                app.logger.warning(f"Error guardando foto perfil en BD: {e_img}")
         
         c = db()
         try:
@@ -3893,6 +3919,11 @@ def api_comunidad_posts():
                     path = os.path.join(app.root_path, 'static', 'uploads', filename)
                     file.save(path)
                     imagen_url = f"/static/uploads/{filename}"
+                    try:
+                        from image_store import guardar_imagen_bd
+                        guardar_imagen_bd(filename, path, f'image/{ext}')
+                    except Exception as e_img:
+                        app.logger.warning(f"Error guardando foto post en BD: {e_img}")
                 
                 rec_tipo = request.form.get('rec_tipo')
                 rec_id = request.form.get('rec_id')

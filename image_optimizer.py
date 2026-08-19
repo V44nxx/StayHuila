@@ -253,6 +253,14 @@ def process_image(file_storage, upload_folder: str, index: int = 0) -> ImageResu
     path_thumb     = os.path.join(upload_folder, filename_thumb)
     _save_webp(img_thumb, path_thumb, WEBP_THUMB_QUALITY)
 
+    # ── 9.1. Respaldo permanente en Base de Datos MySQL ──────────────────────
+    try:
+        from image_store import guardar_imagen_bd
+        guardar_imagen_bd(filename_main, path_main, 'image/webp')
+        guardar_imagen_bd(filename_thumb, path_thumb, 'image/webp')
+    except Exception as e_bd:
+        logger.warning(f"No se pudo respaldar en BD: {e_bd}")
+
     # ── 10. Resultado exitoso ─────────────────────────────────────────────────
     result.valid      = True
     result.status     = 'ok'
