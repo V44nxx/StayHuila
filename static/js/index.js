@@ -119,8 +119,8 @@ function renderListings(items, queryStr) {
         const imgUrl = item.image_thumb || item.imagen || item.image || fallbackUrl;
         const priceUnit = isHosp ? 'noche' : 'persona';
         const rawPrice = item.precio || item.precio_noche || item.precio_persona || 0;
-        const rating = item.calificacion ? Number(item.calificacion).toFixed(1) : '5.0';
-        const totalReviews = item.total_resenas || 0;
+        const totalReviews = Number(item.total_resenas || 0);
+        const ratingText = (totalReviews > 0 && item.calificacion) ? `${Number(item.calificacion).toFixed(1)} (${totalReviews})` : 'Nuevo';
         const ecoBadge = item.es_eco ? `<div class="badge eco-badge"><i class="ph-fill ph-leaf"></i> 100% Sostenible</div>` : '';
         const discBadge = item.descuento_porcentaje ? `<div class="discount-badge">-${item.descuento_porcentaje}% Hoy</div>` : '';
         const repairBadge = item.estado === 'reparacion' ? `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.75); color:white; padding:6px 14px; border-radius:20px; font-weight:600; font-size:0.85rem; z-index:10; white-space:nowrap;"><i class="ph-fill ph-wrench"></i> En reparación</div>` : '';
@@ -139,7 +139,7 @@ function renderListings(items, queryStr) {
                 <div class="listing-info">
                     <div class="listing-header">
                         <h3>${escapeHtml(item.nombre)}</h3>
-                        <span class="rating"><i class="ph-fill ph-star"></i> ${rating} (${totalReviews})</span>
+                        <span class="rating"><i class="ph-fill ph-star" style="color:#F59E0B;"></i> ${ratingText}</span>
                     </div>
                     <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> ${locationText}</p>
                     <p class="details">${escapeHtml(item.descripcion_corta || item.categoria || item.sub_tipo || item.tipo || '')}</p>

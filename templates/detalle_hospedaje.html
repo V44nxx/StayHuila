@@ -128,9 +128,13 @@
             <div>
                 <h1 class="detalle-titulo">{{ hospedaje.nombre }}</h1>
                 <div class="detalle-meta">
-                    <span class="meta-rating"><i class="ph-fill ph-star"></i> {{ hospedaje.calificacion }}</span>
+                    {% if hospedaje.total_resenas and hospedaje.total_resenas > 0 %}
+                    <span class="meta-rating"><i class="ph-fill ph-star"></i> {{ "%.1f"|format(hospedaje.calificacion) }}</span>
                     <span class="meta-sep">·</span>
-                    <span class="meta-reviews"><u>{{ hospedaje.total_resenas }} reseñas</u></span>
+                    <span class="meta-reviews"><u>{{ hospedaje.total_resenas }} {{ 'reseña' if hospedaje.total_resenas == 1 else 'reseñas' }}</u></span>
+                    {% else %}
+                    <span class="meta-rating"><i class="ph-fill ph-star"></i> Nuevo</span>
+                    {% endif %}
                     <span class="meta-sep">·</span>
                     {% if hospedaje.super_anfitrion %}<span class="meta-super"><i class="ph-fill ph-medal"></i>
                         <span data-i18n="detail.super_host">SuperAnfitrión</span></span><span class="meta-sep">·</span>{% endif %}
@@ -335,13 +339,19 @@
             <!-- RESEÑAS -->
             <div class="detalle-card resenas-card">
                 <div class="resenas-header">
-                    <h2 class="section-title"><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{
-                        hospedaje.calificacion }} · {{ hospedaje.total_resenas }} reseñas</h2>
+                    <h2 class="section-title">
+                        <i class="ph-fill ph-star" style="color:#F59E0B"></i>
+                        {% if hospedaje.total_resenas and hospedaje.total_resenas > 0 %}
+                        {{ "%.1f"|format(hospedaje.calificacion) }} · {{ hospedaje.total_resenas }} {{ 'reseña' if hospedaje.total_resenas == 1 else 'reseñas' }}
+                        {% else %}
+                        Nuevo · Sin reseñas todavía
+                        {% endif %}
+                    </h2>
                 </div>
-                <!-- Rating breakdown -->
+                <!-- Rating breakdown real -->
+                {% if rating_breakdown %}
                 <div class="rating-breakdown">
-                    {% for cat, val in [('Limpieza', 4.9), ('Comunicación', 5.0), ('Ubicación', 4.8), ('Relación
-                    calidad-precio', 4.7)] %}
+                    {% for cat, val in rating_breakdown %}
                     <div class="rb-item">
                         <span>{{ cat }}</span>
                         <div class="rb-bar">
@@ -351,6 +361,9 @@
                     </div>
                     {% endfor %}
                 </div>
+                {% elif not hospedaje.total_resenas or hospedaje.total_resenas == 0 %}
+                <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:1.5rem;">Este hospedaje aún no tiene reseñas. ¡Sé el primero en hospedarte y calificarlo!</p>
+                {% endif %}
                 <div class="resenas-grid">
                     {% set visible_resenas = [] %}
                     {% for r in resenas %}
@@ -479,10 +492,14 @@
                     </div>
                     <div class="bw-rating">
                         <i class="ph-fill ph-star" style="color:#F59E0B"></i>
-                        <strong>{{ hospedaje.calificacion }}</strong>
+                        {% if hospedaje.total_resenas and hospedaje.total_resenas > 0 %}
+                        <strong>{{ "%.1f"|format(hospedaje.calificacion) }}</strong>
                         <span style="color:var(--text-muted)">·</span>
                         <u style="color:var(--text-muted);font-size:.85rem;cursor:pointer">{{ hospedaje.total_resenas }}
-                            <span data-i18n="community.reviews">reseñas</span></u>
+                            <span data-i18n="community.reviews">{{ 'reseña' if hospedaje.total_resenas == 1 else 'reseñas' }}</span></u>
+                        {% else %}
+                        <strong>Nuevo</strong>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -589,10 +606,17 @@
                         <strong>{{ hospedaje.anf_nombre ~ " " ~ hospedaje.anf_apellido }}</strong>
                         <p>Anfitrión desde {{ hospedaje.anf_desde[:4] if hospedaje.anf_desde else '' }}</p>
                         <div class="hc-stats">
-                            <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ hospedaje.anf_cal or
-                                hospedaje.calificacion }}</span>
-                            <span>·</span>
-                            <span>{{ hospedaje.anf_res or hospedaje.total_resenas }} reseñas</span>
+                            {% if (hospedaje.anf_res and hospedaje.anf_res > 0) %}
+                                <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ "%.1f"|format(hospedaje.anf_cal) }}</span>
+                                <span>·</span>
+                                <span>{{ hospedaje.anf_res }} {{ 'reseña' if hospedaje.anf_res == 1 else 'reseñas' }}</span>
+                            {% elif (hospedaje.total_resenas and hospedaje.total_resenas > 0) %}
+                                <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ "%.1f"|format(hospedaje.calificacion) }}</span>
+                                <span>·</span>
+                                <span>{{ hospedaje.total_resenas }} {{ 'reseña' if hospedaje.total_resenas == 1 else 'reseñas' }}</span>
+                            {% else %}
+                                <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> Nuevo anfitrión</span>
+                            {% endif %}
                         </div>
                     </div>
                     <button class="contact-host-btn"><i class="ph ph-chat-circle"></i> Contactar</button>

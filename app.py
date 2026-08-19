@@ -1679,12 +1679,32 @@ def detalle_hospedaje(id):
                             (current_user.id, id))
                 es_favorito = cur.fetchone() is not None
 
+            # Calcular desglose real de calificaciones (Limpieza, Comunicación, Ubicación, Calidad-precio)
+            rating_breakdown = []
+            if hosp.get('total_resenas') and hosp['total_resenas'] > 0:
+                cur.execute("""SELECT 
+                    AVG(calificacion_limpieza) as avg_limpieza,
+                    AVG(calificacion_comunicacion) as avg_comunicacion,
+                    AVG(calificacion_ubicacion) as avg_ubicacion,
+                    AVG(calificacion_valor) as avg_valor
+                    FROM resenas 
+                    WHERE hospedaje_id=%s AND tipo='hospedaje' AND publicada=1""", (id,))
+                bd_row = cur.fetchone()
+                if bd_row and bd_row.get('avg_limpieza') is not None:
+                    rating_breakdown = [
+                        ('Limpieza', round(float(bd_row['avg_limpieza'] or 5.0), 1)),
+                        ('Comunicación', round(float(bd_row['avg_comunicacion'] or 5.0), 1)),
+                        ('Ubicación', round(float(bd_row['avg_ubicacion'] or 5.0), 1)),
+                        ('Relación calidad-precio', round(float(bd_row['avg_valor'] or 5.0), 1))
+                    ]
+
             hosp = serialize(hosp)
             imgs = serialize(cur.fetchall()) if False else serialize(imgs)
             sugerencias = serialize(sugerencias)
         return render_template('detalle_hospedaje.html', hospedaje=hosp,
                                imagenes=imgs, servicios=servicios,
                                resenas=resenas, sugerencias=sugerencias,
+                               rating_breakdown=rating_breakdown,
                                ya_reseno=ya_reseno, es_favorito=es_favorito)
     finally:
         c.close()

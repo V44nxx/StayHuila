@@ -310,9 +310,14 @@
                     <div class="listing-info">
                         <div class="listing-header">
                             <h3>{{ h.nombre }}</h3>
-                            <span class="rating"><i class="ph-fill ph-star"></i> {{ h.calificacion }} ({{
-                                h.total_resenas
-                                }})</span>
+                            <span class="rating">
+                                <i class="ph-fill ph-star"></i>
+                                {% if h.total_resenas and h.total_resenas > 0 %}
+                                {{ "%.1f"|format(h.calificacion) }} ({{ h.total_resenas }})
+                                {% else %}
+                                Nuevo
+                                {% endif %}
+                            </span>
                         </div>
                         <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ h.municipio }}</p>
                         <p class="details">{{ h.descripcion_corta or h.tipo }}</p>
@@ -337,8 +342,14 @@
                     <div class="listing-info">
                         <div class="listing-header">
                             <h3>{{ e.nombre }}</h3>
-                            <span class="rating"><i class="ph-fill ph-star"></i> {{ e.calificacion }} ({{
-                                e.total_resenas or 0 }})</span>
+                            <span class="rating">
+                                <i class="ph-fill ph-star"></i>
+                                {% if e.total_resenas and e.total_resenas > 0 %}
+                                {{ "%.1f"|format(e.calificacion) }} ({{ e.total_resenas }})
+                                {% else %}
+                                Nuevo
+                                {% endif %}
+                            </span>
                         </div>
                         <p class="location"><i class="ph ph-map-pin" style="font-size:.85rem"></i> {{ e.municipio }}</p>
                         <p class="details">{{ e.descripcion_corta or e.tipo }}</p>

@@ -124,9 +124,13 @@
             <div>
                 <h1 class="detalle-titulo">{{ experiencia.nombre }}</h1>
                 <div class="detalle-meta">
-                    <span class="meta-rating"><i class="ph-fill ph-star"></i> {{ experiencia.calificacion }}</span>
+                    {% if experiencia.total_resenas and experiencia.total_resenas > 0 %}
+                    <span class="meta-rating"><i class="ph-fill ph-star"></i> {{ "%.1f"|format(experiencia.calificacion) }}</span>
                     <span class="meta-sep">·</span>
-                    <span class="meta-reviews"><u>{{ experiencia.total_resenas }} reseñas</u></span>
+                    <span class="meta-reviews"><u>{{ experiencia.total_resenas }} {{ 'reseña' if experiencia.total_resenas == 1 else 'reseñas' }}</u></span>
+                    {% else %}
+                    <span class="meta-rating"><i class="ph-fill ph-star"></i> Nuevo</span>
+                    {% endif %}
                     <span class="meta-sep">·</span>
                     {% if experiencia.super_anfitrion %}<span class="meta-super"><i class="ph-fill ph-medal"></i>
                         <span data-i18n="detail.super_host">SuperAnfitrión</span></span><span class="meta-sep">·</span>{% endif %}
@@ -382,22 +386,18 @@
             <!-- RESEÑAS -->
             <div class="detalle-card resenas-card">
                 <div class="resenas-header">
-                    <h2 class="section-title"><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{
-                        experiencia.calificacion }} · {{ experiencia.total_resenas }} reseñas</h2>
+                    <h2 class="section-title">
+                        <i class="ph-fill ph-star" style="color:#F59E0B"></i>
+                        {% if experiencia.total_resenas and experiencia.total_resenas > 0 %}
+                        {{ "%.1f"|format(experiencia.calificacion) }} · {{ experiencia.total_resenas }} {{ 'reseña' if experiencia.total_resenas == 1 else 'reseñas' }}
+                        {% else %}
+                        Nuevo · Sin reseñas todavía
+                        {% endif %}
+                    </h2>
                 </div>
-                <!-- Rating breakdown -->
-                <div class="rating-breakdown">
-                    {% for cat, val in [('Limpieza', 4.9), ('Comunicación', 5.0), ('Ubicación', 4.8), ('Relación
-                    calidad-precio', 4.7)] %}
-                    <div class="rb-item">
-                        <span>{{ cat }}</span>
-                        <div class="rb-bar">
-                            <div class="rb-fill" style="width:{{ (val/5*100)|int }}%"></div>
-                        </div>
-                        <span class="rb-val">{{ val }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
+                {% if not experiencia.total_resenas or experiencia.total_resenas == 0 %}
+                <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:1.5rem;">Esta experiencia aún no tiene reseñas. ¡Sé el primero en vivirla y calificarla!</p>
+                {% endif %}
                 <div class="resenas-grid">
                     {% set visible_resenas = [] %}
                     {% for r in resenas %}
@@ -514,7 +514,6 @@
             <div class="booking-widget" id="booking-widget">
                 <!-- Precio -->
                 <div class="bw-price-row">
-                    <div>
                         <span class="bw-price">${{ "{:,.0f}".format(experiencia.precio_persona).replace(',', '.') }}
                             COP</span>
                         <span class="bw-per"> / persona</span>
@@ -524,10 +523,13 @@
                     </div>
                     <div class="bw-rating">
                         <i class="ph-fill ph-star" style="color:#F59E0B"></i>
-                        <strong>{{ experiencia.calificacion }}</strong>
+                        {% if experiencia.total_resenas and experiencia.total_resenas > 0 %}
+                        <strong>{{ "%.1f"|format(experiencia.calificacion) }}</strong>
                         <span style="color:var(--text-muted)">·</span>
-                        <u style="color:var(--text-muted);font-size:.85rem;cursor:pointer">{{ experiencia.total_resenas }}
-                            reseñas</u>
+                        <u style="color:var(--text-muted);font-size:.85rem;cursor:pointer">{{ experiencia.total_resenas }} {{ 'reseña' if experiencia.total_resenas == 1 else 'reseñas' }}</u>
+                        {% else %}
+                        <strong>Nuevo</strong>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -558,13 +560,6 @@
                         <input type="hidden" id="sesion-id" name="sesion_id" required>
                     </div>
                     <div class="bw-guests-row" style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
-                        <div class="bw-field">
-                            <label>HUÉSPEDES</label>
-                            <div class="bw-guests-control">
-                                <button type="button" onclick="changeGuests(-1)"><i class="ph ph-minus"></i></button>
-                                <span id="guest-count">1</span>
-                                <button type="button" onclick="changeGuests(1)"><i class="ph ph-plus"></i></button>
-                            </div>
                         </div>
                         <p class="bw-max" id="bw-max-text">Máx. {{ experiencia.capacidad_max }} huéspedes</p>
                     </div>
@@ -621,10 +616,17 @@
                         <strong>{{ experiencia.anf_nombre ~ " " ~ experiencia.anf_apellido }}</strong>
                         <p>Anfitrión desde {{ experiencia.anf_desde[:4] if experiencia.anf_desde else '' }}</p>
                         <div class="hc-stats">
-                            <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ experiencia.anf_cal or
-                                experiencia.calificacion }}</span>
-                            <span>·</span>
-                            <span>{{ experiencia.anf_res or experiencia.total_resenas }} reseñas</span>
+                            {% if (experiencia.anf_res and experiencia.anf_res > 0) %}
+                                <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ "%.1f"|format(experiencia.anf_cal) }}</span>
+                                <span>·</span>
+                                <span>{{ experiencia.anf_res }} {{ 'reseña' if experiencia.anf_res == 1 else 'reseñas' }}</span>
+                            {% elif (experiencia.total_resenas and experiencia.total_resenas > 0) %}
+                                <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> {{ "%.1f"|format(experiencia.calificacion) }}</span>
+                                <span>·</span>
+                                <span>{{ experiencia.total_resenas }} {{ 'reseña' if experiencia.total_resenas == 1 else 'reseñas' }}</span>
+                            {% else %}
+                                <span><i class="ph-fill ph-star" style="color:#F59E0B"></i> Nuevo anfitrión</span>
+                            {% endif %}
                         </div>
                     </div>
                     <button class="contact-host-btn"><i class="ph ph-chat-circle"></i> Contactar</button>
