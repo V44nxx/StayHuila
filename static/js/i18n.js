@@ -831,13 +831,7 @@ const CONNECTORS = {
         [/\bmágico\b/gi, 'magical'],
         [/\bmágica\b/gi, 'magical'],
         [/\bprivada\b/gi, 'private'],
-        [/\bprivado\b/gi, 'private'],
-        [/\bcon\b/gi, 'with'],
-        [/\ben\b/gi, 'in'],
-        [/\bde\b/gi, 'of'],
-        [/\bdel\b/gi, 'of the'],
-        [/\by\b/gi, 'and'],
-        [/\bpara\b/gi, 'for']
+        [/\bprivado\b/gi, 'private']
     ],
     pt: [
         [/\bcon piscina privada\b/gi, 'com piscina privativa'],
@@ -861,13 +855,7 @@ const CONNECTORS = {
         [/\bacogedora\b/gi, 'aconchegante'],
         [/\bacogedor\b/gi, 'aconchegante'],
         [/\bprivada\b/gi, 'privativa'],
-        [/\bprivado\b/gi, 'privativo'],
-        [/\bcon\b/gi, 'com'],
-        [/\ben\b/gi, 'em'],
-        [/\bde\b/gi, 'de'],
-        [/\bdel\b/gi, 'do'],
-        [/\by\b/gi, 'e'],
-        [/\bpara\b/gi, 'para']
+        [/\bprivado\b/gi, 'privativo']
     ],
     fr: [
         [/\bcon piscina privada\b/gi, 'avec piscine privée'],
@@ -891,13 +879,7 @@ const CONNECTORS = {
         [/\bacogedora\b/gi, 'chaleureuse'],
         [/\bacogedor\b/gi, 'chaleureux'],
         [/\bprivada\b/gi, 'privée'],
-        [/\bprivado\b/gi, 'privé'],
-        [/\bcon\b/gi, 'avec'],
-        [/\ben\b/gi, 'à'],
-        [/\bde\b/gi, 'de'],
-        [/\bdel\b/gi, 'du'],
-        [/\by\b/gi, 'et'],
-        [/\bpara\b/gi, 'pour']
+        [/\bprivado\b/gi, 'privé']
     ],
     it: [
         [/\bcon piscina privada\b/gi, 'con piscina privata'],
@@ -921,13 +903,7 @@ const CONNECTORS = {
         [/\bacogedora\b/gi, 'accogliente'],
         [/\bacogedor\b/gi, 'accogliente'],
         [/\bprivada\b/gi, 'privata'],
-        [/\bprivado\b/gi, 'privato'],
-        [/\bcon\b/gi, 'con'],
-        [/\ben\b/gi, 'a'],
-        [/\bde\b/gi, 'di'],
-        [/\bdel\b/gi, 'del'],
-        [/\by\b/gi, 'e'],
-        [/\bpara\b/gi, 'per']
+        [/\bprivado\b/gi, 'privato']
     ]
 };
 
@@ -953,14 +929,33 @@ function smartInstantTranslate(text, code) {
         }
     }
 
+    // No alterar oraciones conversacionales o preguntas con tokenizadores parciales
+    if (clean.length > 70 || clean.startsWith('¿') || clean.startsWith('¡') || clean.includes('#')) {
+        return null;
+    }
+
     // 3. Traducción inteligente de títulos compuestos y descripciones comunes
     let output = clean;
     let modified = false;
 
-    // Reemplazo de frases clave primero (ordenadas por longitud decreciente para evitar colisiones)
+    // A. Reemplazo de conectores y descriptores compuestos de publicaciones primero
+    const connList = CONNECTORS[code] || [];
+    for (const [regex, replacement] of connList) {
+        if (regex.test(output)) {
+            output = output.replace(regex, (match) => {
+                modified = true;
+                if (match[0] === match[0].toUpperCase() && replacement.length > 0) {
+                    return replacement[0].toUpperCase() + replacement.slice(1);
+                }
+                return replacement;
+            });
+        }
+    }
+
+    // B. Reemplazo de frases clave (ordenadas por longitud decreciente para evitar colisiones)
     const sortedKeys = Object.keys(dict).sort((a, b) => b.length - a.length);
     for (const k of sortedKeys) {
-        if (k.length >= 3) {
+        if (k.length >= 4) {
             const strippedK = stripAccents(k);
             if (stripAccents(output).includes(strippedK)) {
                 const regexPattern = k.split('').map(c => {
@@ -970,7 +965,7 @@ function smartInstantTranslate(text, code) {
                     }
                     return c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 }).join('');
-                const regex = new RegExp(regexPattern, 'gi');
+                const regex = new RegExp(`\\b${regexPattern}\\b`, 'gi');
                 if (regex.test(output)) {
                     output = output.replace(regex, (match) => {
                         modified = true;
@@ -982,20 +977,6 @@ function smartInstantTranslate(text, code) {
                     });
                 }
             }
-        }
-    }
-
-    // 4. Reemplazo de conectores y descriptores gramaticales
-    const connList = CONNECTORS[code] || [];
-    for (const [regex, replacement] of connList) {
-        if (regex.test(output)) {
-            output = output.replace(regex, (match) => {
-                modified = true;
-                if (match[0] === match[0].toUpperCase() && replacement.length > 0) {
-                    return replacement[0].toUpperCase() + replacement.slice(1);
-                }
-                return replacement;
-            });
         }
     }
 
@@ -1315,15 +1296,48 @@ function applyAllTranslations(root = document.body, code = I18n.current) {
                 matched = true;
             }
         }
+        if (!matched) {
+            m = key.match(/^(\d{1,2})\s+de\s+([a-zA-Záéíóú]+)\s+de\s+(\d{4})$/i);
+            if (m) {
+                const day = m[1];
+                const monthKey = m[2].toLowerCase();
+                const year = m[3];
+                const months = {
+                    enero: { en: 'January', pt: 'Janeiro', fr: 'Janvier', it: 'Gennaio' },
+                    febrero: { en: 'February', pt: 'Fevereiro', fr: 'Février', it: 'Febbraio' },
+                    marzo: { en: 'March', pt: 'Março', fr: 'Mars', it: 'Marzo' },
+                    abril: { en: 'April', pt: 'Abril', fr: 'Avril', it: 'Aprile' },
+                    mayo: { en: 'May', pt: 'Maio', fr: 'Mai', it: 'Maggio' },
+                    junio: { en: 'June', pt: 'Junho', fr: 'Juin', it: 'Giugno' },
+                    julio: { en: 'July', pt: 'Julho', fr: 'Juillet', it: 'Luglio' },
+                    agosto: { en: 'August', pt: 'Agosto', fr: 'Août', it: 'Agosto' },
+                    septiembre: { en: 'September', pt: 'Setembro', fr: 'Septembre', it: 'Settembre' },
+                    octubre: { en: 'October', pt: 'Outubro', fr: 'Octobre', it: 'Ottobre' },
+                    noviembre: { en: 'November', pt: 'Novembro', fr: 'Novembre', it: 'Novembre' },
+                    diciembre: { en: 'December', pt: 'Dezembro', fr: 'Décembre', it: 'Dicembre' }
+                };
+                const monthTrans = months[monthKey] ? months[monthKey][code] : m[2];
+                let dateFormatted = `${day} de ${monthTrans} de ${year}`;
+                if (code === 'en') dateFormatted = `${monthTrans} ${day}, ${year}`;
+                else if (code === 'pt') dateFormatted = `${day} de ${monthTrans.toLowerCase()} de ${year}`;
+                else if (code === 'fr') dateFormatted = `${day} ${monthTrans.toLowerCase()} ${year}`;
+                else if (code === 'it') dateFormatted = `${day} ${monthTrans.toLowerCase()} ${year}`;
+                node.nodeValue = preserveSpaces(original, dateFormatted);
+                matched = true;
+            }
+        }
 
         if (matched) return;
 
-        // 4. Traductor instantáneo léxico/frases (nombres, títulos, descripciones)
-        const instantTrans = smartInstantTranslate(key, code);
-        if (instantTrans) {
-            node.nodeValue = preserveSpaces(original, instantTrans);
-            cache[key] = instantTrans;
-            return;
+        // 4. Traductor instantáneo léxico/frases (nombres, títulos, descripciones de publicaciones)
+        const isPostContent = node.parentElement && (node.parentElement.classList.contains('post-content') || node.parentElement.classList.contains('comments-list'));
+        if (!isPostContent) {
+            const instantTrans = smartInstantTranslate(key, code);
+            if (instantTrans) {
+                node.nodeValue = preserveSpaces(original, instantTrans);
+                cache[key] = instantTrans;
+                return;
+            }
         }
 
         // 5. Caché de traducciones previas
@@ -1345,6 +1359,21 @@ function applyAllTranslations(root = document.body, code = I18n.current) {
             const value = el.getAttribute(storeAttr);
             if (!value) return;
             const key = normalizedText(value);
+
+            // Placeholders dinámicos con nombre
+            const mPlace = key.match(/^¿Qué quieres compartir sobre el Huila,\s*(.*?)\?$/i);
+            if (mPlace) {
+                const name = mPlace[1].trim();
+                const trans = {
+                    en: `What do you want to share about Huila, ${name}?`,
+                    pt: `O que você quer compartilhar sobre o Huila, ${name}?`,
+                    fr: `Que voulez-vous partager sur le Huila, ${name} ?`,
+                    it: `Cosa vuoi condividere sul Huila, ${name}?`
+                }[code];
+                el.setAttribute(attr, trans);
+                return;
+            }
+
             const attrDict = ATTR[code] || {};
             if (attrDict[key]) {
                 el.setAttribute(attr, attrDict[key]);

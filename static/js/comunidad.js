@@ -13,11 +13,24 @@ function formatDate(isoString) {
     const date = new Date(isoString);
     const now = new Date();
     const diff = Math.floor((now - date) / 1000);
-    if (diff < 60)     return 'Hace un momento';
-    if (diff < 3600)   return `Hace ${Math.floor(diff/60)} min`;
-    if (diff < 86400)  return `Hace ${Math.floor(diff/3600)} h`;
-    if (diff < 172800) return 'Ayer';
-    return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
+    const lang = (window.I18n ? window.I18n.current : 'es') || 'es';
+
+    if (diff < 60) {
+        return { es: 'Hace un momento', en: 'Just now', pt: 'Agora mesmo', fr: "À l'instant", it: 'Proprio ora' }[lang] || 'Hace un momento';
+    }
+    if (diff < 3600) {
+        const m = Math.floor(diff/60);
+        return { es: `Hace ${m} min`, en: `${m} min ago`, pt: `Há ${m} min`, fr: `Il y a ${m} min`, it: `${m} min fa` }[lang] || `Hace ${m} min`;
+    }
+    if (diff < 86400) {
+        const h = Math.floor(diff/3600);
+        return { es: `Hace ${h} h`, en: `${h}h ago`, pt: `Há ${h} h`, fr: `Il y a ${h} h`, it: `${h} h fa` }[lang] || `Hace ${h} h`;
+    }
+    if (diff < 172800) {
+        return { es: 'Ayer', en: 'Yesterday', pt: 'Ontem', fr: 'Hier', it: 'Ieri' }[lang] || 'Ayer';
+    }
+    const localeMap = { es: 'es-CO', en: 'en-US', pt: 'pt-BR', fr: 'fr-FR', it: 'it-IT' };
+    return date.toLocaleDateString(localeMap[lang] || 'es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function getAvatar(obj) {
@@ -588,16 +601,40 @@ function loadTendencias() {
             return;
         }
         
+        const lang = (window.I18n ? window.I18n.current : 'es') || 'es';
         container.innerHTML = '';
         data.forEach(t => {
-            container.innerHTML += `
-                <div class="trending-topic" onclick="switchTab('feed', null); document.getElementById('post-content').value='${t.tag} '; document.getElementById('post-content').focus();" style="cursor:pointer;">
-                    <span>${t.rank} · Tendencia en Huila</span>
-                    <strong>${escapeHtml(t.tag)}</strong>
-                    <span>${t.count} post${t.count !== 1 ? 's' : ''}</span>
-                </div>
+            const postWord = {
+                es: t.count === 1 ? 'publicación' : 'publicaciones',
+                en: t.count === 1 ? 'post' : 'posts',
+                pt: t.count === 1 ? 'publicação' : 'publicações',
+                fr: t.count === 1 ? 'publication' : 'publications',
+                it: t.count === 1 ? 'post' : 'post'
+            }[lang] || (t.count === 1 ? 'publicación' : 'publicaciones');
+            const trendLabel = {
+                es: 'Tendencia en Huila',
+                en: 'Trend in Huila',
+                pt: 'Tendência no Huila',
+                fr: 'Tendance au Huila',
+                it: 'Tendenza nel Huila'
+            }[lang] || 'Tendencia en Huila';
+
+            const div = document.createElement('div');
+            div.className = 'trending-topic';
+            div.style.cursor = 'pointer';
+            div.onclick = () => {
+                switchTab('feed', null);
+                document.getElementById('post-content').value = `${t.tag} `;
+                document.getElementById('post-content').focus();
+            };
+            div.innerHTML = `
+                <span>${t.rank} · ${trendLabel}</span>
+                <strong>${escapeHtml(t.tag)}</strong>
+                <span>${t.count} ${postWord}</span>
             `;
+            container.appendChild(div);
         });
+        if (window.I18n) window.I18n.apply();
     })
     .catch(() => {});
 }

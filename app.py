@@ -4208,7 +4208,7 @@ STATIC_TRANSLATIONS = {
 TRANSLATION_CACHE = {}
 
 def translate_single_text(clean_text, target_lang, dict_static):
-    """Traduce un texto individual con búsqueda en diccionario, caché, MyMemory y sub-patrones."""
+    """Traduce un texto individual con búsqueda en diccionario, caché y Google Translate GTX."""
     if not clean_text:
         return clean_text
     
@@ -4227,13 +4227,32 @@ def translate_single_text(clean_text, target_lang, dict_static):
             TRANSLATION_CACHE[cache_key] = v
             return v
 
-    # 3. Traducción rápida vía MyMemory API con timeout corto
+    # 3. Traducción precisa y natural vía Google Translate GTX
+    try:
+        resp = requests.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={'client': 'gtx', 'sl': 'es', 'tl': target_lang, 'dt': 't', 'q': clean_text},
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'},
+            timeout=2.0
+        )
+        if resp.status_code == 200:
+            res_data = resp.json()
+            if res_data and isinstance(res_data, list) and len(res_data) > 0 and isinstance(res_data[0], list):
+                translated_parts = [part[0] for part in res_data[0] if part and isinstance(part, list) and len(part) > 0 and part[0]]
+                trans_val = "".join(translated_parts).strip()
+                if trans_val:
+                    TRANSLATION_CACHE[cache_key] = trans_val
+                    return trans_val
+    except Exception:
+        pass
+
+    # 4. Fallback por MyMemory si Google falla
     try:
         resp = requests.get(
             "https://api.mymemory.translated.net/get",
             params={'q': clean_text, 'langpair': f"es|{target_lang}"},
             headers={'User-Agent': 'Mozilla/5.0 (StayHuila i18n FastEngine)'},
-            timeout=1.2
+            timeout=1.5
         )
         if resp.status_code == 200:
             res_json = resp.json()
@@ -4245,7 +4264,7 @@ def translate_single_text(clean_text, target_lang, dict_static):
     except Exception:
         pass
 
-    # 4. Fallback por reemplazo de subcadenas conocidas
+    # 5. Fallback por reemplazo de subcadenas conocidas
     out_text = clean_text
     for k, v in dict_static.items():
         if len(k) >= 4 and k.lower() in out_text.lower():
