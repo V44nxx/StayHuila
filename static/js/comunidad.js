@@ -489,7 +489,12 @@ function loadPosts() {
             return;
         }
         data.forEach(p => container.appendChild(renderPost(p)));
-        if (window.I18n) window.I18n.apply();
+        if (window.I18n) {
+            window.I18n.apply();
+            if (typeof window.I18n.flushTranslations === 'function') {
+                window.I18n.flushTranslations(true);
+            }
+        }
     })
     .catch(() => {
         document.getElementById('posts-container').innerHTML = '<p style="color:red;text-align:center;">Error al cargar. Recarga la página.</p>';
@@ -527,7 +532,12 @@ function loadExplore() {
             };
             grid.appendChild(card);
         });
-        if (window.I18n) window.I18n.apply();
+        if (window.I18n) {
+            window.I18n.apply();
+            if (typeof window.I18n.flushTranslations === 'function') {
+                window.I18n.flushTranslations(true);
+            }
+        }
     });
 }
 
@@ -548,12 +558,20 @@ function loadFeedByType(tipo) {
                 <div style="text-align:center;padding:3rem;background:var(--card-bg);border-radius:16px;">
                     <i class="ph ph-chat-centered-slash" style="font-size:3rem;display:block;margin-bottom:1rem;color:var(--text-muted);"></i>
                     <h3 style="color:var(--text-main)">No hay publicaciones de ${tipo}</h3>
-                    <p style="color:var(--text-muted)">Sé el primero en compartir una recomendación.</p>
+                    <p style="color:var(--text-muted)">Sé el primero en compartir una recomendación de ${tipoSingular}.</p>
                 </div>`;
             return;
         }
         filtered.forEach(p => container.appendChild(renderPost(p)));
-        if (window.I18n) window.I18n.apply();
+        if (window.I18n) {
+            window.I18n.apply();
+            if (typeof window.I18n.flushTranslations === 'function') {
+                window.I18n.flushTranslations(true);
+            }
+        }
+    })
+    .catch(() => {
+        container.innerHTML = '<p style="color:red;text-align:center;">Error al cargar. Recarga la página.</p>';
     });
 }
 

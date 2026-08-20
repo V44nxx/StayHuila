@@ -990,14 +990,30 @@ const ORIGINAL_TITLE = document.title;
 
 let observer = null;
 let lastLang = localStorage.getItem('sh_lang') || 'es';
-const requestedTexts = new Set();
 const pendingTexts = new Set();
 let translateTimeout = null;
 
+// Purgar versiones antiguas o contaminadas de caché
+try {
+    Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('sh_trans_') && !k.startsWith('sh_trans_v5_')) {
+            localStorage.removeItem(k);
+        }
+    });
+} catch (e) {}
+
+const CACHE_VERSION = 'v5';
 function getLangCache(code) {
     try {
-        const cached = localStorage.getItem(`sh_trans_${code}`);
-        return cached ? JSON.parse(cached) : {};
+        const cached = localStorage.getItem(`sh_trans_${CACHE_VERSION}_${code}`);
+        const parsed = cached ? JSON.parse(cached) : {};
+        // Filtrar residuos de traducciones previas defectuosas
+        for (const [k, v] of Object.entries(parsed)) {
+            if (v && (v.includes(' of ') || v.includes(' esta ')) && !k.includes(' of ') && !k.includes(' esta ')) {
+                delete parsed[k];
+            }
+        }
+        return parsed;
     } catch (e) {
         return {};
     }
@@ -1005,7 +1021,7 @@ function getLangCache(code) {
 
 function setLangCache(code, cache) {
     try {
-        localStorage.setItem(`sh_trans_${code}`, JSON.stringify(cache));
+        localStorage.setItem(`sh_trans_${CACHE_VERSION}_${code}`, JSON.stringify(cache));
     } catch (e) {}
 }
 
@@ -1416,15 +1432,18 @@ function applyAllTranslations(root = document.body, code = I18n.current) {
 function queueTranslation(text) {
     const key = normalizedText(text);
     if (!key || !isTranslatable(key)) return;
-    if (requestedTexts.has(key)) return;
+    const code = I18n.current;
+    if (code === 'es') return;
+    const cache = getLangCache(code);
+    if (cache[key]) return;
+    if (pendingTexts.has(key)) return;
 
-    requestedTexts.add(key);
     pendingTexts.add(key);
 
     if (translateTimeout) clearTimeout(translateTimeout);
     translateTimeout = setTimeout(() => {
         flushTranslations(false);
-    }, 150);
+    }, 40);
 }
 
 async function flushTranslations(immediate = false) {
@@ -1474,6 +1493,9 @@ async function flushTranslations(immediate = false) {
 
     } catch (e) {}
 }
+
+window.flushTranslations = flushTranslations;
+I18n.flushTranslations = flushTranslations;
 
 /* ── Hook Toast Messages ────────────────────────────────── */
 const originalShowToast = window.showToast;
