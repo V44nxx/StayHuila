@@ -12,6 +12,7 @@ import requests
 import urllib.parse, urllib.request
 import traceback
 import time
+from concurrent.futures import ThreadPoolExecutor
 from payment_service import PaymentService, NequiProvider
 # Módulo de validación y optimización de imágenes (OpenCV + Pillow + WebP)
 from image_optimizer import process_image, thumb_url_from_url
