@@ -393,9 +393,9 @@ function renderPost(post) {
             <a class="post-rec-card" href="${recUrl}">
                 <img src="${escapeHtml(recImg)}" alt="${escapeHtml(recNombre)}">
                 <div class="post-rec-info">
-                    <span class="rec-type"><i class="ph ph-map-pin"></i> ${recType} recomendado</span>
+                    <span class="rec-type"><i class="ph ph-map-pin"></i> <span data-i18n="community.rec_${recTipo}">${recType} recomendado</span></span>
                     <h4>${escapeHtml(recNombre)}</h4>
-                    <p><i class="ph ph-map-pin"></i> ${escapeHtml(recMun)}, Huila &nbsp;·&nbsp; Ver más →</p>
+                    <p><i class="ph ph-map-pin"></i> ${escapeHtml(recMun)}, Huila &nbsp;·&nbsp; <span>Ver más →</span></p>
                 </div>
             </a>`;
     }
@@ -422,21 +422,21 @@ function renderPost(post) {
             </div>
             ${deletePostBtn}
         </div>
-        ${post.contenido ? `<div class="post-content" data-i18n-dynamic>${escapeHtml(post.contenido)}</div>` : ''}
+        ${post.contenido ? `<div class="post-content">${escapeHtml(post.contenido)}</div>` : ''}
         ${post.imagen_url ? `<img src="${post.imagen_url}" class="post-image" alt="Foto del post">` : ''}
         ${recHTML}
 
         <div class="post-actions">
             <button class="${likedClass}" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">
                 <i class="${likeIcon}"></i>
-                <span id="like-count-${post.id}">${post.likes_count}</span> Me gusta
+                <span id="like-count-${post.id}">${post.likes_count}</span> <span class="like-label">Me gusta</span>
             </button>
             <button onclick="toggleComments(${post.id})">
                 <i class="ph ph-chat-circle"></i>
-                <span id="comment-count-${post.id}">${post.comentarios_count}</span> Comentar
+                <span id="comment-count-${post.id}">${post.comentarios_count}</span> <span class="comment-label">Comentar</span>
             </button>
             <button onclick="sharePost(${post.id})">
-                <i class="ph ph-share-network"></i> Compartir
+                <i class="ph ph-share-network"></i> <span class="share-label">Compartir</span>
             </button>
         </div>
 
@@ -470,13 +470,13 @@ function loadPosts() {
             container.innerHTML = `
                 <div style="text-align:center;padding:3rem;background:var(--card-bg);border-radius:16px;">
                     <i class="ph ph-chats" style="font-size:3rem;display:block;margin-bottom:1rem;color:var(--text-muted);"></i>
-                    <h3 style="color:var(--text-main)" data-i18n-dynamic>¡Sé el primero en publicar!</h3>
-                    <p style="color:var(--text-muted)" data-i18n-dynamic>Comparte una foto o recomendación del Huila.</p>
+                    <h3 style="color:var(--text-main)">¡Sé el primero en publicar!</h3>
+                    <p style="color:var(--text-muted)">Comparte una foto o recomendación del Huila.</p>
                 </div>`;
             return;
         }
         data.forEach(p => container.appendChild(renderPost(p)));
-        if (window.I18n) window.I18n.translateDynamic();
+        if (window.I18n) window.I18n.apply();
     })
     .catch(() => {
         document.getElementById('posts-container').innerHTML = '<p style="color:red;text-align:center;">Error al cargar. Recarga la página.</p>';
@@ -514,32 +514,33 @@ function loadExplore() {
             };
             grid.appendChild(card);
         });
+        if (window.I18n) window.I18n.apply();
     });
 }
 
 /* ── Feed filtrado por recomendaciones de tipo ────────────────── */
 function loadFeedByType(tipo) {
-    const containerId = `${tipo}-feed-container`;
-    const container = document.getElementById(containerId);
-    container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted);"><i class="ph ph-spinner ph-spin" style="font-size:2rem;"></i></div>';
+    const container = document.getElementById(`${tipo}-feed-container`);
+    container.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted);"><i class="ph ph-spinner ph-spin" style="font-size:2rem;"></i><p>Cargando...</p></div>';
 
     fetch('/api/comunidad/posts')
     .then(r => r.json())
     .then(data => {
-        // Filtrar posts que recomiendan ese tipo
-        const singular = tipo === 'hospedajes' ? 'hospedaje' : 'experiencia';
-        const filtered = data.filter(p => p.tipo_recomendacion === singular);
         container.innerHTML = '';
+        const tipoSingular = tipo === 'hospedajes' ? 'hospedaje' : 'experiencia';
+        const filtered = data.filter(p => p.tipo_recomendacion === tipoSingular);
+
         if (!filtered.length) {
             container.innerHTML = `
                 <div style="text-align:center;padding:3rem;background:var(--card-bg);border-radius:16px;">
-                    <i class="ph ph-map-pin" style="font-size:3rem;display:block;margin-bottom:1rem;color:var(--text-muted);"></i>
-                    <h3 style="color:var(--text-main)">Aún no hay recomendaciones</h3>
-                    <p style="color:var(--text-muted)">Sé el primero en recomendar un ${singular} del Huila.</p>
+                    <i class="ph ph-chat-centered-slash" style="font-size:3rem;display:block;margin-bottom:1rem;color:var(--text-muted);"></i>
+                    <h3 style="color:var(--text-main)">No hay publicaciones de ${tipo}</h3>
+                    <p style="color:var(--text-muted)">Sé el primero en compartir una recomendación.</p>
                 </div>`;
             return;
         }
         filtered.forEach(p => container.appendChild(renderPost(p)));
+        if (window.I18n) window.I18n.apply();
     });
 }
 
@@ -569,6 +570,7 @@ function loadPopularPlaces() {
                 </div>`;
             container.appendChild(div);
         });
+        if (window.I18n) window.I18n.apply();
     })
     .catch(() => {});
 }

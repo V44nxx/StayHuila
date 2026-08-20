@@ -4073,7 +4073,30 @@ STATIC_TRANSLATIONS = {
         'Recomendaciones para ti': 'Recommendations for you', 'Seleccionados especialmente según tus gustos': 'Specially selected based on your preferences',
         'Ver detalles': 'See details', 'Mostrar Mapa': 'Show Map', 'Disponible Offline': 'Available Offline',
         'noche': 'night', 'noches': 'nights', 'persona': 'person', 'personas': 'people', 'por persona': 'per person',
-        'Volver al inicio': 'Back to home', 'Pon tu espacio en StayHuila': 'List your space on StayHuila'
+        'Volver al inicio': 'Back to home', 'Pon tu espacio en StayHuila': 'List your space on StayHuila',
+        'Comunidad': 'Community', 'Panel Anfitrión': 'Host Panel', 'Mi Perfil': 'My Profile', 'Mis Reservas': 'My Bookings',
+        'Mis Favoritos': 'My Favorites', 'Cerrar Sesión': 'Log Out', 'Iniciar Sesión': 'Log In', 'Limpiar filtros': 'Clear filters',
+        'Buscar': 'Search', 'Guardar': 'Save', 'Compartir': 'Share', 'Hospedajes en el Huila': 'Lodgings in Huila',
+        'Experiencias en el Huila': 'Experiences in Huila', 'Resultados de búsqueda': 'Search results', 'Inicio': 'Home',
+        'Lo que ofrece este lugar': 'What this place offers', 'Mostrar más': 'Show more', 'Mostrar menos': 'Show less',
+        'Ver todas las fotos': 'See all photos', 'SuperAnfitrión': 'SuperHost', 'Reservar': 'Reserve',
+        'Reservar (Deshabilitado)': 'Reserve (Disabled)', 'No se te cobrará nada aún': 'You won\'t be charged yet',
+        '100% Sostenible': '100% Sustainable', 'Sostenible': 'Sustainable', 'En reparación': 'Under maintenance',
+        'WiFi': 'WiFi', 'Piscina': 'Pool', 'Estacionamiento': 'Parking', 'Cocina equipada': 'Equipped kitchen',
+        'Parqueadero gratuito': 'Free parking', 'Aire acondicionado': 'Air conditioning', 'Se admiten mascotas': 'Pets allowed',
+        'Zona de trabajo': 'Workspace', 'Desayuno incluido': 'Breakfast included', 'Telescopio': 'Telescope',
+        'Tour del café': 'Coffee Tour', 'Kayak incluido': 'Kayak included', 'Parrilla / BBQ': 'Grill / BBQ',
+        'Termales privados': 'Private hot springs', 'Servicio de masajes': 'Massage service', 'Clases de yoga': 'Yoga classes',
+        'Pesca deportiva': 'Sport fishing', 'Chimenea': 'Fireplace', 'Senderismo': 'Hiking', 'Hamacas': 'Hammocks',
+        'TV': 'TV', 'Lavadora': 'Washing machine', 'Patio interior': 'Courtyard', 'Tours guiados': 'Guided tours',
+        'Vistas a la montaña': 'Mountain views', 'Cancelación flexible': 'Flexible cancellation',
+        'Cancelación moderada': 'Moderate cancellation', 'Cancelación estricta': 'Strict cancellation',
+        'Auto check-in con caja de llaves.': 'Self check-in with lockbox.', 'Check-in a las': 'Check-in at',
+        'Checkout a las': 'Checkout at', 'Tu viaje': 'Your trip', 'Llegada': 'Check-in', 'Salida': 'Check-out',
+        'Huéspedes': 'Guests', 'Método de pago': 'Payment method', 'Notas para el anfitrión': 'Notes for host',
+        'Pago 100% seguro y cifrado': '100% secure and encrypted payment', 'Tarifa de servicio': 'Service fee',
+        'Total': 'Total', 'Código': 'Code', 'Confirmada': 'Confirmed', 'En estadía': 'Staying', 'Completada': 'Completed',
+        'Cancelada': 'Cancelled', 'Pendiente': 'Pending'
     },
     'pt': {
         'Todos': 'Todos', 'Categorías': 'Categorias', 'Hospedajes': 'Hospedagens', 'Experiencias': 'Experiências',
@@ -4085,7 +4108,30 @@ STATIC_TRANSLATIONS = {
         'Recomendaciones para ti': 'Recomendações para você', 'Seleccionados especialmente según tus gustos': 'Selecionados com base nas suas preferências',
         'Ver detalles': 'Ver detalhes', 'Mostrar Mapa': 'Mostrar Mapa', 'Disponible Offline': 'Disponível Offline',
         'noche': 'noite', 'noches': 'noites', 'persona': 'pessoa', 'personas': 'pessoas', 'por persona': 'por pessoa',
-        'Volver al inicio': 'Voltar ao início', 'Pon tu espacio en StayHuila': 'Anuncie seu espaço no StayHuila'
+        'Volver al inicio': 'Voltar ao início', 'Pon tu espacio en StayHuila': 'Anuncie seu espaço no StayHuila',
+        'Comunidad': 'Comunidade', 'Panel Anfitrión': 'Painel do Anfitrião', 'Mi Perfil': 'Meu Perfil', 'Mis Reservas': 'Minhas Reservas',
+        'Mis Favoritos': 'Meus Favoritos', 'Cerrar Sesión': 'Sair', 'Iniciar Sesión': 'Entrar', 'Limpiar filtros': 'Limpar filtros',
+        'Buscar': 'Buscar', 'Guardar': 'Salvar', 'Compartir': 'Compartilhar', 'Hospedajes en el Huila': 'Hospedagens no Huila',
+        'Experiencias en el Huila': 'Experiências no Huila', 'Resultados de búsqueda': 'Resultados da busca', 'Inicio': 'Início',
+        'Lo que ofrece este lugar': 'O que este lugar oferece', 'Mostrar más': 'Mostrar mais', 'Mostrar menos': 'Mostrar menos',
+        'Ver todas las fotos': 'Ver todas as fotos', 'SuperAnfitrión': 'SuperHost', 'Reservar': 'Reservar',
+        'Reservar (Deshabilitado)': 'Reservar (Desabilitado)', 'No se te cobrará nada aún': 'Nada será cobrado ainda',
+        '100% Sostenible': '100% Sustentável', 'Sostenible': 'Sustentável', 'En reparación': 'Em manutenção',
+        'WiFi': 'WiFi', 'Piscina': 'Piscina', 'Estacionamiento': 'Estacionamento', 'Cocina equipada': 'Cozinha equipada',
+        'Parqueadero gratuito': 'Estacionamento gratuito', 'Aire acondicionado': 'Ar condicionado', 'Se admiten mascotas': 'Animais permitidos',
+        'Zona de trabajo': 'Espaço de trabalho', 'Desayuno incluido': 'Café da manhã incluído', 'Telescopio': 'Telescópio',
+        'Tour del café': 'Tour do café', 'Kayak incluido': 'Kayak incluído', 'Parrilla / BBQ': 'Churrasqueira / BBQ',
+        'Termales privados': 'Termas privadas', 'Servicio de masajes': 'Serviço de massagem', 'Clases de yoga': 'Aulas de yoga',
+        'Pesca deportiva': 'Pesca esportiva', 'Chimenea': 'Lareira', 'Senderismo': 'Trilhas', 'Hamacas': 'Redes',
+        'TV': 'TV', 'Lavadora': 'Máquina de lavar', 'Patio interior': 'Pátio interno', 'Tours guiados': 'Passeios guiados',
+        'Vistas a la montaña': 'Vistas para a montanha', 'Cancelación flexible': 'Cancelamento flexível',
+        'Cancelación moderada': 'Cancelamento moderado', 'Cancelación estricta': 'Cancelamento rigoroso',
+        'Auto check-in con caja de llaves.': 'Self check-in com cofre de chaves.', 'Check-in a las': 'Check-in às',
+        'Checkout a las': 'Checkout às', 'Tu viaje': 'Sua viagem', 'Llegada': 'Chegada', 'Salida': 'Saída',
+        'Huéspedes': 'Hóspedes', 'Método de pago': 'Método de pagamento', 'Notas para el anfitrión': 'Notas para o anfitrião',
+        'Pago 100% seguro y cifrado': 'Pagamento 100% seguro e criptografado', 'Tarifa de servicio': 'Taxa de serviço',
+        'Total': 'Total', 'Código': 'Código', 'Confirmada': 'Confirmada', 'En estadía': 'Em estadia', 'Completada': 'Concluída',
+        'Cancelada': 'Cancelada', 'Pendiente': 'Pendente'
     },
     'fr': {
         'Todos': 'Tous', 'Categorías': 'Catégories', 'Hospedajes': 'Hébergements', 'Experiencias': 'Expériences',
@@ -4097,7 +4143,30 @@ STATIC_TRANSLATIONS = {
         'Recomendaciones para ti': 'Recommandations pour vous', 'Seleccionados especialmente según tus gustos': 'Sélectionnés selon vos préférences',
         'Ver detalles': 'Voir les détails', 'Mostrar Mapa': 'Afficher la Carte', 'Disponible Offline': 'Disponible Hors-Ligne',
         'noche': 'nuit', 'noches': 'nuits', 'persona': 'personne', 'personas': 'personnes', 'por persona': 'par personne',
-        'Volver al inicio': 'Retour à l\'accueil', 'Pon tu espacio en StayHuila': 'Publiez votre logement'
+        'Volver al inicio': 'Retour à l\'accueil', 'Pon tu espacio en StayHuila': 'Publiez votre logement',
+        'Comunidad': 'Communauté', 'Panel Anfitrión': 'Tableau de l\'hôte', 'Mi Perfil': 'Mon Profil', 'Mis Reservas': 'Mes Réservations',
+        'Mis Favoritos': 'Mes Favoris', 'Cerrar Sesión': 'Se déconnecter', 'Iniciar Sesión': 'Se connecter', 'Limpiar filtros': 'Effacer les filtres',
+        'Buscar': 'Rechercher', 'Guardar': 'Enregistrer', 'Compartir': 'Partager', 'Hospedajes en el Huila': 'Hébergements au Huila',
+        'Experiencias en el Huila': 'Expériences au Huila', 'Resultados de búsqueda': 'Résultats de recherche', 'Inicio': 'Accueil',
+        'Lo que ofrece este lugar': 'Ce que propose ce lieu', 'Mostrar más': 'Afficher plus', 'Mostrar menos': 'Afficher moins',
+        'Ver todas las fotos': 'Voir toutes les photos', 'SuperAnfitrión': 'SuperHost', 'Reservar': 'Réserver',
+        'Reservar (Deshabilitado)': 'Réserver (Désactivé)', 'No se te cobrará nada aún': 'Aucun frais pour le moment',
+        '100% Sostenible': '100% Durable', 'Sostenible': 'Durable', 'En reparación': 'En maintenance',
+        'WiFi': 'WiFi', 'Piscina': 'Piscine', 'Estacionamiento': 'Parking', 'Cocina equipada': 'Cuisine équipée',
+        'Parqueadero gratuito': 'Parking gratuit', 'Aire acondicionado': 'Climatisation', 'Se admiten mascotas': 'Animaux acceptés',
+        'Zona de trabajo': 'Espace de travail', 'Desayuno incluido': 'Petit-déjeuner inclus', 'Telescopio': 'Télescope',
+        'Tour del café': 'Tour du café', 'Kayak incluido': 'Kayak inclus', 'Parrilla / BBQ': 'Grillade / BBQ',
+        'Termales privados': 'Thermes privés', 'Servicio de masajes': 'Service de massage', 'Clases de yoga': 'Cours de yoga',
+        'Pesca deportiva': 'Pêche sportive', 'Chimenea': 'Cheminée', 'Senderismo': 'Randonnée', 'Hamacas': 'Hamacs',
+        'TV': 'TV', 'Lavadora': 'Machine à laver', 'Patio interior': 'Cour intérieure', 'Tours guiados': 'Visites guidées',
+        'Vistas a la montaña': 'Vue sur la montagne', 'Cancelación flexible': 'Annulation flexible',
+        'Cancelación moderada': 'Annulation modérée', 'Cancelación estricta': 'Annulation stricte',
+        'Auto check-in con caja de llaves.': 'Arrivée autonome avec boîte à clés.', 'Check-in a las': 'Arrivée à',
+        'Checkout a las': 'Départ à', 'Tu viaje': 'Votre voyage', 'Llegada': 'Arrivée', 'Salida': 'Départ',
+        'Huéspedes': 'Voyageurs', 'Método de pago': 'Méthode de paiement', 'Notas para el anfitrión': 'Notes pour l\'hôte',
+        'Pago 100% seguro y cifrado': 'Paiement 100% sécurisé et crypté', 'Tarifa de servicio': 'Frais de service',
+        'Total': 'Total', 'Código': 'Code', 'Confirmada': 'Confirmée', 'En estadía': 'En séjour', 'Completada': 'Terminée',
+        'Cancelada': 'Annulée', 'Pendiente': 'En attente'
     },
     'it': {
         'Todos': 'Tutti', 'Categorías': 'Categorie', 'Hospedajes': 'Alloggi', 'Experiencias': 'Esperienze',
@@ -4109,74 +4178,97 @@ STATIC_TRANSLATIONS = {
         'Recomendaciones para ti': 'Consigliati per te', 'Seleccionados especialmente según tus gustos': 'Selezionati in base ai tuoi gusti',
         'Ver detalles': 'Vedi dettagli', 'Mostrar Mapa': 'Mostra Mappa', 'Disponible Offline': 'Disponibile Offline',
         'noche': 'notte', 'noches': 'notti', 'persona': 'persona', 'personas': 'persone', 'por persona': 'a persona',
-        'Volver al inicio': 'Torna alla home', 'Pon tu espacio en StayHuila': 'Pubblica il tuo spazio'
+        'Volver al inicio': 'Torna alla home', 'Pon tu espacio en StayHuila': 'Pubblica il tuo spazio',
+        'Comunidad': 'Comunità', 'Panel Anfitrión': 'Pannello Host', 'Mi Perfil': 'Il Mio Profilo', 'Mis Reservas': 'Le Mie Prenotazioni',
+        'Mis Favoritos': 'I Miei Preferiti', 'Cerrar Sesión': 'Esci', 'Iniciar Sesión': 'Accedi', 'Limpiar filtros': 'Cancella filtri',
+        'Buscar': 'Cerca', 'Guardar': 'Salva', 'Compartir': 'Condividi', 'Hospedajes en el Huila': 'Alloggi nel Huila',
+        'Experiencias en el Huila': 'Esperienze nel Huila', 'Resultados de búsqueda': 'Risultati di ricerca', 'Inicio': 'Home',
+        'Lo que ofrece este lugar': 'Cosa offre questo posto', 'Mostrar más': 'Mostra altro', 'Mostrar menos': 'Mostra meno',
+        'Ver todas las fotos': 'Vedi tutte le foto', 'SuperAnfitrión': 'SuperHost', 'Reservar': 'Prenota',
+        'Reservar (Deshabilitado)': 'Prenota (Disabilitato)', 'No se te cobrará nada aún': 'Non ti verrà addebitato nulla ancora',
+        '100% Sostenible': '100% Sostenibile', 'Sostenible': 'Sostenibile', 'En reparación': 'In manutenzione',
+        'WiFi': 'WiFi', 'Piscina': 'Piscina', 'Estacionamiento': 'Parcheggio', 'Cocina equipada': 'Cucina attrezzata',
+        'Parqueadero gratuito': 'Parcheggio gratuito', 'Aire acondicionado': 'Aria condizionata', 'Se admiten mascotas': 'Animali ammessi',
+        'Zona de trabajo': 'Spazio di lavoro', 'Desayuno incluido': 'Colazione inclusa', 'Telescopio': 'Telescopio',
+        'Tour del café': 'Tour del caffè', 'Kayak incluido': 'Kayak incluso', 'Parrilla / BBQ': 'Griglia / BBQ',
+        'Termales privados': 'Terme private', 'Servicio de masajes': 'Servizio massaggi', 'Clases de yoga': 'Lezioni di yoga',
+        'Pesca deportiva': 'Pesca sportiva', 'Chimenea': 'Camino', 'Senderismo': 'Trekking', 'Hamacas': 'Amache',
+        'TV': 'TV', 'Lavadora': 'Lavatrice', 'Patio interior': 'Cortile interno', 'Tours guiados': 'Tour guidati',
+        'Vistas a la montaña': 'Vista sulle montagne', 'Cancelación flexible': 'Cancellazione flessibile',
+        'Cancelación moderada': 'Cancellazione moderata', 'Cancelación estricta': 'Cancellazione rigorosa',
+        'Auto check-in con caja de llaves.': 'Self check-in con cassetta di sicurezza.', 'Check-in a las': 'Check-in alle',
+        'Checkout a las': 'Checkout alle', 'Tu viaje': 'Il tuo viaggio', 'Llegada': 'Arrivo', 'Salida': 'Partenza',
+        'Huéspedes': 'Ospiti', 'Método de pago': 'Metodo di pagamento', 'Notas para el anfitrión': 'Note per host',
+        'Pago 100% seguro y cifrado': 'Pagamento 100% sicuro e crittografato', 'Tarifa de servicio': 'Commissione di servicio',
+        'Total': 'Totale', 'Código': 'Codice', 'Confirmada': 'Confermata', 'En estadía': 'In soggiorno', 'Completada': 'Completata',
+        'Cancelada': 'Cancellata', 'Pendiente': 'In attesa'
     }
 }
 
 TRANSLATION_CACHE = {}
 
+def translate_single_text(clean_text, target_lang, dict_static):
+    """Traduce un texto individual con búsqueda en diccionario, caché, MyMemory y sub-patrones."""
+    if not clean_text:
+        return clean_text
+    
+    # 1. Búsqueda exacta estática
+    if clean_text in dict_static:
+        return dict_static[clean_text]
+        
+    cache_key = (clean_text, target_lang)
+    if cache_key in TRANSLATION_CACHE:
+        return TRANSLATION_CACHE[cache_key]
+        
+    # 2. Búsqueda case-insensitive estática
+    clean_lower = clean_text.lower()
+    for k, v in dict_static.items():
+        if k.lower() == clean_lower:
+            TRANSLATION_CACHE[cache_key] = v
+            return v
+
+    # 3. Traducción rápida vía MyMemory API con timeout corto
+    try:
+        resp = requests.get(
+            "https://api.mymemory.translated.net/get",
+            params={'q': clean_text, 'langpair': f"es|{target_lang}"},
+            headers={'User-Agent': 'Mozilla/5.0 (StayHuila i18n FastEngine)'},
+            timeout=1.2
+        )
+        if resp.status_code == 200:
+            res_json = resp.json()
+            if res_json and 'responseData' in res_json and res_json['responseData'].get('translatedText'):
+                trans_val = res_json['responseData']['translatedText']
+                if trans_val and trans_val != clean_text and 'MYMEMORY WARNING' not in trans_val:
+                    TRANSLATION_CACHE[cache_key] = trans_val
+                    return trans_val
+    except Exception:
+        pass
+
+    # 4. Fallback por reemplazo de subcadenas conocidas
+    out_text = clean_text
+    for k, v in dict_static.items():
+        if len(k) >= 4 and k.lower() in out_text.lower():
+            out_text = re.sub(re.escape(k), v, out_text, flags=re.IGNORECASE)
+            
+    TRANSLATION_CACHE[cache_key] = out_text
+    return out_text
+
 @app.route('/api/translate', methods=['POST'])
 def api_translate():
     data = request.get_json(silent=True) or {}
     texts = data.get('texts', [])
-    target_lang = data.get('lang', 'en')
+    target_lang = data.get('lang', 'en').lower()
 
     if not texts or target_lang not in ('en', 'pt', 'fr', 'it'):
         return jsonify({'success': True, 'translations': texts})
 
     dict_static = STATIC_TRANSLATIONS.get(target_lang, {})
-    results = []
-
-    for text in texts:
-        if not text or not isinstance(text, str):
-            results.append(text)
-            continue
-
-        clean_text = text.strip()
-        if not clean_text:
-            results.append(text)
-            continue
-
-        # 1. Buscar en diccionario estático prioritario
-        if clean_text in dict_static:
-            results.append(dict_static[clean_text])
-            continue
-
-        # 2. Buscar en caché RAM
-        cache_key = (clean_text, target_lang)
-        if cache_key in TRANSLATION_CACHE:
-            results.append(TRANSLATION_CACHE[cache_key])
-            continue
-
-        # 3. Traducción dinámica mediante MyMemory API
-        translated = None
-        try:
-            resp = requests.get(
-                "https://api.mymemory.translated.net/get",
-                params={'q': clean_text, 'langpair': f"es|{target_lang}"},
-                headers={'User-Agent': 'Mozilla/5.0 (StayHuila i18n)'},
-                timeout=1.8
-            )
-            if resp.status_code == 200:
-                res_json = resp.json()
-                if res_json and 'responseData' in res_json and res_json['responseData'].get('translatedText'):
-                    trans_val = res_json['responseData']['translatedText']
-                    if trans_val and trans_val != clean_text and 'MYMEMORY WARNING' not in trans_val:
-                        translated = trans_val
-        except Exception:
-            translated = None
-
-        if translated:
-            TRANSLATION_CACHE[cache_key] = translated
-            results.append(translated)
-        else:
-            # Fallback por reemplazo de subcadenas conocidas
-            out_text = clean_text
-            for k, v in dict_static.items():
-                if k.lower() in out_text.lower():
-                    out_text = re.sub(re.escape(k), v, out_text, flags=re.IGNORECASE)
-            TRANSLATION_CACHE[cache_key] = out_text
-            results.append(out_text)
+    
+    # Ejecutar traducciones en paralelo para velocidad ultrarrápida
+    with ThreadPoolExecutor(max_workers=min(12, len(texts) or 1)) as executor:
+        futures = [executor.submit(translate_single_text, str(t).strip() if t else '', target_lang, dict_static) for t in texts]
+        results = [f.result() for f in futures]
 
     return jsonify({'success': True, 'translations': results})
 
@@ -4516,80 +4608,6 @@ def api_verificar_reset():
         return jsonify({'success': False, 'error': 'Error interno. Intenta más tarde.'}), 500
     finally:
         c.close()
-
-
-@app.route('/api/translate', methods=['POST'])
-def api_translate_ai():
-    """
-    Recibe una lista de textos en español y los traduce al idioma especificado
-    utilizando Gemini 2.5 Flash.
-    """
-    data = request.get_json(silent=True) or {}
-    texts = data.get('texts', [])
-    lang = data.get('lang', 'en').lower()
-
-    if not texts:
-        return jsonify({'success': True, 'translations': []})
-
-    if not isinstance(texts, list):
-        return jsonify({'success': False, 'error': 'texts debe ser una lista'}), 400
-
-    # Mapeo de códigos de idioma a nombres legibles
-    lang_names = {
-        'en': 'Inglés',
-        'pt': 'Portugués',
-        'fr': 'Francés',
-        'it': 'Italiano'
-    }
-    target_lang = lang_names.get(lang, 'Inglés')
-
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        prompt = (
-            f"Eres un sistema de traducción automático profesional para la plataforma turística StayHuila.\n"
-            f"Traduce la siguiente lista de textos del español al idioma: {target_lang}.\n"
-            f"Reglas estrictas:\n"
-            f"1. Conserva exactamente el mismo orden de la lista.\n"
-            f"2. Conserva exactamente la misma cantidad de elementos.\n"
-            f"3. No omitas ningún texto y no agregues textos nuevos.\n"
-            f"4. Mantén nombres propios del Huila intactos (como 'Tatacoa', 'Gigante', 'San Agustín', 'StayHuila', etc.).\n"
-            f"5. Responde ÚNICAMENTE con un objeto JSON válido con la clave 'translations' que contiene el arreglo de strings traducidos.\n"
-            f"No envíes explicaciones, no uses formato Markdown (```json o similares) ni nada adicional. Ejemplo de respuesta:\n"
-            f'{{"translations": ["translated_text_1", "translated_text_2", ...]}}\n\n'
-            f"Lista de textos en formato JSON:\n"
-            f"{json.dumps(texts, ensure_ascii=False)}"
-        )
-
-        response = model.generate_content(prompt)
-        resp_text = response.text.strip()
-        
-        # Limpiar posibles bloques markdown del output
-        if resp_text.startswith("```"):
-            resp_text = re.sub(r"^```(?:json)?\n", "", resp_text)
-            resp_text = re.sub(r"\n```$", "", resp_text)
-        resp_text = resp_text.strip()
-        
-        parsed = json.loads(resp_text)
-        translations = parsed.get('translations', [])
-        
-        # Validación de seguridad para asegurar que coincidan las dimensiones
-        if len(translations) != len(texts):
-            app.logger.warning(f"[TRANSLATE] La longitud no coincide. Esperados {len(texts)}, recibidos {len(translations)}. Usando fallbacks.")
-            # Si hay diferencia, rellenamos con los originales para que la página no se rompa
-            while len(translations) < len(texts):
-                translations.append(texts[len(translations)])
-            translations = translations[:len(texts)]
-            
-        return jsonify({'success': True, 'translations': translations})
-        
-    except Exception as e:
-        app.logger.error(f"[TRANSLATE] Error traduciendo textos: {e}")
-        # En caso de error, devolvemos el texto original como fallback para que no falle la interfaz
-        return jsonify({'success': True, 'translations': texts, 'error': str(e)})
-
-
-
 
 
 if __name__ == '__main__':
