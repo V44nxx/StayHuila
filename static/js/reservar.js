@@ -6,25 +6,55 @@ document.addEventListener('click', function(event) {
 });
 
 function formatMoney(amount) {
-    return amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function getNights() {
+    if (typeof TIPO_RESERVA !== 'undefined' && TIPO_RESERVA === 'experiencia') {
+        return 1;
+    }
+    const inpCheckin = document.getElementById('inp-checkin');
+    const inpCheckout = document.getElementById('inp-checkout');
+    if (!inpCheckin || !inpCheckout || !inpCheckin.value || !inpCheckout.value) {
+        return typeof NOCHES !== 'undefined' ? NOCHES : 1;
+    }
+    const ci = new Date(inpCheckin.value);
+    const co = new Date(inpCheckout.value);
+    const diff = Math.round((co - ci) / (1000 * 60 * 60 * 24));
+    return Math.max(1, diff);
 }
 
 function chGuest(d){
-    guests = Math.max(1, Math.min(MAX_GUESTS, guests+d));
-    document.getElementById('gc').textContent = guests;
-    document.getElementById('inp-huespedes').value = guests;
+    const maxG = typeof MAX_GUESTS !== 'undefined' ? MAX_GUESTS : 10;
+    guests = Math.max(1, Math.min(maxG, guests + d));
+    const gc = document.getElementById('gc');
+    if (gc) gc.textContent = guests;
+    const inpH = document.getElementById('inp-huespedes');
+    if (inpH) inpH.value = guests;
     
-    // Recalcular precios
+    recalcularTotales();
+}
+
+function recalcularTotales() {
+    const nights = getNights();
+    const precioUnit = typeof PRECIO_UNITARIO !== 'undefined' ? PRECIO_UNITARIO : 0;
+    const descPct = typeof DESCUENTO_PCT !== 'undefined' ? DESCUENTO_PCT : 0;
+
     let base = 0;
-    if(TIPO_RESERVA === 'experiencia'){
-        base = PRECIO_UNITARIO * guests * NOCHES;
-        document.getElementById('price-line-text').textContent = `$${formatMoney(PRECIO_UNITARIO)} × ${guests} persona${guests!==1?'s':''} × ${NOCHES} día${NOCHES!==1?'s':''}`;
+    const priceLineText = document.getElementById('price-line-text');
+    if (typeof TIPO_RESERVA !== 'undefined' && TIPO_RESERVA === 'experiencia') {
+        base = precioUnit * guests * nights;
+        if (priceLineText) {
+            priceLineText.textContent = `$${formatMoney(precioUnit)} × ${guests} persona${guests !== 1 ? 's' : ''} × ${nights} día${nights !== 1 ? 's' : ''}`;
+        }
     } else {
-        base = PRECIO_UNITARIO * NOCHES * guests;
-        document.getElementById('price-line-text').textContent = `$${formatMoney(PRECIO_UNITARIO)} × ${guests} persona${guests!==1?'s':''} × ${NOCHES} noche${NOCHES!==1?'s':''}`;
+        base = precioUnit * nights * guests;
+        if (priceLineText) {
+            priceLineText.textContent = `$${formatMoney(precioUnit)} × ${guests} persona${guests !== 1 ? 's' : ''} × ${nights} noche${nights !== 1 ? 's' : ''}`;
+        }
     }
     
-    let desc = Math.round(base * (DESCUENTO_PCT / 100));
+    let desc = Math.round(base * (descPct / 100));
     let quantityDiscount = 0;
     if (typeof DESCUENTO_CANTIDAD_PCT !== 'undefined'
         && typeof DESCUENTO_CANTIDAD_MIN_HUESPEDES !== 'undefined'
@@ -40,34 +70,46 @@ function chGuest(d){
     if (typeof CREDITO_PCT !== 'undefined' && CREDITO_PCT > 0) {
         creditoAmount = Math.round(totalBeforeCredit * (CREDITO_PCT / 100));
     }
-    let finalTotal = Math.max(0, totalBeforeCredit - creditoAmount);
+    let finalTotal = Math.max(2000, totalBeforeCredit - creditoAmount);
     
     // Actualizar UI
-    document.getElementById('price-base-val').textContent = `$${formatMoney(base)}`;
-    if(document.getElementById('discount-val')){
-        document.getElementById('discount-val').textContent = `-$${formatMoney(desc)}`;
-        document.getElementById('discount-row').style.display = desc > 0 ? 'flex' : 'none';
-    }
+    const priceBaseVal = document.getElementById('price-base-val');
+    if (priceBaseVal) priceBaseVal.textContent = `$${formatMoney(base)}`;
+    
+    const discVal = document.getElementById('discount-val');
+    const discRow = document.getElementById('discount-row');
+    if (discVal) discVal.textContent = `-$${formatMoney(desc)}`;
+    if (discRow) discRow.style.display = desc > 0 ? 'flex' : 'none';
+    
     const quantityDiscountRow = document.getElementById('quantity-discount-row');
     const quantityDiscountVal = document.getElementById('quantity-discount-val');
     if (quantityDiscountRow && quantityDiscountVal) {
         quantityDiscountVal.textContent = `-$${formatMoney(quantityDiscount)}`;
         quantityDiscountRow.style.display = quantityDiscount > 0 ? 'flex' : 'none';
     }
-    // Actualizar línea de crédito puntos si existe en la UI
+    
     const creditoValEl = document.getElementById('credito-puntos-val');
     if (creditoValEl) {
         creditoValEl.textContent = `-$${formatMoney(creditoAmount)}`;
     }
 
-    document.getElementById('tarifa-val').textContent = `$${formatMoney(fee)}`;
-    document.getElementById('total-val').textContent = `$${formatMoney(finalTotal)}`;
-    document.getElementById('btn-total').textContent = formatMoney(finalTotal);
+    const tarifaVal = document.getElementById('tarifa-val');
+    if (tarifaVal) tarifaVal.textContent = `$${formatMoney(fee)}`;
+    
+    const totalVal = document.getElementById('total-val');
+    if (totalVal) totalVal.textContent = `$${formatMoney(finalTotal)}`;
+    
+    const btnTotal = document.getElementById('btn-total');
+    if (btnTotal) btnTotal.textContent = formatMoney(finalTotal);
 }
+
 function selectMetodo(val, el){
     document.querySelectorAll('.metodo-card').forEach(c=>c.classList.remove('selected'));
-    el.classList.add('selected');
-    el.querySelector('input').checked = true;
+    if (el) {
+        el.classList.add('selected');
+        const inp = el.querySelector('input');
+        if (inp) inp.checked = true;
+    }
 }
 
 // Ensure the code inside is executed after the DOM is fully loaded to access element properties properly
@@ -81,15 +123,34 @@ document.addEventListener('DOMContentLoaded', () => {
     inpCheckout.min = now;
 
     inpCheckin.addEventListener('change', function () {
-        const d = new Date(this.value);
-        d.setDate(d.getDate() + 1);
-        inpCheckout.min = d.toISOString().split('T')[0];
+        if (typeof TIPO_RESERVA !== 'undefined' && TIPO_RESERVA === 'experiencia') {
+            inpCheckout.value = this.value;
+        } else {
+            const d = new Date(this.value);
+            d.setDate(d.getDate() + 1);
+            inpCheckout.min = d.toISOString().split('T')[0];
+            if (inpCheckout.value && inpCheckout.value <= this.value) {
+                inpCheckout.value = d.toISOString().split('T')[0];
+            }
+        }
+        
+        const sumIn = document.getElementById('sum-checkin');
+        if (sumIn) sumIn.textContent = this.value;
+        
         validarEstadiaReserva();
+        recalcularTotales();
     });
-    inpCheckout.addEventListener('change', validarEstadiaReserva);
+
+    inpCheckout.addEventListener('change', function () {
+        const sumOut = document.getElementById('sum-checkout');
+        if (sumOut) sumOut.textContent = this.value;
+        validarEstadiaReserva();
+        recalcularTotales();
+    });
 
     // Validar también al cargar (por si las fechas vienen pre-cargadas del widget)
     validarEstadiaReserva();
+    recalcularTotales();
 
     // Bloquear submit si hay violación de estadía
     const form = document.getElementById('reserva-form');

@@ -82,7 +82,8 @@
                 dropdown.classList.remove('show');
             }
         });
-    </script><script src="{{ url_for('static', filename='js/reservar.js') }}"></script><div class="page-wrap">
+    </script>
+    <div class="page-wrap">
     <h1 class="page-title" data-i18n="booking.page_title">Confirma y paga tu reserva</h1>
     <p class="page-sub" data-i18n="booking.page_sub">Revisa los detalles antes de confirmar tu reserva</p>
 
@@ -105,13 +106,13 @@
                 <div class="r-section">
                     <h2><i class="ph-fill ph-calendar"></i> <span data-i18n="booking.your_trip">Tu viaje</span></h2>
                     <div class="trip-info">
-                        <div class="trip-box">
-                            <label><span data-i18n="booking.checkin">LLEGADA</span></label>
+                        <div class="trip-box" {% if tipo_reserva == 'experiencia' %}style="flex:1;"{% endif %}>
+                            <label><span data-i18n="booking.checkin">{% if tipo_reserva == 'experiencia' %}FECHA DE LA ACTIVIDAD{% else %}LLEGADA{% endif %}</span></label>
                             <input type="date" name="checkin" id="inp-checkin" value="{{ checkin }}" required min="{{ now }}">
                         </div>
-                        <div class="trip-box">
+                        <div class="trip-box" {% if tipo_reserva == 'experiencia' %}style="display:none;"{% endif %}>
                             <label><span data-i18n="booking.checkout">SALIDA</span></label>
-                            <input type="date" name="checkout" id="inp-checkout" value="{{ checkout }}" required min="{{ now }}">
+                            <input type="date" name="checkout" id="inp-checkout" value="{{ checkout or checkin }}" required min="{{ now }}">
                         </div>
                         <div class="trip-box-guests">
                             <div>
@@ -197,8 +198,10 @@
                         <div class="summary-hosp">{{ hosp.nombre }}</div>
                         <div class="summary-loc"><i class="ph ph-map-pin"></i> {{ hosp.municipio }}</div>
                         <div class="summary-dates">
-                            <div class="sd-item"><label>LLEGADA</label><span>{{ checkin }}</span></div>
-                            <div class="sd-item"><label>SALIDA</label><span>{{ checkout }}</span></div>
+                            <div class="sd-item"><label>{% if tipo_reserva == 'experiencia' %}FECHA{% else %}LLEGADA{% endif %}</label><span id="sum-checkin">{{ checkin }}</span></div>
+                            {% if tipo_reserva != 'experiencia' %}
+                            <div class="sd-item"><label>SALIDA</label><span id="sum-checkout">{{ checkout }}</span></div>
+                            {% endif %}
                         </div>
                         <div class="price-lines">
                             <div class="pl-row">

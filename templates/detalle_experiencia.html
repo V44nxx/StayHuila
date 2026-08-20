@@ -514,8 +514,8 @@
             <div class="booking-widget" id="booking-widget">
                 <!-- Precio -->
                 <div class="bw-price-row">
-                        <span class="bw-price">${{ "{:,.0f}".format(experiencia.precio_persona).replace(',', '.') }}
-                            COP</span>
+                    <div>
+                        <span class="bw-price">${{ "{:,.0f}".format(experiencia.precio_persona).replace(',', '.') }} COP</span>
                         <span class="bw-per"> / persona</span>
                         {% if experiencia.descuento_porcentaje %}
                         <div class="bw-discount">-{{ experiencia.descuento_porcentaje }}% Descuento activo</div>
@@ -552,16 +552,26 @@
                     </div>
 
                     <!-- Selector de Sesiones (Horarios) -->
-                    <div id="sesiones-container">
+                    <div id="sesiones-container" style="display: none; margin-top: 1rem;">
                         <label style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text-muted); text-transform: uppercase;">Selecciona un horario</label>
                         <div class="sesion-selector" id="sesion-list">
                             <!-- JS cargará las sesiones aquí -->
                         </div>
-                        <input type="hidden" id="sesion-id" name="sesion_id" required>
+                        <input type="hidden" id="sesion-id" name="sesion_id">
                     </div>
-                    <div class="bw-guests-row" style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+
+                    <div class="bw-guests-row" style="margin-top: 1rem;">
+                        <div class="bw-field" style="width: 100%; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <div>
+                                <label style="margin: 0;">HUÉSPEDES</label>
+                                <p class="bw-max" id="bw-max-text" style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Máx. {{ experiencia.capacidad_max }} personas</p>
+                            </div>
+                            <div class="bw-guests-control">
+                                <button type="button" onclick="changeGuests(-1)"><i class="ph ph-minus"></i></button>
+                                <span id="guest-count">1</span>
+                                <button type="button" onclick="changeGuests(1)"><i class="ph ph-plus"></i></button>
+                            </div>
                         </div>
-                        <p class="bw-max" id="bw-max-text">Máx. {{ experiencia.capacidad_max }} huéspedes</p>
                     </div>
 
                     <!-- Resumen de precios -->
