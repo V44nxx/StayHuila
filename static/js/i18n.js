@@ -15,7 +15,7 @@ const LANGUAGES = {
 const T = {
     es: {
         'nav.lodgings':'Hospedajes','nav.experiences':'Experiencias','nav.community':'Comunidad',
-        'nav.host_panel':'Panel Anfitrión','nav.host_cta':'Pon tu espacio en StayHuila',
+        'nav.host_panel':'Panel Anfitrión','nav.host_cta':'Panel Anfitrión',
         'nav.my_profile':'Mi Perfil','nav.my_bookings':'Mis Reservas',
         'nav.my_favorites':'Mis Favoritos','nav.logout':'Cerrar Sesión','nav.login':'Iniciar Sesión',
         'hero.title':'Descubre la esencia del Huila',
@@ -88,7 +88,7 @@ const T = {
     },
     en: {
         'nav.lodgings':'Lodgings','nav.experiences':'Experiences','nav.community':'Community',
-        'nav.host_panel':'Host Panel','nav.host_cta':'List your space on StayHuila',
+        'nav.host_panel':'Host Panel','nav.host_cta':'Host Panel',
         'nav.my_profile':'My Profile','nav.my_bookings':'My Bookings',
         'nav.my_favorites':'My Favorites','nav.logout':'Log Out','nav.login':'Log In',
         'hero.title':'Discover the Essence of Huila',
@@ -161,7 +161,7 @@ const T = {
     },
     pt: {
         'nav.lodgings':'Hospedagens','nav.experiences':'Experiências','nav.community':'Comunidade',
-        'nav.host_panel':'Painel do Anfitrião','nav.host_cta':'Anuncie seu espaço no StayHuila',
+        'nav.host_panel':'Painel do Anfitrião','nav.host_cta':'Painel do Anfitrião',
         'nav.my_profile':'Meu Perfil','nav.my_bookings':'Minhas Reservas',
         'nav.my_favorites':'Meus Favoritos','nav.logout':'Sair','nav.login':'Entrar',
         'hero.title':'Descubra a Essência do Huila',
@@ -234,7 +234,7 @@ const T = {
     },
     fr: {
         'nav.lodgings':'Hébergements','nav.experiences':'Expériences','nav.community':'Communauté',
-        'nav.host_panel':"Tableau de l'hôte",'nav.host_cta':'Publiez votre logement',
+        'nav.host_panel':"Tableau de l'hôte",'nav.host_cta':"Tableau de l'hôte",
         'nav.my_profile':'Mon Profil','nav.my_bookings':'Mes Réservations',
         'nav.my_favorites':'Mes Favoris','nav.logout':'Se déconnecter','nav.login':'Se connecter',
         'hero.title':'Découvrez l\'essence du Huila',
@@ -307,7 +307,7 @@ const T = {
     },
     it: {
         'nav.lodgings':'Alloggi','nav.experiences':'Esperienze','nav.community':'Comunità',
-        'nav.host_panel':'Pannello Host','nav.host_cta':'Pubblica il tuo spazio',
+        'nav.host_panel':'Pannello Host','nav.host_cta':'Pannello Host',
         'nav.my_profile':'Il Mio Profilo','nav.my_bookings':'Le Mie Prenotazioni',
         'nav.my_favorites':'I Miei Preferiti','nav.logout':'Esci','nav.login':'Accedi',
         'hero.title':'Scopri l\'essenza del Huila',
@@ -442,7 +442,7 @@ const LEXICON = {
         '¡Sé el primero en publicar!': 'Be the first to post!',
         'Comparte una foto o recomendación del Huila.': 'Share a photo or recommendation from Huila.',
         'Explorar': 'Explore', 'Inicio': 'Home', 'Publicar': 'Post',
-        'Pon tu espacio en StayHuila': 'List your space on StayHuila',
+        'Pon tu espacio en StayHuila': 'Host Panel',
         // Amenidades y características
         'WiFi': 'WiFi', 'Piscina': 'Pool', 'Piscina privada': 'Private pool', 'Cocina equipada': 'Equipped kitchen',
         'Parqueadero gratuito': 'Free parking', 'Estacionamiento': 'Parking', 'Aire acondicionado': 'Air conditioning',
@@ -527,7 +527,7 @@ const LEXICON = {
         '¡Sé el primero en publicar!': 'Seja o primeiro a publicar!',
         'Comparte una foto o recomendación del Huila.': 'Compartilhe uma foto ou recomendação do Huila.',
         'Explorar': 'Explorar', 'Inicio': 'Início', 'Publicar': 'Publicar',
-        'Pon tu espacio en StayHuila': 'Anuncie seu espaço no StayHuila',
+        'Pon tu espacio en StayHuila': 'Painel do Anfitrião',
         'WiFi': 'WiFi', 'Piscina': 'Piscina', 'Piscina privada': 'Piscina privativa', 'Cocina equipada': 'Cozinha equipada',
         'Parqueadero gratuito': 'Estacionamento gratuito', 'Estacionamiento': 'Estacionamento', 'Aire acondicionado': 'Ar condicionado',
         'Se admiten mascotas': 'Animais permitidos', 'Zona de trabajo': 'Espaço de trabalho', 'Desayuno incluido': 'Café da manhã incluído',
@@ -610,7 +610,7 @@ const LEXICON = {
         '¡Sé el primero en publicar!': 'Soyez le premier à publier !',
         'Comparte una foto o recomendación del Huila.': 'Partagez une photo ou recommandation du Huila.',
         'Explorar': 'Explorer', 'Inicio': 'Accueil', 'Publicar': 'Publier',
-        'Pon tu espacio en StayHuila': 'Publiez votre logement',
+        'Pon tu espacio en StayHuila': "Tableau de l'hôte",
         'WiFi': 'WiFi', 'Piscina': 'Piscine', 'Piscina privada': 'Piscine privée', 'Cocina equipada': 'Cuisine équipée',
         'Parqueadero gratuito': 'Parking gratuit', 'Estacionamiento': 'Parking', 'Aire acondicionado': 'Climatisation',
         'Se admiten mascotas': 'Animaux acceptés', 'Zona de trabajo': 'Espace de travail', 'Desayuno incluido': 'Petit-déjeuner inclus',
@@ -693,7 +693,7 @@ const LEXICON = {
         '¡Sé el primero en publicar!': 'Sii il primo a pubblicare!',
         'Comparte una foto o recomendación del Huila.': 'Condividi una foto o raccomandazione del Huila.',
         'Explorar': 'Esplora', 'Inicio': 'Home', 'Publicar': 'Pubblica',
-        'Pon tu espacio en StayHuila': 'Pubblica il tuo spazio',
+        'Pon tu espacio en StayHuila': 'Pannello Host',
         'WiFi': 'WiFi', 'Piscina': 'Piscina', 'Piscina privada': 'Piscina privata', 'Cocina equipada': 'Cucina attrezzata',
         'Parqueadero gratuito': 'Parcheggio gratuito', 'Estacionamiento': 'Parcheggio', 'Aire acondicionado': 'Aria condizionata',
         'Se admiten mascotas': 'Animali ammessi', 'Zona de trabajo': 'Spazio di lavoro', 'Desayuno incluido': 'Colazione inclusa',
@@ -1082,11 +1082,7 @@ const I18n = {
         // 2. Links de navegación por href
         Object.entries(NAV_HREF_MAP).forEach(([href, key]) => {
             document.querySelectorAll(`a[href="${href}"]`).forEach(el => {
-                let transKey = key;
-                if (href === '/panel-anfitrion' && (el.classList.contains('host-nav-link') || el.textContent.includes('Pon tu espacio') || el.textContent.includes('List your space') || el.textContent.includes('Anuncie seu') || el.textContent.includes('Publiez') || el.textContent.includes('Pubblica'))) {
-                    transKey = 'nav.host_cta';
-                }
-                const translated = this.t(transKey);
+                const translated = this.t(key);
                 el.childNodes.forEach(node => {
                     if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
                         node.textContent = ' ' + translated;
