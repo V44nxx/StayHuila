@@ -1759,14 +1759,19 @@ def experiencias():
                 except ValueError:
                     pass
 
-            if checkin and checkout:
-                query += """ AND e.id NOT IN (
-                    SELECT experiencia_id FROM reservas
-                    WHERE estado IN ('pendiente_pago','confirmada','check_in')
-                      AND DATE(fecha_experiencia) BETWEEN %s AND %s
-                      AND experiencia_id IS NOT NULL
-                )"""
-                params.extend([checkin, checkout])
+            if checkin:
+                if checkout:
+                    query += """ AND e.id IN (
+                        SELECT DISTINCT experiencia_id FROM experiencia_sesiones
+                        WHERE fecha BETWEEN %s AND %s AND estado = 'disponible' AND cupos_disponibles > 0
+                    )"""
+                    params.extend([checkin, checkout])
+                else:
+                    query += """ AND e.id IN (
+                        SELECT DISTINCT experiencia_id FROM experiencia_sesiones
+                        WHERE fecha = %s AND estado = 'disponible' AND cupos_disponibles > 0
+                    )"""
+                    params.append(checkin)
 
             query += " ORDER BY e.destacado DESC, e.calificacion DESC"
 
@@ -2415,54 +2420,42 @@ def reservar():
                     fo = datetime.strptime(checkout, '%Y-%m-%d').date()
                     noches = max(1, (fo - fi).days)
                     
-                    # ── NUEVA LÓGICA DE DISPONIBILIDAD POR SESIONES ──────────────────
-                    if sesion_id:
-                        # Bloquear sesión para evitar overbooking (SELECT FOR UPDATE)
-                        cur.execute("SELECT * FROM experiencia_sesiones WHERE id=%s FOR UPDATE", (sesion_id,))
-                        sesion = cur.fetchone()
-                        
-                        if not sesion or sesion['estado'] != 'disponible':
-                            flash('La sesión seleccionada ya no está disponible o ha sido cancelada.', 'error')
-                            c.rollback()
-                            return redirect(url_for('detalle_experiencia', id=hid))
-                            
-                        if sesion['cupos_disponibles'] < huespedes:
-                            flash(f'Lo sentimos, solo quedan {sesion["cupos_disponibles"]} cupos para este horario.', 'error')
-                            c.rollback()
-                            return redirect(url_for('detalle_experiencia', id=hid))
-                            
-                        # Actualizar cupos disponibles (Resta atómica)
-                        cur.execute("""
-                            UPDATE experiencia_sesiones 
-                            SET cupos_disponibles = cupos_disponibles - %s 
-                            WHERE id = %s AND cupos_disponibles >= %s
-                        """, (huespedes, sesion_id, huespedes))
-                        
-                        # Si no se afectó ninguna fila, significa que los cupos cambiaron justo antes
-                        if cur.rowcount == 0:
-                            flash('Los cupos se agotaron justo ahora. Por favor intenta con otro horario.', 'error')
-                            c.rollback()
-                            return redirect(url_for('detalle_experiencia', id=hid))
+                    # ── OBLIGATORIEDAD DE SESIONES EN EXPERIENCIAS ──────────────────
+                    if not sesion_id:
+                        flash('Debes seleccionar un horario disponible para reservar esta experiencia.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_experiencia', id=hid))
 
-                        # Si se llenó, actualizar estado
-                        if sesion['cupos_disponibles'] - huespedes <= 0:
-                            cur.execute("UPDATE experiencia_sesiones SET estado = 'lleno' WHERE id = %s", (sesion_id,))
-                    else:
-                        # Lógica antigua (backwards compatibility)
-                        cur.execute("""
-                            SELECT COALESCE(SUM(num_huespedes), 0) as total_booked 
-                            FROM reservas 
-                            WHERE experiencia_id = %s 
-                              AND estado IN ('pendiente_pago', 'confirmada', 'check_in')
-                              AND fecha_checkin = %s
-                        """, (hid, checkin))
-                        row_booked = cur.fetchone()
-                        total_booked = row_booked['total_booked'] if row_booked else 0
+                    # Bloquear sesión para evitar overbooking (SELECT FOR UPDATE)
+                    cur.execute("SELECT * FROM experiencia_sesiones WHERE id=%s AND experiencia_id=%s FOR UPDATE", (sesion_id, hid))
+                    sesion = cur.fetchone()
+                    
+                    if not sesion or sesion['estado'] != 'disponible':
+                        flash('La sesión seleccionada ya no está disponible o ha sido cancelada.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_experiencia', id=hid))
                         
-                        if total_booked + huespedes > hosp['capacidad_max']:
-                            flash('Esta experiencia ya no tiene cupos suficientes para esta fecha.', 'error')
-                            c.rollback()
-                            return redirect(request.referrer)
+                    if sesion['cupos_disponibles'] < huespedes:
+                        flash(f'Lo sentimos, solo quedan {sesion["cupos_disponibles"]} cupos para este horario.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_experiencia', id=hid))
+                        
+                    # Actualizar cupos disponibles (Resta atómica)
+                    cur.execute("""
+                        UPDATE experiencia_sesiones 
+                        SET cupos_disponibles = cupos_disponibles - %s 
+                        WHERE id = %s AND cupos_disponibles >= %s
+                    """, (huespedes, sesion_id, huespedes))
+                    
+                    # Si no se afectó ninguna fila, significa que los cupos cambiaron justo antes
+                    if cur.rowcount == 0:
+                        flash('Los cupos se agotaron justo ahora. Por favor intenta con otro horario.', 'error')
+                        c.rollback()
+                        return redirect(url_for('detalle_experiencia', id=hid))
+
+                    # Si se llenó, actualizar estado
+                    if sesion['cupos_disponibles'] - huespedes <= 0:
+                        cur.execute("UPDATE experiencia_sesiones SET estado = 'lleno' WHERE id = %s", (sesion_id,))
                     # ─────────────────────────────────────────────────────────────
                     
                     precio_base = float(hosp['precio_persona']) * huespedes * noches
@@ -2481,10 +2474,10 @@ def reservar():
                     
                     cur.execute("""
                         INSERT INTO reservas(codigo_reserva, usuario_id, tipo, experiencia_id, sesion_id,
-                            fecha_checkin, fecha_checkout, num_huespedes, precio_base, tarifa_servicio,
+                            fecha_checkin, fecha_checkout, fecha_experiencia, num_huespedes, precio_base, tarifa_servicio,
                             descuento, total, estado, metodo_pago, estado_pago, notas_huesped, fecha_reserva)
-                        VALUES(%s, %s, 'experiencia', %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente_pago', %s, 'pendiente', %s, NOW())
-                    """, (codigo, current_user.id, hid, sesion_id, checkin, checkout, huespedes,
+                        VALUES(%s, %s, 'experiencia', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente_pago', %s, 'pendiente', %s, NOW())
+                    """, (codigo, current_user.id, hid, sesion_id, checkin, checkout, checkin, huespedes,
                           precio_base, tarifa, descuento, total, metodo, notes))
                     rid = cur.lastrowid
                 else:
@@ -2685,9 +2678,18 @@ def reservar():
                     hosp['calificacion'] = fresh['calificacion']
                     hosp['total_resenas'] = fresh['total_resenas']
                 
-                if sesion_id:
-                    cur.execute("SELECT * FROM experiencia_sesiones WHERE id=%s", (sesion_id,))
-                    sesion = cur.fetchone()
+                if not sesion_id:
+                    flash('Debes seleccionar un horario disponible para reservar esta experiencia.', 'error')
+                    return redirect(url_for('detalle_experiencia', id=hid))
+
+                cur.execute("SELECT * FROM experiencia_sesiones WHERE id=%s AND experiencia_id=%s", (sesion_id, hid))
+                sesion = cur.fetchone()
+                if not sesion or sesion['estado'] != 'disponible':
+                    flash('La sesión seleccionada ya no está disponible o ha sido cancelada.', 'error')
+                    return redirect(url_for('detalle_experiencia', id=hid))
+                if sesion['cupos_disponibles'] < huespedes:
+                    flash(f'Solo quedan {sesion["cupos_disponibles"]} cupos disponibles para este horario.', 'error')
+                    return redirect(url_for('detalle_experiencia', id=hid))
                     
                 if hosp['anfitrion_id'] == current_user.id:
                     flash('No puedes reservar tu propia publicación.', 'error')
@@ -3063,7 +3065,8 @@ def panel_anfitrion():
 
             cur.execute("""SELECT e.*,i.url as image,
                 (SELECT COUNT(*) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1) as total_resenas_real,
-                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real
+                COALESCE((SELECT AVG(calificacion_general) FROM resenas WHERE experiencia_id=e.id AND tipo='experiencia' AND publicada=1), 0) as calificacion_real,
+                (SELECT COUNT(*) FROM experiencia_sesiones WHERE experiencia_id=e.id AND fecha >= CURDATE() AND estado = 'disponible' AND cupos_disponibles > 0) as total_sesiones_activas
                 FROM experiencias e
                 LEFT JOIN experiencia_imagenes i ON e.id=i.experiencia_id AND i.es_portada=1
                 WHERE e.anfitrion_id=%s AND e.eliminado=0
@@ -3696,17 +3699,35 @@ def disponibilidad(id):
 
             # --- SI ES EXPERIENCIA, DEVOLVER DÍAS QUE TIENEN SESIONES DISPONIBLES ---
             if tipo == 'experiencia':
+                # Días con sesiones disponibles (cupos > 0 y estado 'disponible')
                 cur.execute("""
                     SELECT DISTINCT fecha 
                     FROM experiencia_sesiones 
-                    WHERE experiencia_id = %s AND fecha >= CURDATE() AND estado IN ('disponible', 'lleno')
+                    WHERE experiencia_id = %s AND fecha >= CURDATE() AND estado = 'disponible' AND cupos_disponibles > 0
+                    ORDER BY fecha ASC
                 """, (id,))
-                dias_con_sesion = [r['fecha'].isoformat() for r in cur.fetchall()]
+                dias_disponibles = [r['fecha'].isoformat() for r in cur.fetchall()]
+
+                # Días que tienen sesiones pero todas están llenas (0 cupos)
+                cur.execute("""
+                    SELECT DISTINCT fecha 
+                    FROM experiencia_sesiones 
+                    WHERE experiencia_id = %s AND fecha >= CURDATE() AND (estado = 'lleno' OR cupos_disponibles <= 0)
+                      AND fecha NOT IN (
+                          SELECT fecha FROM experiencia_sesiones 
+                          WHERE experiencia_id = %s AND fecha >= CURDATE() AND estado = 'disponible' AND cupos_disponibles > 0
+                      )
+                    ORDER BY fecha ASC
+                """, (id, id))
+                dias_llenos = [r['fecha'].isoformat() for r in cur.fetchall()]
                 
                 return jsonify({
                     'success': True,
                     'tipo': 'experiencia',
-                    'dias_disponibles': dias_con_sesion
+                    'dias_disponibles': dias_disponibles,
+                    'dias_llenos': dias_llenos,
+                    'tiene_sesiones': len(dias_disponibles) > 0 or len(dias_llenos) > 0,
+                    'total_sesiones': len(dias_disponibles) + len(dias_llenos)
                 })
 
             # 2. Para hospedajes: obtener estadía mínima/máxima base y reglas de temporada

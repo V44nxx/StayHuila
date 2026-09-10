@@ -319,14 +319,44 @@
     display: flex; align-items: center; justify-content: center;
 }
 .cal-day:hover:not(.blocked):not(.past) {
-    background: var(--bg-color);
+    background: #E2E8F0;
     font-weight: 600;
 }
 .cal-day.past { color: #D1D5DB; cursor: default; }
-.cal-day.blocked { background: #FEE2E2; color: #EF4444; cursor: not-allowed; text-decoration: line-through; border-radius: 0; }
+.cal-day.blocked { 
+    color: #9CA3AF; 
+    cursor: not-allowed; 
+    text-decoration: line-through; 
+    background: #F8FAFC; 
+    opacity: 0.7; 
+}
+.cal-day.full-session {
+    background: #FEE2E2;
+    color: #EF4444;
+    cursor: pointer;
+    text-decoration: line-through;
+    opacity: 1;
+}
+.cal-day.has-session {
+    font-weight: 700;
+    color: #15803d;
+    background: #DCFCE7;
+    border: 1.5px solid #86EFAC;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.cal-day.has-session:hover {
+    background: #BBF7D0;
+    border-color: #4ADE80;
+    transform: scale(1.05);
+}
 .cal-day.today { font-weight: 700; border: 2px solid var(--primary); }
-.cal-day.selected-start { background: var(--primary); color: white; border-radius: 50% 0 0 50%; }
-.cal-day.selected-end { background: var(--primary); color: white; border-radius: 0 50% 50% 0; }
+.cal-day.selected-start, .cal-day.selected-end { 
+    background: var(--primary) !important; 
+    color: white !important; 
+    border-color: var(--primary) !important; 
+    border-radius: 50% !important; 
+}
 .cal-day.selected-range { background: rgba(44,74,59,0.12); border-radius: 0; color: var(--text-main); }
 .cal-day.selected-start.selected-end { border-radius: 50%; }
 .cal-day.empty { cursor: default; }
@@ -334,12 +364,15 @@
 .calendar-legend {
     display: flex; gap: 1.5rem; margin-top: 1rem;
     font-size: 0.85rem; color: var(--text-muted);
+    flex-wrap: wrap;
 }
 .leg-item { display: flex; align-items: center; gap: 0.4rem; }
 .leg-dot {
     width: 14px; height: 14px; border-radius: 50%;
 }
-.leg-dot.blocked { background: #FEE2E2; border: 1px solid #EF4444; border-radius: 3px; }
+.leg-dot.available-session { background: #DCFCE7; border: 1.5px solid #16a34a; }
+.leg-dot.blocked { background: #F8FAFC; border: 1px solid #CBD5E1; }
+.leg-dot.full-session { background: #FEE2E2; border: 1px solid #EF4444; }
 .leg-dot.selected { background: var(--primary); }
 .leg-dot.today { border: 2px solid var(--primary); background: white; }
 

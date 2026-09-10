@@ -56,8 +56,43 @@ function toggleDesc() {
 // ─── BOOKING WIDGET ─────────────────────────────────────────
 let guestCount = 1;
 let selectedSesionId = null;
-let hasCustomSessions = false;
-let availableDates = new Set(); // Declaración única con Set
+let hasCustomSessions = true; // Experiencias siempre requieren sesiones
+let availableDates = new Set();
+let fullDates = new Set();
+let availabilityLoaded = false;
+let hasAnySessions = false;
+
+function updateAvailabilityUI() {
+    const banner = document.getElementById('no-sessions-alert');
+    const reserveBtn = document.getElementById('bw-reserve-btn');
+    const checkinInput = document.getElementById('bw-checkin');
+
+    if (availabilityLoaded && !hasAnySessions) {
+        if (banner) {
+            banner.style.display = 'flex';
+        }
+        if (checkinInput) {
+            checkinInput.disabled = true;
+            checkinInput.style.background = '#f1f5f9';
+            checkinInput.style.cursor = 'not-allowed';
+            checkinInput.title = 'No hay sesiones programadas por el anfitrión';
+        }
+        if (reserveBtn) {
+            reserveBtn.disabled = true;
+            reserveBtn.style.opacity = '0.5';
+            reserveBtn.style.cursor = 'not-allowed';
+            reserveBtn.textContent = 'Sin sesiones disponibles';
+        }
+    } else {
+        if (banner) banner.style.display = 'none';
+        if (checkinInput) {
+            checkinInput.disabled = false;
+            checkinInput.style.background = '';
+            checkinInput.style.cursor = '';
+            checkinInput.title = '';
+        }
+    }
+}
 
 function changeGuests(delta) {
     let currentMax = DATA.max_guests || 10;
@@ -68,8 +103,8 @@ function changeGuests(delta) {
         if (sesionEl) {
             currentMax = parseInt(sesionEl.getAttribute('data-cups')) || currentMax;
         }
-    } else if (hasCustomSessions) {
-        // Si hay sesiones cargadas pero no seleccionada
+    } else {
+        // Si hay sesiones cargadas en el día pero no seleccionada una
         const sesiones = document.querySelectorAll('.sesion-item:not(.disabled)');
         if (sesiones.length > 0) {
             let maxAvail = 0;
@@ -78,6 +113,8 @@ function changeGuests(delta) {
                 if (cups > maxAvail) maxAvail = cups;
             });
             currentMax = maxAvail;
+        } else if (checkinInput && checkinInput.value) {
+            currentMax = 0;
         }
     }
 
@@ -127,16 +164,17 @@ function changeGuests(delta) {
             reserveBtn.style.opacity = '0.5';
             reserveBtn.style.cursor = 'not-allowed';
             reserveBtn.textContent = 'Selecciona fecha';
-        } else if (hasCustomSessions && !selectedSesionId) {
+        } else if (!selectedSesionId) {
+            const hasAvailSessions = document.querySelectorAll('.sesion-item:not(.disabled)').length > 0;
             reserveBtn.disabled = true;
             reserveBtn.style.opacity = '0.5';
             reserveBtn.style.cursor = 'not-allowed';
-            reserveBtn.textContent = 'Selecciona horario';
+            reserveBtn.textContent = hasAvailSessions ? 'Selecciona un horario' : 'Sin sesiones disponibles';
         } else if (currentMax === 0 || guestCount < 1) {
             reserveBtn.disabled = true;
             reserveBtn.style.opacity = '0.5';
             reserveBtn.style.cursor = 'not-allowed';
-            reserveBtn.textContent = 'No disponible';
+            reserveBtn.textContent = 'Agotado';
         } else {
             reserveBtn.disabled = false;
             reserveBtn.style.opacity = '1';
@@ -158,8 +196,33 @@ if (checkinInput) {
     checkinInput.min = todayStr;
 
     checkinInput.addEventListener('change', () => {
-        if (checkinInput.value) {
-            loadSesiones(checkinInput.value);
+        const val = checkinInput.value;
+        if (val) {
+            if (availabilityLoaded && !availableDates.has(val) && !fullDates.has(val)) {
+                showToast('El anfitrión no tiene sesiones programadas para esta fecha. Selecciona una fecha disponible.', 'warning');
+                checkinInput.value = '';
+                selDate = null;
+                const container = document.getElementById('sesiones-container');
+                if (container) {
+                    container.style.display = 'block';
+                    const list = document.getElementById('sesion-list');
+                    if (list) {
+                        list.innerHTML = `
+                            <div class="no-sesiones" style="color:#b91c1c; background:#fee2e2; border:1px solid #fca5a5;">
+                                <i class="ph ph-calendar-x" style="font-size:1.4rem; display:block; margin-bottom:0.3rem;"></i>
+                                <strong>Fecha no disponible</strong><br>
+                                <span style="font-size:0.8rem;">No hay sesiones programadas por el anfitrión para este día.</span>
+                            </div>
+                        `;
+                    }
+                }
+                selectedSesionId = null;
+                changeGuests(0);
+                calcPrice();
+                renderCalendars();
+                return;
+            }
+            loadSesiones(val);
             syncCalendar();
         } else {
             const container = document.getElementById('sesiones-container');
@@ -181,7 +244,6 @@ async function loadSesiones(fecha) {
     if (list) list.innerHTML = '<div class="no-sesiones"><i class="ph ph-circle-notch ph-spin"></i> Buscando horarios...</div>';
     if (inputSesion) inputSesion.value = '';
     selectedSesionId = null;
-    hasCustomSessions = false;
 
     // Resetear el texto del límite en la UI al máximo general
     const maxLabel = document.getElementById('bw-max-text') || document.querySelector('.bw-max');
@@ -194,7 +256,6 @@ async function loadSesiones(fecha) {
         const data = await res.json();
         
         if (data.success && data.sesiones && data.sesiones.length > 0) {
-            hasCustomSessions = true;
             if (list) list.innerHTML = '';
             
             data.sesiones.forEach(s => {
@@ -208,7 +269,7 @@ async function loadSesiones(fecha) {
                 let badgeText = 'Disponible';
                 if (isFull) {
                     badgeClass = 'badge-lleno';
-                    badgeText = 'No disponible';
+                    badgeText = 'Agotado';
                 } else if (s.cupos_disponibles <= 2) {
                     badgeClass = 'badge-pocos';
                     badgeText = `Últimos ${s.cupos_disponibles} cupos`;
@@ -217,12 +278,12 @@ async function loadSesiones(fecha) {
                 item.innerHTML = `
                     <div class="sesion-info">
                         <span class="sesion-time"><i class="ph ph-clock"></i> ${s.hora_inicio} - ${s.hora_fin}</span>
-                        <span class="sesion-cups" style="color: ${isFull ? '#b91c1c' : '#15803d'}">${s.cupos_disponibles} cupos libres</span>
+                        <span class="sesion-cups" style="color: ${isFull ? '#b91c1c' : '#15803d'}">${isFull ? 'Sin cupos disponibles' : s.cupos_disponibles + ' cupos libres'}</span>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
                         <span class="sesion-badge ${badgeClass}">${badgeText}</span>
                         ${isFull && s.estado === 'lleno' ? `
-                            <button onclick="event.stopPropagation(); joinWaitingList(${s.id})" style="font-size:0.7rem; background:none; border:1px solid #b91c1c; color:#b91c1c; padding:2px 6px; border-radius:4px; cursor:pointer;">Unirse a lista de espera</button>
+                            <button type="button" onclick="event.stopPropagation(); joinWaitingList(${s.id})" style="font-size:0.7rem; background:none; border:1px solid #b91c1c; color:#b91c1c; padding:2px 6px; border-radius:4px; cursor:pointer;">Unirse a lista de espera</button>
                         ` : ''}
                     </div>
                 `;
@@ -240,18 +301,26 @@ async function loadSesiones(fecha) {
                 changeGuests(0);
             }
         } else {
-            // Si no hay sesiones personalizadas creadas, permitir reserva con horario habitual
-            hasCustomSessions = false;
-            selectedSesionId = 'general';
+            // No hay sesiones creadas por el anfitrión para esta fecha
+            selectedSesionId = null;
             if (inputSesion) inputSesion.value = '';
-            if (container) container.style.display = 'none';
+            if (list) {
+                list.innerHTML = `
+                    <div class="no-sesiones" style="color:#991b1b; background:#fee2e2; border:1px solid #fca5a5;">
+                        <i class="ph-fill ph-calendar-x" style="font-size:1.5rem; display:block; margin-bottom:0.3rem;"></i>
+                        <strong>Sin sesiones programadas</strong><br>
+                        <span style="font-size:0.8rem;">El anfitrión no ha programado horarios para esta fecha.</span>
+                    </div>
+                `;
+            }
             changeGuests(0);
         }
     } catch (err) {
         console.error('Error cargando sesiones:', err);
-        hasCustomSessions = false;
-        selectedSesionId = 'general';
-        if (container) container.style.display = 'none';
+        selectedSesionId = null;
+        if (list) {
+            list.innerHTML = '<div class="no-sesiones" style="color:#b91c1c;">Error al cargar los horarios de la experiencia.</div>';
+        }
         changeGuests(0);
     }
 }
@@ -312,7 +381,7 @@ function calcPrice() {
     const summary = document.getElementById('price-summary');
     if (!summary) return;
     
-    if (!checkinInput || !checkinInput.value || (hasCustomSessions && !selectedSesionId)) {
+    if (!checkinInput || !checkinInput.value || !selectedSesionId || selectedSesionId === 'general') {
         summary.style.display = 'none';
         return;
     }
@@ -348,11 +417,11 @@ if (bwForm) {
     bwForm.addEventListener('submit', e => {
         e.preventDefault();
         if (!checkinInput || !checkinInput.value) {
-            showToast('Por favor selecciona una fecha');
+            showToast('Por favor selecciona una fecha disponible.');
             return;
         }
-        if (hasCustomSessions && (!selectedSesionId || selectedSesionId === 'general')) {
-            showToast('Por favor selecciona un horario (sesión)');
+        if (!selectedSesionId || selectedSesionId === 'general') {
+            showToast('Por favor selecciona un horario disponible para continuar.', 'warning');
             return;
         }
         
@@ -361,12 +430,9 @@ if (bwForm) {
             tipo: 'experiencia',
             checkin: checkinInput.value,
             checkout: checkinInput.value, // Las experiencias son el mismo día
-            huespedes: guestCount
+            huespedes: guestCount,
+            sesion_id: selectedSesionId
         });
-        
-        if (selectedSesionId && selectedSesionId !== 'general') {
-            params.append('sesion_id', selectedSesionId);
-        }
         
         const reservarUrl = '/reservar?' + params.toString();
         // Verificar si hay sesión activa
@@ -419,12 +485,20 @@ let selDate = null;
 fetch(`/api/disponibilidad/${DATA.id}?tipo=experiencia`)
     .then(r => r.json())
     .then(data => {
-        if (data.success && data.dias_disponibles && data.dias_disponibles.length > 0) {
-            availableDates = new Set(data.dias_disponibles);
+        availabilityLoaded = true;
+        if (data.success) {
+            availableDates = new Set(data.dias_disponibles || []);
+            fullDates = new Set(data.dias_llenos || []);
+            hasAnySessions = !!(data.tiene_sesiones || availableDates.size > 0 || fullDates.size > 0);
         }
+        updateAvailabilityUI();
         renderCalendars();
     })
-    .catch(() => renderCalendars());
+    .catch(() => {
+        availabilityLoaded = true;
+        updateAvailabilityUI();
+        renderCalendars();
+    });
 
 function renderCalendars() {
     const container = document.getElementById('calendar-container');
@@ -486,15 +560,31 @@ function buildMonth(year, month) {
 
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dateObj = new Date(year, month, day);
+        const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-        if (dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+        if (isPast) {
             el.classList.add('past');
-        } else if (availableDates.size > 0 && !availableDates.has(dateStr)) {
+        } else if (!availabilityLoaded) {
+            // Mientras carga la disponibilidad
             el.classList.add('blocked');
-        } else {
+        } else if (availableDates.has(dateStr)) {
+            // FECHA CON SESIONES DISPONIBLES (PROGRAMADA POR EL ANFITRIÓN)
+            el.classList.add('has-session');
             if (dateStr === todayStr) el.classList.add('today');
             if (selDate === dateStr) el.classList.add('selected-start', 'selected-end');
             el.addEventListener('click', () => handleDayClick(dateStr));
+            el.title = 'Sesión disponible';
+        } else if (fullDates.has(dateStr)) {
+            // SESIONES PROGRAMADAS PERO SIN CUPOS
+            el.classList.add('blocked', 'full-session');
+            if (dateStr === todayStr) el.classList.add('today');
+            if (selDate === dateStr) el.classList.add('selected-start', 'selected-end');
+            el.addEventListener('click', () => handleDayClick(dateStr));
+            el.title = 'Horarios agotados';
+        } else {
+            // DÍA SIN SESIONES PROGRAMADAS POR EL ANFITRIÓN: BLOQUEADO
+            el.classList.add('blocked');
+            el.title = 'Sin sesiones programadas';
         }
 
         grid.appendChild(el);

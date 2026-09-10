@@ -364,12 +364,24 @@
             <!-- CALENDARIO INTERACTIVO -->
             <div class="detalle-card calendar-card">
                 <h2 class="section-title">Selecciona tus fechas</h2>
-                <p class="calendar-subtitle">Añade fechas para ver el precio exacto</p>
+                <p class="calendar-subtitle">Solo las fechas con sesiones programadas por el anfitrión están disponibles para reserva</p>
+                
+                <!-- Aviso si no hay sesiones disponibles -->
+                <div id="no-sessions-alert" style="display:none; background:#fffbeb; border:1.5px solid #fde68a; border-radius:14px; padding:1.1rem 1.3rem; align-items:center; gap:0.9rem; margin:1rem 0;">
+                    <i class="ph-fill ph-calendar-x" style="font-size:2rem; color:#d97706; flex-shrink:0;"></i>
+                    <div>
+                        <div style="font-weight:700; color:#92400e; font-size:0.95rem;">Sin fechas programadas actualmente</div>
+                        <div style="font-size:0.85rem; color:#b45309; margin-top:0.15rem;">El anfitrión aún no ha habilitado sesiones u horarios para esta actividad. No es posible realizar reservas en fechas sin programación.</div>
+                    </div>
+                </div>
+
                 <div class="calendar-container" id="calendar-container">
                     <!-- Calendario JS -->
                 </div>
                 <div class="calendar-legend">
-                    <span class="leg-item"><span class="leg-dot blocked"></span> No disponible</span>
+                    <span class="leg-item"><span class="leg-dot available-session"></span> Sesión disponible</span>
+                    <span class="leg-item"><span class="leg-dot blocked"></span> Sin programación</span>
+                    <span class="leg-item"><span class="leg-dot full-session"></span> Agotado</span>
                     <span class="leg-item"><span class="leg-dot selected"></span> Seleccionado</span>
                     <span class="leg-item"><span class="leg-dot today"></span> Hoy</span>
                 </div>
