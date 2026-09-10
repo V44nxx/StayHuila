@@ -798,6 +798,19 @@
             document.getElementById('create-session-form').reset();
         }
 
+        function checkOvernightHint() {
+            const ini = document.getElementById('sm-hora-inicio');
+            const fin = document.getElementById('sm-hora-fin');
+            const hint = document.getElementById('sm-overnight-hint');
+            if (ini && fin && hint) {
+                if (fin.value && ini.value && fin.value <= ini.value) {
+                    hint.style.display = 'flex';
+                } else {
+                    hint.style.display = 'none';
+                }
+            }
+        }
+
         async function loadSessionsManager(expId) {
             const list = document.getElementById('sm-sessions-list');
             list.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="ph ph-circle-notch ph-spin" style="font-size:2rem; color:var(--primary);"></i><p style="margin-top:0.5rem; color:var(--text-muted);">Cargando sesiones...</p></div>';
@@ -820,11 +833,15 @@
                         const localDate = new Date(y, m - 1, d);
                         const isPast = new Date(s.fecha + 'T' + s.hora_inicio) < new Date();
                         const statusColor = s.estado === 'disponible' ? '#15803d' : (s.estado === 'lleno' ? '#b91c1c' : '#64748b');
+                        const isOvernight = s.hora_fin <= s.hora_inicio;
+                        const timeRange = isOvernight 
+                            ? `${s.hora_inicio} - ${s.hora_fin} <span style="color:#b45309; font-weight:600; font-size:0.8rem;">(+1 día)</span>`
+                            : `${s.hora_inicio} - ${s.hora_fin}`;
                         
                         item.innerHTML = `
                             <div style="display:flex; flex-direction:column; gap:0.2rem;">
                                 <div style="font-weight:700; color:var(--text-main); font-size:0.95rem;">
-                                    ${localDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })} | ${s.hora_inicio}
+                                    ${localDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })} | ${timeRange}
                                 </div>
                                 <div style="font-size:0.8rem; color:var(--text-muted);">
                                     <i class="ph ph-users"></i> ${s.cupos_disponibles} / ${s.cupos_totales} cupos

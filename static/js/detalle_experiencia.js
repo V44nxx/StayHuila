@@ -275,9 +275,14 @@ async function loadSesiones(fecha) {
                     badgeText = `Últimos ${s.cupos_disponibles} cupos`;
                 }
 
+                const isOvernight = s.hora_fin <= s.hora_inicio;
+                const timeDisplay = isOvernight 
+                    ? `${s.hora_inicio} - ${s.hora_fin} <span style="font-size:0.75rem; color:#b45309; font-weight:600;">(+1 día)</span>` 
+                    : `${s.hora_inicio} - ${s.hora_fin}`;
+
                 item.innerHTML = `
                     <div class="sesion-info">
-                        <span class="sesion-time"><i class="ph ph-clock"></i> ${s.hora_inicio} - ${s.hora_fin}</span>
+                        <span class="sesion-time"><i class="ph ph-clock"></i> ${timeDisplay}</span>
                         <span class="sesion-cups" style="color: ${isFull ? '#b91c1c' : '#15803d'}">${isFull ? 'Sin cupos disponibles' : s.cupos_disponibles + ' cupos libres'}</span>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">

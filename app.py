@@ -3607,18 +3607,91 @@ def api_crear_sesion():
     if not all([exp_id, fecha, h_inicio, h_fin, cupos]):
         return jsonify({'success': False, 'error': 'Datos incompletos'}), 400
 
+    try:
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        t_inicio = datetime.strptime(h_inicio[:5], '%H:%M').time()
+        t_fin = datetime.strptime(h_fin[:5], '%H:%M').time()
+        cupos_int = int(cupos)
+        if cupos_int <= 0:
+            return jsonify({'success': False, 'error': 'Los cupos deben ser mayores a 0'}), 400
+    except Exception:
+        return jsonify({'success': False, 'error': 'Formato de fecha u hora no válido'}), 400
+
+    # Construir datetimes absolutos de inicio y fin
+    start_dt_new = datetime.combine(fecha_obj, t_inicio)
+    if t_fin <= t_inicio:
+        # Cruza la medianoche (finaliza en la madrugada del día siguiente)
+        end_dt_new = datetime.combine(fecha_obj + timedelta(days=1), t_fin)
+    else:
+        end_dt_new = datetime.combine(fecha_obj, t_fin)
+
+    # Validar que no sea en el pasado
+    if start_dt_new < datetime.now():
+        return jsonify({'success': False, 'error': 'No puedes programar sesiones en fechas u horarios pasados'}), 400
+
+    BUFFER_MINUTOS = 10
+    buffer_td = timedelta(minutes=BUFFER_MINUTOS)
+
     c = db()
     try:
         with c.cursor() as cur:
-            # Verificar permiso
+            # Verificar permiso del anfitrión sobre la experiencia
             cur.execute("SELECT id FROM experiencias WHERE id=%s AND anfitrion_id=%s", (exp_id, current_user.id))
             if not cur.fetchone():
                 return jsonify({'success': False, 'error': 'Sin permiso'}), 403
 
+            # Consultar sesiones activas del anfitrión en fechas cercanas (±2 días)
+            fecha_min = fecha_obj - timedelta(days=2)
+            fecha_max = fecha_obj + timedelta(days=2)
+
+            cur.execute("""
+                SELECT s.id, s.fecha, s.hora_inicio, s.hora_fin, e.nombre as exp_nombre, e.id as exp_id
+                FROM experiencia_sesiones s
+                JOIN experiencias e ON s.experiencia_id = e.id
+                WHERE e.anfitrion_id = %s 
+                  AND s.estado IN ('disponible', 'lleno')
+                  AND s.fecha BETWEEN %s AND %s
+            """, (current_user.id, fecha_min, fecha_max))
+            sesiones_existentes = cur.fetchall()
+
+            for s in sesiones_existentes:
+                s_fecha = s['fecha']
+                # Normalizar hora inicio
+                if isinstance(s['hora_inicio'], timedelta):
+                    s_tinicio = (datetime.min + s['hora_inicio']).time()
+                elif isinstance(s['hora_inicio'], dt_time):
+                    s_tinicio = s['hora_inicio']
+                else:
+                    s_tinicio = datetime.strptime(str(s['hora_inicio'])[:5], '%H:%M').time()
+
+                # Normalizar hora fin
+                if isinstance(s['hora_fin'], timedelta):
+                    s_tfin = (datetime.min + s['hora_fin']).time()
+                elif isinstance(s['hora_fin'], dt_time):
+                    s_tfin = s['hora_fin']
+                else:
+                    s_tfin = datetime.strptime(str(s['hora_fin'])[:5], '%H:%M').time()
+
+                s_start_dt = datetime.combine(s_fecha, s_tinicio)
+                if s_tfin <= s_tinicio:
+                    s_end_dt = datetime.combine(s_fecha + timedelta(days=1), s_tfin)
+                else:
+                    s_end_dt = datetime.combine(s_fecha, s_tfin)
+
+                # Regla de solapamiento con margen de 10 minutos
+                if start_dt_new < (s_end_dt + buffer_td) and s_start_dt < (end_dt_new + buffer_td):
+                    h_ini_str = s_start_dt.strftime('%d/%m %I:%M %p')
+                    h_fin_str = s_end_dt.strftime('%d/%m %I:%M %p')
+                    if s['exp_id'] == exp_id:
+                        msg = f"Conflicto de horario: Ya tienes una sesión programada de {h_ini_str} a {h_fin_str}. Debe haber al menos {BUFFER_MINUTOS} minutos de margen entre sesiones."
+                    else:
+                        msg = f"Conflicto de horario: Ya tienes la experiencia '{s['exp_nombre']}' de {h_ini_str} a {h_fin_str}. Debe haber al menos {BUFFER_MINUTOS} minutos de margen entre sesiones."
+                    return jsonify({'success': False, 'error': msg}), 400
+
             cur.execute("""
                 INSERT INTO experiencia_sesiones (experiencia_id, fecha, hora_inicio, hora_fin, cupos_totales, cupos_disponibles)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (exp_id, fecha, h_inicio, h_fin, cupos, cupos))
+            """, (exp_id, fecha, h_inicio, h_fin, cupos_int, cupos_int))
             c.commit()
             return jsonify({'success': True})
     except Exception as e:

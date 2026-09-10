@@ -112,7 +112,7 @@
                             <input type="date" name="checkin" id="inp-checkin" value="{{ checkin }}" required readonly style="background:#f8fafc; cursor:not-allowed;" title="Fecha establecida por el horario seleccionado">
                             {% if sesion %}
                             <div style="margin-top:0.4rem; font-size:0.82rem; color:var(--primary); font-weight:700; display:flex; align-items:center; gap:4px;">
-                                <i class="ph ph-clock"></i> Horario: {{ sesion.hora_inicio }} - {{ sesion.hora_fin }}
+                                <i class="ph ph-clock"></i> Horario: {{ sesion.hora_inicio }} - {{ sesion.hora_fin }}{% if sesion.hora_fin <= sesion.hora_inicio %} <span style="color:#b45309; font-weight:600;">(+1 día)</span>{% endif %}
                             </div>
                             {% endif %}
                             {% else %}
