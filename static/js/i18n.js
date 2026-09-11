@@ -17,7 +17,7 @@ const T = {
         'nav.lodgings':'Hospedajes','nav.experiences':'Experiencias','nav.community':'Comunidad',
         'nav.host_panel':'Panel Anfitrión','nav.host_cta':'Panel Anfitrión',
         'nav.my_profile':'Mi Perfil','nav.my_bookings':'Mis Reservas',
-        'nav.my_favorites':'Mis Favoritos','nav.logout':'Cerrar Sesión','nav.login':'Iniciar Sesión',
+        'nav.my_favorites':'Mis Favoritos','nav.logout':'Cerrar Sesión','nav.login':'Iniciar Sesión','nav.register':'Registrarse',
         'hero.title':'Descubre la esencia del Huila',
         'hero.subtitle':'Hospedajes rurales, fincas y cabañas mágicas recomendadas para ti',
         'hero.loc':'Ubicación / Experiencia','hero.checkin':'Llegada','hero.checkout':'Salida',
@@ -90,7 +90,7 @@ const T = {
         'nav.lodgings':'Lodgings','nav.experiences':'Experiences','nav.community':'Community',
         'nav.host_panel':'Host Panel','nav.host_cta':'Host Panel',
         'nav.my_profile':'My Profile','nav.my_bookings':'My Bookings',
-        'nav.my_favorites':'My Favorites','nav.logout':'Log Out','nav.login':'Log In',
+        'nav.my_favorites':'My Favorites','nav.logout':'Log Out','nav.login':'Log In','nav.register':'Sign Up',
         'hero.title':'Discover the Essence of Huila',
         'hero.subtitle':'Rural lodgings, farms & magical cabins recommended for you',
         'hero.loc':'Location / Experience','hero.checkin':'Check-in','hero.checkout':'Check-out',
@@ -163,7 +163,7 @@ const T = {
         'nav.lodgings':'Hospedagens','nav.experiences':'Experiências','nav.community':'Comunidade',
         'nav.host_panel':'Painel do Anfitrião','nav.host_cta':'Painel do Anfitrião',
         'nav.my_profile':'Meu Perfil','nav.my_bookings':'Minhas Reservas',
-        'nav.my_favorites':'Meus Favoritos','nav.logout':'Sair','nav.login':'Entrar',
+        'nav.my_favorites':'Meus Favoritos','nav.logout':'Sair','nav.login':'Entrar','nav.register':'Registrar',
         'hero.title':'Descubra a Essência do Huila',
         'hero.subtitle':'Hospedagens rurais, fazendas e cabanas mágicas recomendadas para você',
         'hero.loc':'Localização / Experiência','hero.checkin':'Check-in','hero.checkout':'Check-out',
@@ -236,7 +236,7 @@ const T = {
         'nav.lodgings':'Hébergements','nav.experiences':'Expériences','nav.community':'Communauté',
         'nav.host_panel':"Tableau de l'hôte",'nav.host_cta':"Tableau de l'hôte",
         'nav.my_profile':'Mon Profil','nav.my_bookings':'Mes Réservations',
-        'nav.my_favorites':'Mes Favoris','nav.logout':'Se déconnecter','nav.login':'Se connecter',
+        'nav.my_favorites':'Mes Favoris','nav.logout':'Se déconnecter','nav.login':'Se connecter','nav.register':"S'inscrire",
         'hero.title':'Découvrez l\'essence du Huila',
         'hero.subtitle':'Hébergements ruraux, domaines et chalets magiques recommandés pour vous',
         'hero.loc':'Emplacement / Expérience','hero.checkin':'Arrivée','hero.checkout':'Départ',
@@ -309,7 +309,7 @@ const T = {
         'nav.lodgings':'Alloggi','nav.experiences':'Esperienze','nav.community':'Comunità',
         'nav.host_panel':'Pannello Host','nav.host_cta':'Pannello Host',
         'nav.my_profile':'Il Mio Profilo','nav.my_bookings':'Le Mie Prenotazioni',
-        'nav.my_favorites':'I Miei Preferiti','nav.logout':'Esci','nav.login':'Accedi',
+        'nav.my_favorites':'I Miei Preferiti','nav.logout':'Esci','nav.login':'Accedi','nav.register':'Registrati',
         'hero.title':'Scopri l\'essenza del Huila',
         'hero.subtitle':'Alloggi rurali, tenute e baite magiche consigliate per te',
         'hero.loc':'Posizione / Esperienza','hero.checkin':'Arrivo','hero.checkout':'Partenza',
@@ -391,6 +391,7 @@ const NAV_HREF_MAP = {
     '/favoritos': 'nav.my_favorites',
     '/logout': 'nav.logout',
     '/login': 'nav.login',
+    '/login?tab=register': 'nav.register',
 };
 
 /* ── Comprehensive Tourism, Amenities, Rules & Lexicon Map ─ */
@@ -996,13 +997,13 @@ let translateTimeout = null;
 // Purgar versiones antiguas o contaminadas de caché
 try {
     Object.keys(localStorage).forEach(k => {
-        if (k.startsWith('sh_trans_') && !k.startsWith('sh_trans_v5_')) {
+        if (k.startsWith('sh_trans_') && !k.startsWith('sh_trans_v6_')) {
             localStorage.removeItem(k);
         }
     });
 } catch (e) {}
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 function getLangCache(code) {
     try {
         const cached = localStorage.getItem(`sh_trans_${CACHE_VERSION}_${code}`);
@@ -1068,7 +1069,10 @@ const I18n = {
     apply() {
         const code = this.current;
 
-        // 1. Atributos data-i18n
+        // 1. Aplicar traducciones automáticas primero al cuerpo (TreeWalker omite navbar y enlaces explícitos)
+        applyAllTranslations(document.body, code);
+
+        // 2. Elementos con data-i18n explícito
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const val = this.t(el.getAttribute('data-i18n'));
             const attr = el.getAttribute('data-i18n-attr');
@@ -1076,23 +1080,34 @@ const I18n = {
             else el.textContent = val;
         });
 
-        // 2. Links de navegación por href
+        // 3. Links de navegación explícitos (navbar, menús desplegables y enlaces móviles)
+        this.translateNav(code);
+    },
+
+    translateNav(code = this.current) {
         Object.entries(NAV_HREF_MAP).forEach(([href, key]) => {
-            document.querySelectorAll(`a[href="${href}"]`).forEach(el => {
-                const translated = this.t(key);
+            const translated = this.t(key);
+            if (!translated) return;
+            document.querySelectorAll(`a[href="${href}"], a[href^="${href}?"]`).forEach(el => {
+                const hasIcon = !!el.querySelector('i, svg, img');
+                let textUpdated = false;
                 el.childNodes.forEach(node => {
                     if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
-                        node.textContent = ' ' + translated;
+                        node.textContent = hasIcon ? (' ' + translated) : translated;
+                        textUpdated = true;
                     }
                 });
-                el.querySelectorAll('span:not([data-i18n])').forEach(span => {
-                    if (span.textContent.trim()) span.textContent = translated;
+                el.querySelectorAll('span:not([data-i18n]):not(.nav-badge)').forEach(span => {
+                    if (span.textContent.trim()) {
+                        span.textContent = translated;
+                        textUpdated = true;
+                    }
                 });
+                if (!textUpdated && !hasIcon && !el.children.length) {
+                    el.textContent = translated;
+                }
             });
         });
-
-        // 3. Aplicar traducciones a todos los nodos de texto y atributos
-        applyAllTranslations(document.body, code);
     },
 
     updateSelector() {
@@ -1116,7 +1131,7 @@ function applyAllTranslations(root = document.body, code = I18n.current) {
     if (code === 'es') {
         // Restaurar originales al instante
         TRACKED_TEXT_NODES.forEach(node => {
-            if (!node.isConnected) {
+            if (!node.isConnected || (node.parentElement && (node.parentElement.closest('.navbar') || node.parentElement.closest('.profile-dropdown') || node.parentElement.closest('[data-i18n]')))) {
                 TRACKED_TEXT_NODES.delete(node);
                 return;
             }
@@ -1140,6 +1155,12 @@ function applyAllTranslations(root = document.body, code = I18n.current) {
             const parent = node.parentElement;
             if (!parent || skip.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
             if (parent.closest('[data-no-i18n]') || parent.closest('.language-selector') || parent.closest('.lang-dropdown')) return NodeFilter.FILTER_REJECT;
+            if (parent.closest('[data-i18n]') || parent.closest('.navbar') || parent.closest('.nav-links') || parent.closest('.profile-dropdown')) return NodeFilter.FILTER_REJECT;
+            const aLink = parent.closest('a[href]');
+            if (aLink) {
+                const rawHref = (aLink.getAttribute('href') || '').split('?')[0];
+                if (NAV_HREF_MAP[rawHref]) return NodeFilter.FILTER_REJECT;
+            }
             return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
         }
     });
@@ -1489,6 +1510,7 @@ async function flushTranslations(immediate = false) {
 
         if (observer) observer.disconnect();
         applyAllTranslations(document.body, code);
+        I18n.translateNav(code);
         if (observer) observer.observe(document.body, { childList: true, subtree: true });
 
     } catch (e) {}
