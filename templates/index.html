@@ -133,17 +133,17 @@
                         <strong>{{ current_user.nombre }} {{ current_user.apellido }}</strong>
                         <span>{{ current_user.email }}</span>
                     </div>
-                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> Mi Perfil</a>
-                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> Mis Reservas</a>
-                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> Mis Favoritos</a>
+                    <a href="/perfil" class="dropdown-item"><i class="ph ph-user"></i> <span data-i18n="nav.my_profile">Mi Perfil</span></a>
+                    <a href="/mis-reservas" class="dropdown-item"><i class="ph ph-calendar-check"></i> <span data-i18n="nav.my_bookings">Mis Reservas</span></a>
+                    <a href="/favoritos" class="dropdown-item"><i class="ph ph-heart"></i> <span data-i18n="nav.my_favorites">Mis Favoritos</span></a>
                     <div class="dropdown-divider mobile-only-link"></div>
-                    <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> Hospedajes</a>
-                    <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> Experiencias</a>
-                    <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> Comunidad</a>
+                    <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> <span data-i18n="nav.lodgings">Hospedajes</span></a>
+                    <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> <span data-i18n="nav.experiences">Experiencias</span></a>
+                    <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> <span data-i18n="nav.community">Comunidad</span></a>
                     <div class="dropdown-divider"></div>
-                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span data-i18n="nav.host_panel">Panel Anfitrión</span></a>
                     <div class="dropdown-divider"></div>
-                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> Cerrar Sesión</a>
+                    <a href="/logout" class="dropdown-item danger"><i class="ph ph-sign-out"></i> <span data-i18n="nav.logout">Cerrar Sesión</span></a>
                 </div>
             </div>
             {% else %}
@@ -151,14 +151,14 @@
                 <i class="ph ph-list"></i>
                 <i class="ph-fill ph-user-circle"></i>
                 <div class="profile-dropdown" id="user-dropdown" onclick="event.stopPropagation()">
-                    <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> Hospedajes</a>
-                    <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> Experiencias</a>
-                    <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> Comunidad</a>
+                    <a href="/hospedajes" class="dropdown-item mobile-only-link"><i class="ph ph-bed"></i> <span data-i18n="nav.lodgings">Hospedajes</span></a>
+                    <a href="/experiencias" class="dropdown-item mobile-only-link"><i class="ph ph-compass"></i> <span data-i18n="nav.experiences">Experiencias</span></a>
+                    <a href="/comunidad" class="dropdown-item mobile-only-link"><i class="ph ph-users-three"></i> <span data-i18n="nav.community">Comunidad</span></a>
                     <div class="dropdown-divider mobile-only-link"></div>
-                    <a href="/login" class="dropdown-item"><i class="ph ph-sign-in"></i> Iniciar Sesión</a>
-                    <a href="/registro" class="dropdown-item"><i class="ph ph-user-plus"></i> Registrarse</a>
+                    <a href="/login" class="dropdown-item"><i class="ph ph-sign-in"></i> <span data-i18n="nav.login">Iniciar Sesión</span></a>
+                    <a href="/registro" class="dropdown-item"><i class="ph ph-user-plus"></i> <span data-i18n="nav.register">Registrarse</span></a>
                     <div class="dropdown-divider"></div>
-                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> Panel Anfitrión</a>
+                    <a href="/panel-anfitrion" class="dropdown-item"><i class="ph ph-house-line"></i> <span data-i18n="nav.host_panel">Panel Anfitrión</span></a>
                 </div>
             </div>
             {% endif %}

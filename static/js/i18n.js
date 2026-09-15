@@ -391,6 +391,7 @@ const NAV_HREF_MAP = {
     '/favoritos': 'nav.my_favorites',
     '/logout': 'nav.logout',
     '/login': 'nav.login',
+    '/registro': 'nav.register',
     '/login?tab=register': 'nav.register',
 };
 
@@ -1048,8 +1049,9 @@ function isTranslatable(text) {
 const I18n = {
     current: localStorage.getItem('sh_lang') || 'es',
 
-    t(key) {
-        return (T[this.current] || T['es'])[key] || (T['es'][key] || key);
+    t(key, lang = this.current) {
+        const langObj = T[lang] || T['es'] || {};
+        return langObj[key] || (T['es'] ? T['es'][key] : null) || key;
     },
 
     setLang(code) {
@@ -1061,6 +1063,7 @@ const I18n = {
         // Ejecución síncrona instantánea en todo el DOM
         this.apply();
         this.updateSelector();
+        buildLangDropdown();
 
         // Flush inmediato sin esperar debounce
         flushTranslations(true);
@@ -1074,7 +1077,7 @@ const I18n = {
 
         // 2. Elementos con data-i18n explícito
         document.querySelectorAll('[data-i18n]').forEach(el => {
-            const val = this.t(el.getAttribute('data-i18n'));
+            const val = this.t(el.getAttribute('data-i18n'), code);
             const attr = el.getAttribute('data-i18n-attr');
             if (attr) el.setAttribute(attr, val);
             else el.textContent = val;
@@ -1086,23 +1089,31 @@ const I18n = {
 
     translateNav(code = this.current) {
         Object.entries(NAV_HREF_MAP).forEach(([href, key]) => {
-            const translated = this.t(key);
+            const translated = this.t(key, code);
             if (!translated) return;
             document.querySelectorAll(`a[href="${href}"], a[href^="${href}?"]`).forEach(el => {
                 const hasIcon = !!el.querySelector('i, svg, img');
                 let textUpdated = false;
-                el.childNodes.forEach(node => {
-                    if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
-                        node.textContent = hasIcon ? (' ' + translated) : translated;
-                        textUpdated = true;
-                    }
-                });
-                el.querySelectorAll('span:not([data-i18n]):not(.nav-badge)').forEach(span => {
+
+                // 1. Si contiene spans internos (con o sin data-i18n), actualizar el span
+                el.querySelectorAll('span:not(.nav-badge)').forEach(span => {
                     if (span.textContent.trim()) {
                         span.textContent = translated;
                         textUpdated = true;
                     }
                 });
+
+                // 2. Si no se actualizó vía span, buscar nodos de texto directos
+                if (!textUpdated) {
+                    el.childNodes.forEach(node => {
+                        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                            node.textContent = hasIcon ? (' ' + translated) : translated;
+                            textUpdated = true;
+                        }
+                    });
+                }
+
+                // 3. Si no tiene hijos ni iconos, actualizar texto directo
                 if (!textUpdated && !hasIcon && !el.children.length) {
                     el.textContent = translated;
                 }
@@ -1131,7 +1142,13 @@ function applyAllTranslations(root = document.body, code = I18n.current) {
     if (code === 'es') {
         // Restaurar originales al instante
         TRACKED_TEXT_NODES.forEach(node => {
-            if (!node.isConnected || (node.parentElement && (node.parentElement.closest('.navbar') || node.parentElement.closest('.profile-dropdown') || node.parentElement.closest('[data-i18n]')))) {
+            if (!node.isConnected || (node.parentElement && (
+                node.parentElement.closest('.navbar') ||
+                node.parentElement.closest('.nav-links') ||
+                node.parentElement.closest('.profile-dropdown') ||
+                node.parentElement.closest('[data-i18n]') ||
+                (node.parentElement.closest('a[href]') && NAV_HREF_MAP[(node.parentElement.closest('a[href]').getAttribute('href') || '').split('?')[0]])
+            ))) {
                 TRACKED_TEXT_NODES.delete(node);
                 return;
             }
@@ -1508,6 +1525,9 @@ async function flushTranslations(immediate = false) {
 
         setLangCache(code, cache);
 
+        // Si el usuario cambió de idioma mientras la petición estaba en vuelo, no aplicar traducciones obsoletas
+        if (I18n.current !== code) return;
+
         if (observer) observer.disconnect();
         applyAllTranslations(document.body, code);
         I18n.translateNav(code);
@@ -1615,7 +1635,6 @@ function toggleLangDropdown(e) {
 
 function closeLangDropdown() {
     document.querySelectorAll('.lang-dropdown').forEach(d => d.style.display = 'none');
-    buildLangDropdown();
 }
 
 document.addEventListener('click', closeLangDropdown);
